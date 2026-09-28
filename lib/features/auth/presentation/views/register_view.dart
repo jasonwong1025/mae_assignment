@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../shared/utils/validators.dart';
-import '../../../../shared/widgets/app_back_button.dart';
 import '../../../../shared/widgets/bottom_action_bar.dart';
+import '../../../../shared/widgets/brand_header.dart';
 import '../../../../shared/widgets/google_sign_in_button.dart';
 import '../../../../shared/widgets/labeled_text_field.dart';
 import '../../../../shared/widgets/or_divider.dart';
@@ -82,11 +82,8 @@ class _RegisterViewState extends State<RegisterView> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Align(
-                              alignment: Alignment.centerLeft,
-                              child: AppBackButton(),
-                            ),
-                            const SizedBox(height: 24),
+                            const BrandHeader(showBackButton: true),
+                            const SizedBox(height: 32),
                             Text(
                               'Create your account',
                               style: textTheme.headlineMedium,

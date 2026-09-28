@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/router/app_router.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_theme.dart';
 
@@ -10,8 +11,18 @@ import '../../app/theme/app_theme.dart';
 class AppBackButton extends StatelessWidget {
   const AppBackButton({super.key, this.onPressed});
 
-  /// Defaults to popping the current page.
+  /// Defaults to going back one page.
   final VoidCallback? onPressed;
+
+  /// If there is no page to go back to (e.g. the page was opened directly
+  /// by URL on web), go to onboarding instead.
+  void _goBack(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(AppRoutes.onboarding);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +30,7 @@ class AppBackButton extends StatelessWidget {
       width: 48,
       height: 48,
       child: OutlinedButton(
-        onPressed: onPressed ?? () => context.pop(),
+        onPressed: onPressed ?? () => _goBack(context),
         style: OutlinedButton.styleFrom(
           padding: EdgeInsets.zero,
           minimumSize: const Size(48, 48),

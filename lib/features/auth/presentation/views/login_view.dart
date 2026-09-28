@@ -5,6 +5,7 @@ import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../shared/utils/validators.dart';
 import '../../../../shared/widgets/bottom_action_bar.dart';
+import '../../../../shared/widgets/brand_header.dart';
 import '../../../../shared/widgets/google_sign_in_button.dart';
 import '../../../../shared/widgets/labeled_text_field.dart';
 import '../../../../shared/widgets/or_divider.dart';
@@ -89,8 +90,8 @@ class _LoginViewState extends State<LoginView> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const _BrandHeader(),
-                            const SizedBox(height: 40),
+                            const BrandHeader(showBackButton: true),
+                            const SizedBox(height: 32),
                             Text(
                               'Sign in to continue',
                               style: textTheme.headlineMedium,
@@ -179,30 +180,6 @@ class _LoginViewState extends State<LoginView> {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Logo with the app name and tagline next to it.
-class _BrandHeader extends StatelessWidget {
-  const _BrandHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Row(
-      children: [
-        Image.asset('assets/logo/logo.png', height: 56),
-        const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Grocerly', style: textTheme.headlineSmall),
-            Text('Local grocery, sorted.', style: textTheme.bodySmall),
-          ],
-        ),
-      ],
     );
   }
 }
