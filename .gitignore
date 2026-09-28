@@ -44,11 +44,11 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Firebase config. Each developer connects their own Firebase project by
-# running `flutterfire configure` (see README), so these are not shared.
-/lib/firebase_options.dart
+# Firebase settings for each developer's own project (see README).
+# Commit .env.example, never .env.
+.env
+/.firebaserc
+# Created by `flutterfire configure`. We use .env instead, so don't add these.
 /android/app/google-services.json
 /ios/Runner/GoogleService-Info.plist
 /macos/Runner/GoogleService-Info.plist
-/firebase.json
-/.firebaserc
