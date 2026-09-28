@@ -8,6 +8,7 @@ class LabeledTextField extends StatelessWidget {
   const LabeledTextField({
     super.key,
     required this.label,
+    this.labelTrailing,
     this.controller,
     this.hint,
     this.keyboardType,
@@ -19,6 +20,9 @@ class LabeledTextField extends StatelessWidget {
   });
 
   final String label;
+
+  /// Optional widget on the right of the label, e.g. "Forgot password?".
+  final Widget? labelTrailing;
   final TextEditingController? controller;
   final String? hint;
   final TextInputType? keyboardType;
@@ -33,16 +37,28 @@ class LabeledTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label.toUpperCase(),
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.4,
-            color: AppColors.textSecondary,
+        // Fixed height so labels line up whether or not there is a trailing
+        // widget next to them.
+        SizedBox(
+          height: 24,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.4,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              ?labelTrailing, // only added when not null
+            ],
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,

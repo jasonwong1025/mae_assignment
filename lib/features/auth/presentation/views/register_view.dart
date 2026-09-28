@@ -3,10 +3,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../shared/utils/validators.dart';
 import '../../../../shared/widgets/app_back_button.dart';
+import '../../../../shared/widgets/bottom_action_bar.dart';
 import '../../../../shared/widgets/google_sign_in_button.dart';
 import '../../../../shared/widgets/labeled_text_field.dart';
 import '../../../../shared/widgets/or_divider.dart';
+import '../../../../shared/widgets/password_field.dart';
 
 /// Sign-up page (customers only). UI only for now, not connected to Firebase.
 class RegisterView extends StatefulWidget {
@@ -24,7 +27,6 @@ class _RegisterViewState extends State<RegisterView> {
   final _passwordController = TextEditingController();
 
   bool _agreedToTerms = false;
-  bool _hidePassword = true;
 
   @override
   void dispose() {
@@ -57,37 +59,6 @@ class _RegisterViewState extends State<RegisterView> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(text)));
-  }
-
-  // Simple checks. The real rules will be enforced by Firebase later.
-  String? _validateName(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Please enter your name';
-    return null;
-  }
-
-  String? _validateEmail(String? value) {
-    final email = value?.trim() ?? '';
-    if (email.isEmpty) return 'Please enter your email';
-    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
-      return 'Please enter a valid email';
-    }
-    return null;
-  }
-
-  /// Malaysian mobile numbers: 01X followed by 7 or 8 digits.
-  /// Spaces and dashes are ignored, so "012-345 6789" is fine.
-  String? _validatePhone(String? value) {
-    final digits = (value ?? '').replaceAll(RegExp(r'[\s-]'), '');
-    if (digits.isEmpty) return 'Please enter your phone number';
-    if (!RegExp(r'^01\d{8,9}$').hasMatch(digits)) {
-      return 'Please enter a valid Malaysian number';
-    }
-    return null;
-  }
-
-  String? _validatePassword(String? value) {
-    if ((value ?? '').length < 8) return 'Use at least 8 characters';
-    return null;
   }
 
   @override
@@ -132,7 +103,7 @@ class _RegisterViewState extends State<RegisterView> {
                               controller: _nameController,
                               keyboardType: TextInputType.name,
                               autofillHints: const [AutofillHints.name],
-                              validator: _validateName,
+                              validator: Validators.name,
                             ),
                             const SizedBox(height: 16),
                             LabeledTextField(
@@ -141,7 +112,7 @@ class _RegisterViewState extends State<RegisterView> {
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
                               autofillHints: const [AutofillHints.email],
-                              validator: _validateEmail,
+                              validator: Validators.email,
                             ),
                             const SizedBox(height: 16),
                             LabeledTextField(
@@ -152,29 +123,14 @@ class _RegisterViewState extends State<RegisterView> {
                               autofillHints: const [
                                 AutofillHints.telephoneNumber,
                               ],
-                              validator: _validatePhone,
+                              validator: Validators.phone,
                             ),
                             const SizedBox(height: 16),
-                            LabeledTextField(
-                              label: 'Password',
+                            PasswordField(
                               hint: 'At least 8 characters',
                               controller: _passwordController,
-                              obscureText: _hidePassword,
-                              textInputAction: TextInputAction.done,
-                              autofillHints: const [AutofillHints.newPassword],
-                              validator: _validatePassword,
-                              suffixIcon: IconButton(
-                                onPressed: () {
-                                  setState(
-                                    () => _hidePassword = !_hidePassword,
-                                  );
-                                },
-                                icon: Icon(
-                                  _hidePassword
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined,
-                                ),
-                              ),
+                              validator: Validators.newPassword,
+                              isNewPassword: true,
                             ),
                             const SizedBox(height: 12),
                             _TermsCheckbox(
@@ -193,29 +149,20 @@ class _RegisterViewState extends State<RegisterView> {
                     ),
                   ),
                 ),
-                // Bottom bar stays visible while the form scrolls.
-                Container(
-                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
-                  decoration: const BoxDecoration(
-                    border: Border(top: BorderSide(color: AppColors.border)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      FilledButton(
-                        onPressed: _onCreateAccount,
-                        child: const Text('Create account'),
-                      ),
-                      const SizedBox(height: 4),
-                      TextButton(
-                        // Replace instead of push, so "back" from login
-                        // returns to onboarding, not to this page.
-                        onPressed: () =>
-                            context.pushReplacement(AppRoutes.login),
-                        child: const Text('Already have an account? Sign in'),
-                      ),
-                    ],
-                  ),
+                BottomActionBar(
+                  children: [
+                    FilledButton(
+                      onPressed: _onCreateAccount,
+                      child: const Text('Create account'),
+                    ),
+                    const SizedBox(height: 4),
+                    TextButton(
+                      // Replace instead of push, so "back" from login
+                      // returns to onboarding, not to this page.
+                      onPressed: () => context.pushReplacement(AppRoutes.login),
+                      child: const Text('Already have an account? Sign in'),
+                    ),
+                  ],
                 ),
               ],
             ),
