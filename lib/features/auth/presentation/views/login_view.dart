@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/app_router.dart';
@@ -6,26 +7,29 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../shared/utils/validators.dart';
 import '../../../../shared/widgets/bottom_action_bar.dart';
 import '../../../../shared/widgets/brand_header.dart';
+import '../../../../shared/widgets/button_loading_indicator.dart';
 import '../../../../shared/widgets/google_sign_in_button.dart';
 import '../../../../shared/widgets/labeled_text_field.dart';
 import '../../../../shared/widgets/or_divider.dart';
 import '../../../../shared/widgets/password_field.dart';
+import '../../../users/data/models/app_user.dart';
+import '../view_models/login_view_model.dart';
 
-/// The three kinds of user who can sign in.
-enum UserRole { storeAdmin, storeWorker, customer }
-
-/// Sign-in page for every role. UI only for now, not connected to Firebase.
-class LoginView extends StatefulWidget {
+/// Sign-in page for every role. Uses email and password.
+class LoginView extends ConsumerStatefulWidget {
   const LoginView({super.key});
 
   @override
-  State<LoginView> createState() => _LoginViewState();
+  ConsumerState<LoginView> createState() => _LoginViewState();
 }
 
-class _LoginViewState extends State<LoginView> {
+class _LoginViewState extends ConsumerState<LoginView> {
   final _formKey = GlobalKey<FormState>();
   final _emailOrPhoneController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  /// The role button that was tapped, so only that one shows a spinner.
+  UserRole? _selectedRole;
 
   @override
   void dispose() {
@@ -34,12 +38,21 @@ class _LoginViewState extends State<LoginView> {
     super.dispose();
   }
 
-  void _onContinueAs(UserRole role) {
+  Future<void> _onContinueAs(UserRole role) async {
     final isValid = _formKey.currentState!.validate();
     if (!isValid) return;
 
-    // TODO: sign in with Firebase, then open the home page for this role.
-    _showMessage('Signing in as ${_roleName(role)} (UI only for now).');
+    setState(() => _selectedRole = role);
+    final signedIn = await ref
+        .read(loginViewModelProvider.notifier)
+        .signIn(
+          emailOrPhone: _emailOrPhoneController.text,
+          password: _passwordController.text,
+          role: role,
+        );
+
+    // go() instead of push() so the user cannot go "back" to sign-in.
+    if (signedIn && mounted) context.go(AppRoutes.home);
   }
 
   void _onForgotPassword() {
@@ -58,20 +71,15 @@ class _LoginViewState extends State<LoginView> {
       ..showSnackBar(SnackBar(content: Text(text)));
   }
 
-  String _roleName(UserRole role) {
-    switch (role) {
-      case UserRole.storeAdmin:
-        return 'Store Admin';
-      case UserRole.storeWorker:
-        return 'Store Worker';
-      case UserRole.customer:
-        return 'Customer';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final isLoading = ref.watch(loginViewModelProvider).isLoading;
+
+    // Show a message whenever sign-in fails.
+    ref.listen(loginViewModelProvider, (previous, next) {
+      if (next is AsyncError) _showMessage(next.error.toString());
+    });
 
     return Scaffold(
       body: SafeArea(
@@ -134,30 +142,45 @@ class _LoginViewState extends State<LoginView> {
                             const SizedBox(height: 8),
                             _RoleButton(
                               icon: Icons.dashboard_outlined,
-                              title: 'Store Admin',
+                              title: UserRole.storeAdmin.label,
                               subtitle: 'Tablet dashboard',
-                              onPressed: () =>
-                                  _onContinueAs(UserRole.storeAdmin),
+                              isLoading:
+                                  isLoading &&
+                                  _selectedRole == UserRole.storeAdmin,
+                              onPressed: isLoading
+                                  ? null
+                                  : () => _onContinueAs(UserRole.storeAdmin),
                             ),
                             const SizedBox(height: 12),
                             _RoleButton(
                               icon: Icons.inventory_2_outlined,
-                              title: 'Store Worker',
+                              title: UserRole.storeWorker.label,
                               subtitle: 'Packing and delivery',
-                              onPressed: () =>
-                                  _onContinueAs(UserRole.storeWorker),
+                              isLoading:
+                                  isLoading &&
+                                  _selectedRole == UserRole.storeWorker,
+                              onPressed: isLoading
+                                  ? null
+                                  : () => _onContinueAs(UserRole.storeWorker),
                             ),
                             const SizedBox(height: 12),
                             _RoleButton(
                               icon: Icons.shopping_basket_outlined,
-                              title: 'Customer',
+                              title: UserRole.customer.label,
                               subtitle: 'Browse and order',
-                              onPressed: () => _onContinueAs(UserRole.customer),
+                              isLoading:
+                                  isLoading &&
+                                  _selectedRole == UserRole.customer,
+                              onPressed: isLoading
+                                  ? null
+                                  : () => _onContinueAs(UserRole.customer),
                             ),
                             const SizedBox(height: 20),
                             const OrDivider(),
                             const SizedBox(height: 20),
-                            GoogleSignInButton(onPressed: _onGoogle),
+                            GoogleSignInButton(
+                              onPressed: isLoading ? null : _onGoogle,
+                            ),
                           ],
                         ),
                       ),
@@ -216,13 +239,17 @@ class _RoleButton extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.isLoading,
     required this.onPressed,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
-  final VoidCallback onPressed;
+  final bool isLoading;
+
+  /// Null disables the button.
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -252,7 +279,10 @@ class _RoleButton extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded),
+          if (isLoading)
+            const ButtonLoadingIndicator()
+          else
+            const Icon(Icons.chevron_right_rounded),
         ],
       ),
     );

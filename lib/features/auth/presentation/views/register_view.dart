@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/app_router.dart';
@@ -6,20 +7,22 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../shared/utils/validators.dart';
 import '../../../../shared/widgets/bottom_action_bar.dart';
 import '../../../../shared/widgets/brand_header.dart';
+import '../../../../shared/widgets/button_loading_indicator.dart';
 import '../../../../shared/widgets/google_sign_in_button.dart';
 import '../../../../shared/widgets/labeled_text_field.dart';
 import '../../../../shared/widgets/or_divider.dart';
 import '../../../../shared/widgets/password_field.dart';
+import '../view_models/register_view_model.dart';
 
-/// Sign-up page (customers only). UI only for now, not connected to Firebase.
-class RegisterView extends StatefulWidget {
+/// Sign-up page (customers only). Uses email and password.
+class RegisterView extends ConsumerStatefulWidget {
   const RegisterView({super.key});
 
   @override
-  State<RegisterView> createState() => _RegisterViewState();
+  ConsumerState<RegisterView> createState() => _RegisterViewState();
 }
 
-class _RegisterViewState extends State<RegisterView> {
+class _RegisterViewState extends ConsumerState<RegisterView> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -37,7 +40,7 @@ class _RegisterViewState extends State<RegisterView> {
     super.dispose();
   }
 
-  void _onCreateAccount() {
+  Future<void> _onCreateAccount() async {
     final isValid = _formKey.currentState!.validate();
     if (!isValid) return;
 
@@ -46,8 +49,17 @@ class _RegisterViewState extends State<RegisterView> {
       return;
     }
 
-    // TODO: call Firebase sign-up once the backend is connected.
-    _showMessage('Account created (UI only for now).');
+    final created = await ref
+        .read(registerViewModelProvider.notifier)
+        .createAccount(
+          name: _nameController.text,
+          email: _emailController.text,
+          phone: _phoneController.text,
+          password: _passwordController.text,
+        );
+
+    // go() instead of push() so the user cannot go "back" to sign-up.
+    if (created && mounted) context.go(AppRoutes.home);
   }
 
   void _onGoogle() {
@@ -64,6 +76,12 @@ class _RegisterViewState extends State<RegisterView> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final isLoading = ref.watch(registerViewModelProvider).isLoading;
+
+    // Show a message whenever sign-up fails.
+    ref.listen(registerViewModelProvider, (previous, next) {
+      if (next is AsyncError) _showMessage(next.error.toString());
+    });
 
     return Scaffold(
       body: SafeArea(
@@ -149,8 +167,10 @@ class _RegisterViewState extends State<RegisterView> {
                 BottomActionBar(
                   children: [
                     FilledButton(
-                      onPressed: _onCreateAccount,
-                      child: const Text('Create account'),
+                      onPressed: isLoading ? null : _onCreateAccount,
+                      child: isLoading
+                          ? const ButtonLoadingIndicator()
+                          : const Text('Create account'),
                     ),
                     const SizedBox(height: 4),
                     TextButton(
