@@ -1,0 +1,21 @@
+# App icon + web favicon settings.
+# After changing the icon images, regenerate with:
+#   dart run flutter_launcher_icons
+
+flutter_launcher_icons:
+  image_path: "assets/icon/app_icon.png"
+
+  android: true
+  min_sdk_android: 21
+  # Android 8+ "adaptive" icon: logo on top of a plain background colour
+  adaptive_icon_background: "#FAF8F2"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+
+  ios: true
+  remove_alpha_ios: true # iOS icons are not allowed to be transparent
+
+  web:
+    generate: true # also creates web/favicon.png
+    image_path: "assets/icon/app_icon.png"
+    background_color: "#FAF8F2"
+    theme_color: "#0B5D45"

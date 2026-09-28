@@ -1,11 +1,11 @@
 {
-    "name": "mae_assignment",
-    "short_name": "mae_assignment",
+    "name": "Grocerly",
+    "short_name": "Grocerly",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FAF8F2",
+    "theme_color": "#0B5D45",
+    "description": "Your neighbourhood grocer, online.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

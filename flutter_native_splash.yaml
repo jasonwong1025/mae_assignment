@@ -1,0 +1,16 @@
+# Native splash screen (shown while the app is starting up).
+# After changing these settings or images, regenerate with:
+#   dart run flutter_native_splash:create
+
+flutter_native_splash:
+  color: "#FAF8F2" # same as AppColors.softWhite
+  image: assets/icon/splash_logo.png
+
+  # Android 12+ uses its own splash style: the image is shown in a circle.
+  android_12:
+    color: "#FAF8F2"
+    image: assets/icon/splash_logo_android12.png
+
+  android: true
+  ios: true
+  web: true
