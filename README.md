@@ -1,84 +1,52 @@
 # Grocerly
 
-Grocery ordering and fulfilment app for local stores (Flutter + Firebase).
+Flutter app for grocery ordering and fulfilment. The app currently supports onboarding and customer email/password registration and sign-in; the home screen is a placeholder.
 
-## Setup
+## Team setup
 
-The app needs a Firebase project. Everyone uses their **own** project.
-The Firebase settings live in a `.env` file on your machine (not in git);
-`lib/firebase_options.dart` reads them when the app starts.
+The app uses the shared Firebase project `mae-assignment-grocerly`. Its Firebase app configuration is committed to this repository, so teammates do not need Firebase CLI access or their own Firebase projects to run the app. Test accounts and Firestore data are shared.
 
-### 1. Firebase project (in the Firebase Console)
-
-1. Create a project (the free Spark plan is enough).
-2. **Authentication**: Sign-in method, enable **Email/Password**.
-3. **Firestore Database**: create the `(default)` database
-   (we use `asia-southeast1`, Singapore).
-4. **Project settings, Your apps**: add three apps:
-   - Android, package name `com.example.mae_assignment`
-   - iOS, bundle ID `com.example.maeAssignment`
-   - Web
-
-   You can skip downloading `google-services.json` / `GoogleService-Info.plist`;
-   the app does not use them.
-
-### 2. Fill in `.env`
+Install Flutter and [FVM](https://fvm.app/documentation/getting-started/installation). In a terminal (PowerShell on Windows), run `dart pub global activate fvm` once. Then, from this repository:
 
 ```bash
-cp .env.example .env
+fvm use
+fvm flutter pub get --enforce-lockfile
+fvm flutter devices
+fvm flutter run -d <device-id>
 ```
 
-Copy each value from **Project settings, Your apps** (select the app, then
-"SDK setup and configuration", "Config"). The names match:
+`.fvmrc` pins Flutter 3.47.6, and `pubspec.lock` pins package versions. FVM downloads the project SDK and configures VS Code. The **Grocerly** VS Code launch configuration also works after `fvm use`. If Android SDK licenses are missing, run `fvm flutter doctor --android-licenses` once.
 
-| `.env` | Where to find it |
-|---|---|
-| `FIREBASE_PROJECT_ID`, `FIREBASE_MESSAGING_SENDER_ID`, `FIREBASE_STORAGE_BUCKET` | Any app's config: `projectId`, `messagingSenderId`, `storageBucket` |
-| `FIREBASE_WEB_*` | Web app: `apiKey`, `appId`, `authDomain` |
-| `FIREBASE_ANDROID_*` | Android app: `apiKey` (`current_key`), `appId` (`mobilesdk_app_id`) |
-| `FIREBASE_IOS_*` | iOS app: `API_KEY`, `GOOGLE_APP_ID`, `BUNDLE_ID`, `CLIENT_ID` |
+Android and Web are configured for the shared project. The iOS Firebase app still needs configuration on a Mac before iOS can run. The Windows desktop runner is not configured; Windows teammates can run the Android app from Windows.
 
-Shortcut with the Firebase CLI (`npm install -g firebase-tools`, then
-`firebase login`):
+## Firebase maintenance
+
+Only a maintainer who changes Firebase apps, Authentication, or Firestore rules needs the [Firebase CLI](https://firebase.google.com/docs/cli), [Google Cloud CLI](https://docs.cloud.google.com/sdk/docs/install), and FlutterFire CLI. Sign in to an account with access to `mae-assignment-grocerly`, then run:
 
 ```bash
-firebase apps:list --project <your-project-id>
-firebase apps:sdkconfig ANDROID <android-app-id> --project <your-project-id>
-firebase apps:sdkconfig IOS <ios-app-id> --project <your-project-id>
-firebase apps:sdkconfig WEB <web-app-id> --project <your-project-id>
+firebase login
+gcloud auth login
+dart pub global activate flutterfire_cli
+fvm exec dart run tool/setup_firebase.dart
 ```
 
-Do **not** run `flutterfire configure`: it would overwrite
-`lib/firebase_options.dart` with hard-coded values.
+The script uses the project ID in `.firebaserc`. It reuses existing Firebase apps and the Firestore database, configures Android and Web, also configures iOS on macOS, enables email/password sign-in, and deploys `firestore.rules`. Commit any updated `firebase.json`, `lib/firebase_options.dart`, platform configuration files, and rules after reviewing them. Firebase and Google Cloud login credentials stay in each maintainer's home directory.
 
-### 3. Deploy the Firestore security rules
+When paid services are needed, the project owner should check the [Billing Credits page](https://console.cloud.google.com/billing/credits) for an available balance, expiry date, and eligible services on the chosen account. Then link that account:
 
 ```bash
-firebase deploy --only firestore:rules --project <your-project-id>
+gcloud billing accounts list
+gcloud billing projects link mae-assignment-grocerly --billing-account=<credits-billing-account-id>
 ```
 
-Without this step the database blocks every write and sign-up fails.
+Linking a Cloud Billing account upgrades the Firebase project to Blaze. Set a project budget; [budget alerts do not cap spending](https://docs.cloud.google.com/billing/docs/how-to/budgets). Teammates who only run the app do not need billing access. Members who need console or deployment access require their own project IAM permissions.
 
-### 4. Run
-
-The app must be started with the `.env` file:
-
-```bash
-flutter pub get
-flutter run --dart-define-from-file=.env
-```
-
-In VS Code, the "Grocerly" launch config (`.vscode/launch.json`) adds this
-for you. In Android Studio, add `--dart-define-from-file=.env` to
-"Additional run args" in the run configuration.
-
-If the app stops at start-up with "Firebase settings are missing", the
-`.env` file is missing or the flag was not passed.
+If linking fails with `Cloud billing quota exceeded`, request more [billing account project quota](https://support.google.com/code/contact/billing_quota_increase) for that account before retrying. A closed billing account cannot enable billing for the project.
 
 ## Tests
 
 ```bash
-flutter test
+fvm flutter test
 ```
 
-Tests use fakes instead of Firebase, so they run without a `.env` file.
+Tests use fakes and do not connect to Firebase. Change `.fvmrc`, the Flutter constraint in `pubspec.yaml`, and `pubspec.lock` together when the team intentionally upgrades Flutter.

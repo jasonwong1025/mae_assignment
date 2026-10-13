@@ -5,8 +5,7 @@
       "name": "Grocerly",
       "request": "launch",
       "type": "dart",
-      "program": "lib/main.dart",
-      "toolArgs": ["--dart-define-from-file=.env"]
+      "program": "lib/main.dart"
     }
   ]
 }

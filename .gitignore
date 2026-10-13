@@ -17,6 +17,8 @@ migrate_working_dir/
 *.ipr
 *.iws
 .idea/
+/.fvm/
+/.vscode/settings.json
 
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
@@ -44,11 +46,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Firebase settings for each developer's own project (see README).
-# Commit .env.example, never .env.
 .env
-/.firebaserc
-# Created by `flutterfire configure`. We use .env instead, so don't add these.
-/android/app/google-services.json
-/ios/Runner/GoogleService-Info.plist
-/macos/Runner/GoogleService-Info.plist
+
+# FVM Version Cache
+.fvm/
