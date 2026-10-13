@@ -14,7 +14,7 @@ enum AdminPage {
   dashboard('Dashboard', Icons.dashboard_outlined, AppRoutes.adminDashboard),
   orders('Orders', Icons.receipt_long_outlined, AppRoutes.adminOrders),
   inventory('Inventory', Icons.inventory_2_outlined),
-  staff('Staff', Icons.badge_outlined),
+  staff('Staff', Icons.badge_outlined, AppRoutes.adminStaff),
   dispatch('Dispatch', Icons.local_shipping_outlined),
   refundsAndAlerts('Refunds & alerts', Icons.report_problem_outlined),
   reviews('Reviews', Icons.star_outline_rounded),

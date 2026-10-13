@@ -37,6 +37,25 @@ class Formatters {
     return '$hour12:$minute$suffix';
   }
 
+  /// Date as "12 Mar 2025".
+  static String date(DateTime date) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
   /// 4 becomes "4m", 132 becomes "2h 12m".
   static String minutes(int minutes) {
     if (minutes < 60) return '${minutes}m';

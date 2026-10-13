@@ -8,6 +8,7 @@ import '../../features/authentication/presentation/views/onboarding_view.dart';
 import '../../features/authentication/presentation/views/register_view.dart';
 import '../../features/store_admin/dashboard/presentation/views/dashboard_view.dart';
 import '../../features/store_admin/orders/presentation/views/orders_view.dart';
+import '../../features/store_admin/staff/presentation/views/staff_view.dart';
 
 /// Route paths are kept in one place so we don't mistype them in screens.
 class AppRoutes {
@@ -19,6 +20,7 @@ class AppRoutes {
   static const String home = '/home';
   static const String adminDashboard = '/admin/dashboard';
   static const String adminOrders = '/admin/orders';
+  static const String adminStaff = '/admin/staff';
 
   /// Pages for people who are not signed in.
   static const List<String> signedOutPages = [onboarding, login, register];
@@ -78,6 +80,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.adminOrders,
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: OrdersView()),
+      ),
+      GoRoute(
+        path: AppRoutes.adminStaff,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: StaffView()),
       ),
     ],
   );
