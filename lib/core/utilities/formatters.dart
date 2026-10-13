@@ -15,6 +15,13 @@ class Formatters {
     return 'RM $buffer';
   }
 
+  /// Price with cents: 86.4 becomes "RM 86.40".
+  static String money(double amount) {
+    final cents = (amount * 100).round();
+    final sen = (cents % 100).toString().padLeft(2, '0');
+    return '${ringgit(cents ~/ 100)}.$sen';
+  }
+
   /// Hour on a 24-hour clock to "8am", "12pm", "10pm".
   static String hour(int hour24) {
     final suffix = hour24 % 24 < 12 ? 'am' : 'pm';

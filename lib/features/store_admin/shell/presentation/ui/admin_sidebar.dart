@@ -11,8 +11,8 @@ import 'branch_switcher.dart';
 
 /// The pages in the store admin sidebar, in the order they are listed.
 enum AdminPage {
-  dashboard('Dashboard', Icons.dashboard_outlined),
-  orders('Orders', Icons.receipt_long_outlined),
+  dashboard('Dashboard', Icons.dashboard_outlined, AppRoutes.adminDashboard),
+  orders('Orders', Icons.receipt_long_outlined, AppRoutes.adminOrders),
   inventory('Inventory', Icons.inventory_2_outlined),
   staff('Staff', Icons.badge_outlined),
   dispatch('Dispatch', Icons.local_shipping_outlined),
@@ -20,20 +20,21 @@ enum AdminPage {
   reviews('Reviews', Icons.star_outline_rounded),
   analytics('Analytics', Icons.bar_chart_rounded);
 
-  const AdminPage(this.label, this.icon);
+  const AdminPage(this.label, this.icon, [this.route]);
 
   final String label;
   final IconData icon;
+
+  /// Where the menu item goes. Null while the page is not built yet;
+  /// those items are shown greyed out and cannot be tapped.
+  /// Give a page its route here once its screen exists.
+  final String? route;
 }
 
 /// Sidebar for store admin pages: branch switcher on top, the menu in the
 /// middle, and the signed-in admin with a sign out button at the bottom.
 class AdminSidebar extends StatelessWidget {
   const AdminSidebar({super.key, required this.currentPage});
-
-  /// Pages that exist. The rest are shown greyed out and cannot be tapped.
-  /// Add a page here once its screen is built.
-  static const Set<AdminPage> _builtPages = {AdminPage.dashboard};
 
   final AdminPage currentPage;
 
@@ -52,11 +53,7 @@ class AdminSidebar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               children: [
                 for (final page in AdminPage.values)
-                  _MenuItem(
-                    page: page,
-                    isSelected: page == currentPage,
-                    isEnabled: _builtPages.contains(page),
-                  ),
+                  _MenuItem(page: page, isSelected: page == currentPage),
               ],
             ),
           ),
@@ -69,15 +66,16 @@ class AdminSidebar extends StatelessWidget {
 }
 
 class _MenuItem extends StatelessWidget {
-  const _MenuItem({
-    required this.page,
-    required this.isSelected,
-    required this.isEnabled,
-  });
+  const _MenuItem({required this.page, required this.isSelected});
 
   final AdminPage page;
   final bool isSelected;
-  final bool isEnabled;
+
+  void _onTap(BuildContext context) {
+    // On phones the menu is in a drawer, so close it first.
+    Scaffold.of(context).closeDrawer();
+    if (!isSelected) context.go(page.route!);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +83,7 @@ class _MenuItem extends StatelessWidget {
       leading: Icon(page.icon),
       title: Text(page.label),
       selected: isSelected,
-      enabled: isEnabled,
+      enabled: page.route != null,
       selectedColor: AppColors.darkGreen,
       selectedTileColor: AppColors.greenTint,
       iconColor: AppColors.textSecondary,
@@ -96,9 +94,7 @@ class _MenuItem extends StatelessWidget {
         fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      // Only the dashboard exists for now, so a tap just closes the
-      // drawer on phones. Later this will go to the tapped page.
-      onTap: () => Scaffold.of(context).closeDrawer(),
+      onTap: () => _onTap(context),
     );
   }
 }

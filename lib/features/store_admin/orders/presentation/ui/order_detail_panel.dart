@@ -1,0 +1,360 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../../app/theme/app_colors.dart';
+import '../../../../../core/utilities/formatters.dart';
+import '../../data/models/order.dart';
+import '../view_models/orders_view_model.dart';
+import 'order_status_label.dart';
+
+/// Everything about one order: customer, delivery, items, payment and
+/// what has happened so far. Read only; the admin monitors orders here
+/// and does not change them.
+///
+/// It looks the order up by number every time the board updates, so the
+/// details stay current while the panel is open.
+class OrderDetailPanel extends ConsumerWidget {
+  const OrderDetailPanel({
+    super.key,
+    required this.orderNumber,
+    required this.onClose,
+  });
+
+  final int orderNumber;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final textTheme = Theme.of(context).textTheme;
+    final orders = ref.watch(ordersViewModelProvider).value ?? const <Order>[];
+    final order = orders
+        .where((order) => order.number == orderNumber)
+        .firstOrNull;
+
+    return Material(
+      color: AppColors.surface,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 8, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Order #$orderNumber',
+                    style: textTheme.titleLarge,
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Close',
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: onClose,
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          Expanded(
+            child: order == null
+                // For example after switching to another branch.
+                ? Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      'This order is no longer on the board.',
+                      style: textTheme.bodyMedium,
+                    ),
+                  )
+                : _OrderDetails(order: order),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OrderDetails extends StatelessWidget {
+  const _OrderDetails({required this.order});
+
+  final Order order;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        Row(
+          children: [
+            OrderStatusLabel(status: order.status),
+            const SizedBox(width: 8),
+            Text(
+              'for ${Formatters.minutes(order.minutesInStatus(DateTime.now()))}',
+              style: textTheme.bodySmall,
+            ),
+          ],
+        ),
+        if (order.needsAttention) ...[
+          const SizedBox(height: 12),
+          _AttentionBanner(reason: order.attentionReason!),
+        ],
+
+        const _SectionTitle('Customer and delivery'),
+        _InfoRow(icon: Icons.person_outline_rounded, text: order.customerName),
+        _InfoRow(icon: Icons.phone_outlined, text: order.customerPhone),
+        _InfoRow(
+          icon: order.isDelivery
+              ? Icons.local_shipping_outlined
+              : Icons.storefront_outlined,
+          text: order.isDelivery
+              ? 'Deliver to ${order.address ?? 'address not given'}'
+              : 'Pickup at the store',
+        ),
+        _InfoRow(
+          icon: Icons.badge_outlined,
+          text: order.assignedWorker == null
+              ? 'No staff assigned yet'
+              : 'Handled by ${order.assignedWorker}',
+        ),
+        if (order.customerNote != null)
+          _InfoRow(
+            icon: Icons.sticky_note_2_outlined,
+            text: 'Note: ${order.customerNote}',
+          ),
+
+        const _SectionTitle('Items'),
+        for (final item in order.items) _ItemRow(item: item),
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: Divider(),
+        ),
+        _AmountRow(label: 'Subtotal', amount: order.subtotal),
+        _AmountRow(label: 'Delivery fee', amount: order.deliveryFee),
+        _AmountRow(label: 'Total', amount: order.total, isBold: true),
+
+        const _SectionTitle('Payment'),
+        _InfoRow(
+          icon: Icons.payments_outlined,
+          text:
+              '${order.paymentMethod.label} · '
+              '${order.isPaid ? 'Paid' : 'Not paid yet'}',
+        ),
+
+        const _SectionTitle('Timeline'),
+        for (final event in order.timeline) _TimelineRow(event: event),
+      ],
+    );
+  }
+}
+
+/// Small uppercase heading above each block of the panel.
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 24, bottom: 8),
+      child: Text(
+        text.toUpperCase(),
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.4,
+        ),
+      ),
+    );
+  }
+}
+
+/// Yellow box explaining what is wrong with the order.
+class _AttentionBanner extends StatelessWidget {
+  const _AttentionBanner({required this.reason});
+
+  final String reason;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.yellow.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.warning),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.error_outline_rounded, color: AppColors.warning),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              reason,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// An icon with a line of text beside it.
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: AppColors.textSecondary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(text, style: Theme.of(context).textTheme.bodyLarge),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "2 x Fresh milk 1L ... RM 15.80", with a note underneath if the item was out of stock or replaced
+class _ItemRow extends StatelessWidget {
+  const _ItemRow({required this.item});
+
+  final OrderItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    // Out-of-stock items are crossed out because they are not charged.
+    final crossedOut = item.isOutOfStock ? TextDecoration.lineThrough : null;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 36,
+            child: Text('${item.quantity} x', style: textTheme.bodyMedium),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: textTheme.bodyLarge?.copyWith(decoration: crossedOut),
+                ),
+                if (item.isOutOfStock)
+                  Text(
+                    'Out of stock',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.error,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                if (item.replacedWith != null)
+                  Text(
+                    'Replaced with ${item.replacedWith}',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.warning,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            Formatters.money(item.lineTotal),
+            style: textTheme.bodyMedium?.copyWith(decoration: crossedOut),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A label on the left and an amount of money on the right.
+class _AmountRow extends StatelessWidget {
+  const _AmountRow({
+    required this.label,
+    required this.amount,
+    this.isBold = false,
+  });
+
+  final String label;
+  final double amount;
+  final bool isBold;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final style = isBold ? textTheme.titleMedium : textTheme.bodyMedium;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: style)),
+          Text(Formatters.money(amount), style: style),
+        ],
+      ),
+    );
+  }
+}
+
+/// One step of the order's history: the time, what happened, and who.
+class _TimelineRow extends StatelessWidget {
+  const _TimelineRow({required this.event});
+
+  final OrderEvent event;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 68,
+            child: Text(
+              Formatters.time(event.time),
+              style: textTheme.bodySmall,
+            ),
+          ),
+          // Pushed down a little to sit beside the first line of text.
+          const Padding(
+            padding: EdgeInsets.only(top: 6, right: 12),
+            child: CircleAvatar(radius: 4, backgroundColor: AppColors.green),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(event.title, style: textTheme.bodyLarge),
+                if (event.by != null)
+                  Text('by ${event.by}', style: textTheme.bodySmall),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -9,6 +9,13 @@ void main() {
     expect(Formatters.ringgit(1234567), 'RM 1,234,567');
   });
 
+  test('money always shows two decimals', () {
+    expect(Formatters.money(86.4), 'RM 86.40');
+    expect(Formatters.money(5), 'RM 5.00');
+    expect(Formatters.money(1234.5), 'RM 1,234.50');
+    expect(Formatters.money(15.8), 'RM 15.80');
+  });
+
   test('hour uses a 12-hour clock', () {
     expect(Formatters.hour(0), '12am');
     expect(Formatters.hour(8), '8am');
