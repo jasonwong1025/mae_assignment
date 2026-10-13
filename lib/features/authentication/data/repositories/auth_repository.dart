@@ -1,8 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../users/data/models/app_user.dart';
-import '../../../users/data/services/user_service.dart';
+import '../../../../shared/models/app_user.dart';
+import '../services/user_service.dart';
+import '../hardcoded_admin.dart';
 import '../services/auth_service.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
@@ -40,7 +41,11 @@ class AuthRepository {
   final AuthService _authService;
   final UserService _userService;
 
-  bool get isSignedIn => _authService.isSignedIn;
+  /// True while the hard-coded admin is signed in. Only kept in memory,
+  /// so restarting the app signs the admin out.
+  bool _isHardcodedAdminSignedIn = false;
+
+  bool get isSignedIn => _isHardcodedAdminSignedIn || _authService.isSignedIn;
 
   /// Creates a customer account. Public sign-up is for customers only;
   /// staff accounts are set up separately.
@@ -88,6 +93,12 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
+    // The hard-coded admin never touches Firebase.
+    if (HardcodedAdmin.matches(email, password)) {
+      _isHardcodedAdminSignedIn = true;
+      return HardcodedAdmin.user;
+    }
+
     final User account;
     try {
       account = await _authService.signIn(email: email, password: password);
@@ -115,10 +126,15 @@ class AuthRepository {
     return user;
   }
 
-  Future<void> signOut() => _authService.signOut();
+  Future<void> signOut() async {
+    _isHardcodedAdminSignedIn = false;
+    await _authService.signOut();
+  }
 
   /// Profile of the signed-in user, or null if nobody is signed in.
   Future<AppUser?> getCurrentUser() async {
+    if (_isHardcodedAdminSignedIn) return HardcodedAdmin.user;
+
     final account = _authService.currentUser;
     if (account == null) return null;
     return _userService.getUser(account.uid);

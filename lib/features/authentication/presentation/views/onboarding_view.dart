@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/app_router.dart';
-import '../widgets/onboarding_slide.dart';
-import '../widgets/page_indicator.dart';
+import '../ui/onboarding_slide.dart';
+import '../ui/page_indicator.dart';
 
 /// First screen of the app: swipeable intro slides plus
 /// "Get started" (register) and "I already have an account" (login).

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mae_assignment/features/auth/data/repositories/auth_repository.dart';
-import 'package:mae_assignment/features/users/data/models/app_user.dart';
+import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
+import 'package:mae_assignment/shared/models/app_user.dart';
 
 /// Stand-in for AuthRepository so tests don't need a real Firebase project.
 /// Methods that are not overridden throw if called (that's what Fake does).

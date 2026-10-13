@@ -4,15 +4,15 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/app_router.dart';
 import '../../../../app/theme/app_colors.dart';
-import '../../../../shared/utils/validators.dart';
-import '../../../../shared/widgets/bottom_action_bar.dart';
-import '../../../../shared/widgets/brand_header.dart';
-import '../../../../shared/widgets/button_loading_indicator.dart';
-import '../../../../shared/widgets/google_sign_in_button.dart';
-import '../../../../shared/widgets/labeled_text_field.dart';
-import '../../../../shared/widgets/or_divider.dart';
-import '../../../../shared/widgets/password_field.dart';
-import '../../../users/data/models/app_user.dart';
+import '../../../../core/utilities/validators.dart';
+import '../../../../shared/ui/bottom_action_bar.dart';
+import '../../../../shared/ui/brand_header.dart';
+import '../../../../shared/ui/button_loading_indicator.dart';
+import '../../../../shared/ui/google_sign_in_button.dart';
+import '../../../../shared/ui/labeled_text_field.dart';
+import '../../../../shared/ui/or_divider.dart';
+import '../../../../shared/ui/password_field.dart';
+import '../../../../shared/models/app_user.dart';
 import '../view_models/login_view_model.dart';
 
 /// Sign-in page for every role. Uses email and password.

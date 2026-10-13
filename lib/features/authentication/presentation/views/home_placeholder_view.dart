@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/app_router.dart';
-import '../../../../shared/widgets/bottom_action_bar.dart';
-import '../../../../shared/widgets/brand_header.dart';
+import '../../../../shared/ui/bottom_action_bar.dart';
+import '../../../../shared/ui/brand_header.dart';
 import '../../data/repositories/auth_repository.dart';
 
 /// Temporary page shown after signing in, so sign-in can be tested.

@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mae_assignment/features/auth/data/repositories/auth_repository.dart';
-import 'package:mae_assignment/features/auth/presentation/view_models/login_view_model.dart';
-import 'package:mae_assignment/features/auth/presentation/view_models/register_view_model.dart';
-import 'package:mae_assignment/features/users/data/models/app_user.dart';
+import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
+import 'package:mae_assignment/features/authentication/presentation/view_models/login_view_model.dart';
+import 'package:mae_assignment/features/authentication/presentation/view_models/register_view_model.dart';
+import 'package:mae_assignment/shared/models/app_user.dart';
 
 import '../../helpers/fake_auth_repository.dart';
 

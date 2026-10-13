@@ -1,11 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/auth/data/repositories/auth_repository.dart';
-import '../../features/auth/presentation/views/home_placeholder_view.dart';
-import '../../features/auth/presentation/views/login_view.dart';
-import '../../features/auth/presentation/views/onboarding_view.dart';
-import '../../features/auth/presentation/views/register_view.dart';
+import '../../features/authentication/data/repositories/auth_repository.dart';
+import '../../features/authentication/presentation/views/home_placeholder_view.dart';
+import '../../features/authentication/presentation/views/login_view.dart';
+import '../../features/authentication/presentation/views/onboarding_view.dart';
+import '../../features/authentication/presentation/views/register_view.dart';
 
 /// Route paths are kept in one place so we don't mistype them in screens.
 class AppRoutes {
