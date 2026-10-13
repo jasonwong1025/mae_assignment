@@ -1,13 +1,4 @@
 import 'package:flutter/material.dart';
-
-/// Grocerly brand colours (from the logo / proposal colour palette).
-///
-/// How each colour is used:
-/// - darkGreen: main brand colour (primary buttons, selected items, headers)
-/// - green:     freshness (success states, "in stock", light background tints)
-/// - orange:    things that should stand out (promos, discounts, priority tags)
-/// - yellow:    warnings and highlights ("low stock", "awaiting reply")
-/// - softWhite: page background
 class AppColors {
   AppColors._();
 

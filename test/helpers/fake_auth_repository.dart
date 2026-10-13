@@ -50,6 +50,9 @@ class FakeAuthRepository extends Fake implements AuthRepository {
   }
 
   @override
+  Future<AppUser?> getCurrentUser() async => signedIn ? userToSignIn : null;
+
+  @override
   Future<void> signOut() async {
     signedIn = false;
   }

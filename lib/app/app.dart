@@ -11,7 +11,7 @@ class GrocerlyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
       title: 'Grocerly',
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: false, //removes the debug banner from the app
       theme: AppTheme.light,
       routerConfig: ref.watch(appRouterProvider),
     );

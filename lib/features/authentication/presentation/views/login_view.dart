@@ -51,8 +51,14 @@ class _LoginViewState extends ConsumerState<LoginView> {
           role: role,
         );
 
+    if (!signedIn || !mounted) return;
+
+    // Store admins have their own dashboard. The other roles share the
+    // placeholder home until their pages are built.
     // go() instead of push() so the user cannot go "back" to sign-in.
-    if (signedIn && mounted) context.go(AppRoutes.home);
+    context.go(
+      role == UserRole.storeAdmin ? AppRoutes.adminDashboard : AppRoutes.home,
+    );
   }
 
   void _onForgotPassword() {
