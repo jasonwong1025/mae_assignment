@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../shared/models/page_result.dart';
 import '../models/worker.dart';
 import '../sample_workers.dart';
 
@@ -23,11 +24,24 @@ class StaffRepository {
   final List<Worker> _workers = sampleWorkers();
   int _nextId = 100;
 
-  /// Packers of the branch, plus all drivers.
-  Future<List<Worker>> getWorkers(String branchId) async {
-    return _workers.where((worker) {
-      return worker.isDriver || worker.branchId == branchId;
+  /// One page of the packers of the branch plus all drivers.
+  /// Packers come first, then drivers, each sorted by name.
+  Future<PageResult<Worker>> getWorkers(
+    String branchId, {
+    String searchText = '',
+    int page = 1,
+  }) async {
+    final matching = _workers.where((worker) {
+      final isListed = worker.isDriver || worker.branchId == branchId;
+      return isListed && worker.matchesSearch(searchText);
     }).toList();
+
+    matching.sort((a, b) {
+      if (a.role != b.role) return a.role.index.compareTo(b.role.index);
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+
+    return PageResult.fromList(matching, page: page);
   }
 
   /// Adds a worker. They sign in with [temporaryPassword].

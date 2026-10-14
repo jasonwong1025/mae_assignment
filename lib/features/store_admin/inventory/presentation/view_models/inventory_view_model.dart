@@ -2,10 +2,12 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../shared/models/page_result.dart';
 import '../../../shell/presentation/view_models/branch_view_model.dart';
 import '../../data/models/inventory_item.dart';
 import '../../data/models/product.dart';
 import '../../data/repositories/inventory_repository.dart';
+import 'inventory_filter_view_model.dart';
 
 final inventoryViewModelProvider =
     AsyncNotifierProvider.autoDispose<InventoryViewModel, InventoryState>(
@@ -14,10 +16,11 @@ final inventoryViewModelProvider =
 
 /// What the Inventory tab shows.
 class InventoryState {
-  const InventoryState({required this.items, required this.categories});
+  const InventoryState({required this.page, required this.categories});
 
-  /// Products of the selected branch.
-  final List<InventoryItem> items;
+  /// One page of the selected branch's products.
+  /// Only the page being shown is loaded.
+  final PageResult<InventoryItem> page;
   final List<ProductCategory> categories;
 
   String categoryName(String categoryId) {
@@ -34,12 +37,30 @@ class InventoryState {
 class InventoryViewModel extends AsyncNotifier<InventoryState> {
   @override
   Future<InventoryState> build() async {
-    // Runs again when the branch changes.
+    // Runs again when the branch, search, a filter or the page changes.
+    final filter = ref.watch(inventoryFilterViewModelProvider);
     final branchState = await ref.watch(branchViewModelProvider.future);
     final repository = ref.watch(inventoryRepositoryProvider);
 
+    final bool? isHidden;
+    switch (filter.visibility) {
+      case VisibilityFilter.visible:
+        isHidden = false;
+      case VisibilityFilter.hidden:
+        isHidden = true;
+      case null:
+        isHidden = null;
+    }
+
     return InventoryState(
-      items: await repository.getItems(branchState.selected.id),
+      page: await repository.getItems(
+        branchState.selected.id,
+        searchText: filter.searchText,
+        categoryId: filter.categoryId,
+        stockStatus: filter.stockStatus,
+        isHidden: isHidden,
+        page: filter.page,
+      ),
       categories: await repository.getCategories(),
     );
   }

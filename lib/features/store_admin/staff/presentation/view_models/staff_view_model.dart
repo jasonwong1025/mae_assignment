@@ -1,24 +1,33 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../shared/models/page_result.dart';
 import '../../../shell/presentation/view_models/branch_view_model.dart';
 import '../../data/models/worker.dart';
 import '../../data/repositories/staff_repository.dart';
+import 'staff_filter_view_model.dart';
 
 final staffViewModelProvider =
-    AsyncNotifierProvider.autoDispose<StaffViewModel, List<Worker>>(
+    AsyncNotifierProvider.autoDispose<StaffViewModel, PageResult<Worker>>(
       StaffViewModel.new,
     );
 
-/// State for the Staff tab: the workers to show.
+/// State for the Staff tab: one page of workers.
+/// Only the page being shown is loaded.
 /// Methods that change a worker return an error message, or null if
 /// it worked.
-class StaffViewModel extends AsyncNotifier<List<Worker>> {
+class StaffViewModel extends AsyncNotifier<PageResult<Worker>> {
   @override
-  Future<List<Worker>> build() async {
-    // Runs again when the branch changes.
+  Future<PageResult<Worker>> build() async {
+    // Runs again when the branch, search text or page changes.
+    final filter = ref.watch(staffFilterViewModelProvider);
     final branchState = await ref.watch(branchViewModelProvider.future);
     final repository = ref.watch(staffRepositoryProvider);
-    return repository.getWorkers(branchState.selected.id);
+
+    return repository.getWorkers(
+      branchState.selected.id,
+      searchText: filter.searchText,
+      page: filter.page,
+    );
   }
 
   Future<String?> addWorker({

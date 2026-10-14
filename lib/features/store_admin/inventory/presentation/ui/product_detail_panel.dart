@@ -61,7 +61,7 @@ class _ProductDetailPanelState extends ConsumerState<ProductDetailPanel> {
   @override
   Widget build(BuildContext context) {
     final inventory = ref.watch(inventoryViewModelProvider).value;
-    final item = inventory?.items
+    final item = inventory?.page.items
         .where((item) => item.product.id == widget.productId)
         .firstOrNull;
     final branchName =

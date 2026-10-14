@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../shared/models/page_result.dart';
 import '../models/inventory_item.dart';
 import '../models/product.dart';
 import '../sample_inventory.dart';
@@ -62,9 +63,38 @@ class InventoryRepository {
     return category;
   }
 
-  /// Products of one branch.
-  Future<List<InventoryItem>> getItems(String branchId) async {
-    return _items.where((item) => item.branchId == branchId).toList();
+  /// One page of a branch's products, sorted by name.
+  /// A filter that is null is not applied.
+  Future<PageResult<InventoryItem>> getItems(
+    String branchId, {
+    String searchText = '',
+    String? categoryId,
+    StockStatus? stockStatus,
+    bool? isHidden,
+    int page = 1,
+  }) async {
+    final search = searchText.trim().toLowerCase();
+
+    final matching = _items.where((item) {
+      final product = item.product;
+      if (item.branchId != branchId) return false;
+      if (categoryId != null && product.categoryId != categoryId) return false;
+      if (stockStatus != null && item.stockStatus != stockStatus) return false;
+      if (isHidden != null && item.isHidden != isHidden) return false;
+
+      // Search by product name or brand.
+      return search.isEmpty ||
+          product.name.toLowerCase().contains(search) ||
+          product.brand.toLowerCase().contains(search);
+    }).toList();
+
+    matching.sort((a, b) {
+      return a.product.name.toLowerCase().compareTo(
+        b.product.name.toLowerCase(),
+      );
+    });
+
+    return PageResult.fromList(matching, page: page);
   }
 
   /// Adds a product to every branch. [branchId] gets [stock];

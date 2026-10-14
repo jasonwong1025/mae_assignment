@@ -7,7 +7,6 @@ import 'package:mae_assignment/features/store_admin/inventory/data/models/invent
 import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/repositories/inventory_repository.dart';
 import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/product_card.dart';
-import 'package:mae_assignment/features/store_admin/inventory/presentation/view_models/inventory_filter_view_model.dart';
 import 'package:mae_assignment/features/store_admin/inventory/presentation/views/inventory_view.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 
@@ -86,9 +85,8 @@ InventoryItem _item({int stock = 20, int low = 10, bool hidden = false}) {
 }
 
 void main() {
-  const desktop = Size(1600, 900);
-  // Tall enough to show a whole form.
-  const tallDesktop = Size(1600, 1500);
+  // Tall enough to show a full page of 20 rows and a whole form.
+  const desktop = Size(1600, 1500);
   const phone = Size(390, 844);
 
   group('InventoryItem', () {
@@ -99,48 +97,14 @@ void main() {
     });
   });
 
-  group('InventoryFilter', () {
-    test('search matches name or brand', () {
-      expect(
-        const InventoryFilter(searchText: 'MILK').matches(_item()),
-        isTrue,
-      );
-      expect(
-        const InventoryFilter(searchText: 'farm').matches(_item()),
-        isTrue,
-      );
-      expect(
-        const InventoryFilter(searchText: 'rice').matches(_item()),
-        isFalse,
-      );
-    });
-
-    test('filters by category, stock and visibility', () {
-      expect(
-        const InventoryFilter(categoryId: 'bakery').matches(_item()),
-        isFalse,
-      );
-      expect(
-        const InventoryFilter(stockStatus: StockStatus.low).matches(_item()),
-        isFalse,
-      );
-      expect(
-        const InventoryFilter(
-          visibility: VisibilityFilter.visible,
-        ).matches(_item(hidden: true)),
-        isFalse,
-      );
-    });
-  });
-
   group('InventoryRepository', () {
     test('a new product is added to every branch', () async {
       final repository = InventoryRepository(FakeImagePickerService());
       await repository.addProduct(
-        name: 'Butter',
-        brand: 'Anchor',
-        categoryId: 'dairy-eggs',
-        packSize: '250g',
+        name: 'Kaya',
+        brand: 'Yeos',
+        categoryId: 'pantry',
+        packSize: '300g',
         description: '',
         lowStockLevel: 5,
         photos: const [],
@@ -149,21 +113,20 @@ void main() {
         stock: 12,
       );
 
-      final here = await repository.getItems('ss15');
-      final there = await repository.getItems('puchong');
-      final butterHere = here.firstWhere((i) => i.product.name == 'Butter');
-      final butterThere = there.firstWhere((i) => i.product.name == 'Butter');
+      final here = await repository.getItems('ss15', searchText: 'kaya');
+      final there = await repository.getItems('puchong', searchText: 'kaya');
 
-      expect(butterHere.stock, 12);
-      expect(butterThere.stock, 0);
-      expect(butterThere.price, 13.90);
+      expect(here.items.single.stock, 12);
+      expect(there.items.single.stock, 0);
+      expect(there.items.single.price, 13.90);
     });
 
     test('details change everywhere, price and stock only here', () async {
       final repository = InventoryRepository(FakeImagePickerService());
       final milk = (await repository.getItems(
         'ss15',
-      )).firstWhere((i) => i.product.id == 'p1');
+        searchText: 'fresh milk',
+      )).items.single;
 
       await repository.updateItem(
         milk.copyWith(
@@ -183,10 +146,53 @@ void main() {
 
       final there = (await repository.getItems(
         'puchong',
-      )).firstWhere((i) => i.product.id == 'p1');
+        searchText: 'full cream',
+      )).items.single;
       expect(there.product.name, 'Full cream milk');
       expect(there.price, 7.90);
       expect(there.stock, 25);
+    });
+
+    test('returns one page of 20, sorted by name', () async {
+      final repository = InventoryRepository(FakeImagePickerService());
+
+      final first = await repository.getItems('ss15');
+      final last = await repository.getItems('ss15', page: 3);
+
+      expect(first.totalCount, 46);
+      expect(first.pageCount, 3);
+      expect(first.items.length, 20);
+      expect(first.items.first.product.name, 'Apples');
+      expect(last.items.length, 6);
+      expect(last.firstRow, 41);
+      expect(last.lastRow, 46);
+    });
+
+    test('a page number that is too high gives the last page', () async {
+      final repository = InventoryRepository(FakeImagePickerService());
+      final result = await repository.getItems('ss15', page: 99);
+
+      expect(result.page, 3);
+    });
+
+    test('filters by category, stock and hidden', () async {
+      final repository = InventoryRepository(FakeImagePickerService());
+
+      final bakery = await repository.getItems('ss15', categoryId: 'bakery');
+      final out = await repository.getItems(
+        'ss15',
+        stockStatus: StockStatus.out,
+      );
+      final hidden = await repository.getItems('ss15', isHidden: true);
+
+      expect(bakery.items.map((i) => i.product.name), [
+        'Croissants',
+        'Mooncakes',
+        'White bread',
+        'Wholemeal bread',
+      ]);
+      expect(out.items.map((i) => i.product.name), ['Mooncakes', 'Oat milk']);
+      expect(hidden.items.single.product.name, 'Mooncakes');
     });
 
     test('refuses a category name that exists', () async {
@@ -227,6 +233,43 @@ void main() {
 
     // Puchong sells it cheaper.
     expect(find.text('RM 27.50'), findsOneWidget);
+  });
+
+  testWidgets('Page buttons load the next page', (tester) async {
+    await _pumpInventory(tester, desktop);
+
+    expect(find.text('1-20 of 46 products'), findsOneWidget);
+    expect(find.text('Apples'), findsOneWidget);
+    expect(find.text('Garlic'), findsNothing);
+
+    await tester.tap(find.byTooltip('Next page'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('21-40 of 46 products'), findsOneWidget);
+    expect(find.text('Garlic'), findsOneWidget);
+    expect(find.text('Apples'), findsNothing);
+
+    // Page 3 is the last one, so Next is switched off.
+    await tester.tap(find.widgetWithText(TextButton, '3'));
+    await tester.pumpAndSettle();
+    expect(find.text('41-46 of 46 products'), findsOneWidget);
+    final next = tester.widget<IconButton>(
+      find.widgetWithIcon(IconButton, Icons.chevron_right_rounded),
+    );
+    expect(next.onPressed, isNull);
+  });
+
+  testWidgets('Searching goes back to page 1', (tester) async {
+    await _pumpInventory(tester, desktop);
+
+    await tester.tap(find.byTooltip('Next page'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'milk');
+    await tester.pumpAndSettle();
+
+    // Fresh milk, Oat milk and Soy milk fit on one page.
+    expect(find.text('1-3 of 3 products'), findsOneWidget);
+    expect(find.byTooltip('Next page'), findsNothing);
   });
 
   testWidgets('Stock filter shows only products that are out', (tester) async {
@@ -277,7 +320,7 @@ void main() {
   });
 
   testWidgets('Adding a product with a new category', (tester) async {
-    await _pumpInventory(tester, tallDesktop);
+    await _pumpInventory(tester, desktop);
 
     await tester.tap(find.text('Add product'));
     await tester.pumpAndSettle();
@@ -312,7 +355,7 @@ void main() {
   });
 
   testWidgets('The add form needs a price and a category', (tester) async {
-    await _pumpInventory(tester, tallDesktop);
+    await _pumpInventory(tester, desktop);
 
     await tester.tap(find.text('Add product'));
     await tester.pumpAndSettle();
@@ -327,28 +370,28 @@ void main() {
   });
 
   testWidgets('Editing changes the name and price', (tester) async {
-    await _pumpInventory(tester, tallDesktop);
+    await _pumpInventory(tester, desktop);
 
     await tester.tap(find.text('Fresh milk'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Edit'));
     await tester.pumpAndSettle();
-    await _fill(tester, 'Product name', 'Full cream milk');
-    await _fill(tester, 'Price (RM)', '8.50');
+    await _fill(tester, 'Product name', 'Daily milk');
+    await _fill(tester, 'Price (RM)', '8.55');
     final save = find.text('Save changes');
     await tester.ensureVisible(save);
     await tester.tap(save);
     await tester.pumpAndSettle();
 
-    expect(find.text('Full cream milk was saved.'), findsOneWidget);
+    expect(find.text('Daily milk was saved.'), findsOneWidget);
     // In the table and the panel title.
-    expect(find.text('Full cream milk'), findsNWidgets(2));
-    expect(find.text('RM 8.50'), findsNWidgets(2));
+    expect(find.text('Daily milk'), findsNWidgets(2));
+    expect(find.text('RM 8.55'), findsNWidgets(2));
   });
 
   testWidgets('Photos added in the form show in the carousel', (tester) async {
     final imagePicker = FakeImagePickerService()..photosChosen = 2;
-    await _pumpInventory(tester, tallDesktop, imagePicker: imagePicker);
+    await _pumpInventory(tester, desktop, imagePicker: imagePicker);
 
     await tester.tap(find.text('Fresh milk'));
     await tester.pumpAndSettle();
@@ -374,7 +417,7 @@ void main() {
 
   testWidgets('A product can have at most five photos', (tester) async {
     final imagePicker = FakeImagePickerService()..photosChosen = 3;
-    await _pumpInventory(tester, tallDesktop, imagePicker: imagePicker);
+    await _pumpInventory(tester, desktop, imagePicker: imagePicker);
 
     await tester.tap(find.text('Add product'));
     await tester.pumpAndSettle();

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shell/presentation/ui/admin_scaffold.dart';
 import '../../../shell/presentation/ui/admin_sidebar.dart';
 import '../../../shell/presentation/ui/filter_menu_button.dart';
+import '../../../shell/presentation/ui/pagination_bar.dart';
 import '../../../shell/presentation/ui/side_panel_frame.dart';
 import '../../../shell/presentation/view_models/branch_view_model.dart';
 import '../../data/models/inventory_item.dart';
@@ -104,20 +105,6 @@ class _InventoryViewState extends ConsumerState<InventoryView> {
     );
   }
 
-  /// Filtered products, sorted by name.
-  List<InventoryItem> _shownItems(
-    List<InventoryItem> items,
-    InventoryFilter filter,
-  ) {
-    final shown = items.where(filter.matches).toList();
-    shown.sort((a, b) {
-      return a.product.name.toLowerCase().compareTo(
-        b.product.name.toLowerCase(),
-      );
-    });
-    return shown;
-  }
-
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -164,22 +151,24 @@ class _InventoryViewState extends ConsumerState<InventoryView> {
                       ),
                     ),
                     data: (state) {
-                      final shown = _shownItems(state.items, filter);
+                      final result = state.page;
+                      final shown = result.items;
 
                       if (shown.isEmpty) {
                         return Align(
                           alignment: Alignment.topLeft,
                           child: Text(
-                            state.items.isEmpty
-                                ? 'No products yet. Add the first one.'
-                                : 'No products match your search or filters.',
+                            filter.isNarrowing
+                                ? 'No products match your search or filters.'
+                                : 'No products yet. Add the first one.',
                             style: textTheme.bodyMedium,
                           ),
                         );
                       }
 
+                      final Widget list;
                       if (!showTable) {
-                        return ListView.separated(
+                        list = ListView.separated(
                           itemCount: shown.length,
                           separatorBuilder: (context, index) =>
                               const SizedBox(height: 8),
@@ -193,17 +182,42 @@ class _InventoryViewState extends ConsumerState<InventoryView> {
                             );
                           },
                         );
+                      } else {
+                        list = InventoryTable(
+                          items: shown,
+                          inventory: state,
+                          selectedProductId: showPanel
+                              ? _selectedProductId
+                              : null,
+                          onItemTap: (item) {
+                            _openProduct(item, inSidePanel: hasRoomForPanel);
+                          },
+                        );
                       }
 
-                      return InventoryTable(
-                        items: shown,
-                        inventory: state,
-                        selectedProductId: showPanel
-                            ? _selectedProductId
-                            : null,
-                        onItemTap: (item) {
-                          _openProduct(item, inSidePanel: hasRoomForPanel);
-                        },
+                      return Column(
+                        children: [
+                          // The key puts a new page back at the top.
+                          Expanded(
+                            child: KeyedSubtree(
+                              key: ValueKey(result.page),
+                              child: list,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          PaginationBar(
+                            result: result,
+                            itemName: 'products',
+                            onPageChanged: (page) {
+                              _closePanel();
+                              ref
+                                  .read(
+                                    inventoryFilterViewModelProvider.notifier,
+                                  )
+                                  .setPage(page);
+                            },
+                          ),
+                        ],
                       );
                     },
                   ),

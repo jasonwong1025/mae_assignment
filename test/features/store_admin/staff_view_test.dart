@@ -53,17 +53,44 @@ Future<void> _fill(WidgetTester tester, String label, String text) async {
 }
 
 void main() {
-  const desktop = Size(1600, 900);
+  // Tall enough to show a full page of 20 rows.
+  const desktop = Size(1600, 1500);
   const phone = Size(390, 844);
 
   group('StaffRepository', () {
     test('lists the branch packers and every driver', () async {
-      final workers = await StaffRepository().getWorkers('puchong');
-      final names = workers.map((worker) => worker.name);
+      final result = await StaffRepository().getWorkers('puchong');
+      final names = result.items.map((worker) => worker.name);
 
+      // 3 Puchong packers and 14 drivers.
+      expect(result.totalCount, 17);
       expect(names, contains('Syafiq Azman'));
       expect(names, contains('Amir Hamzah'));
       expect(names, isNot(contains('Daniel Lee')));
+    });
+
+    test('returns pages of 20, packers first', () async {
+      final repository = StaffRepository();
+
+      final first = await repository.getWorkers('ss15');
+      final second = await repository.getWorkers('ss15', page: 2);
+
+      // 12 SS15 packers and 14 drivers.
+      expect(first.totalCount, 26);
+      expect(first.pageCount, 2);
+      expect(first.items.length, 20);
+      expect(first.items.first.role, WorkerRole.packingStaff);
+      expect(second.items.length, 6);
+      expect(second.items.every((worker) => worker.isDriver), isTrue);
+    });
+
+    test('search looks through every page', () async {
+      final result = await StaffRepository().getWorkers(
+        'ss15',
+        searchText: 'tan wei loon',
+      );
+
+      expect(result.items.single.name, 'Tan Wei Loon');
     });
 
     test('refuses an email that is already used', () async {
@@ -131,14 +158,27 @@ void main() {
     // SS15 packers.
     expect(find.text('Daniel Lee'), findsOneWidget);
     expect(find.text('Nadia Yusof'), findsOneWidget);
-    // All drivers.
-    expect(find.text('Lau Wei Jie'), findsOneWidget);
-    expect(find.text('All branches'), findsNWidgets(4));
     // No packers from other branches.
     expect(find.text('Hafiz Zainal'), findsNothing);
+    // 12 packers fill the page first, so 8 of the 14 drivers fit.
+    expect(find.text('Amir Hamzah'), findsOneWidget);
+    expect(find.text('All branches'), findsNWidgets(8));
 
     expect(find.text('Packing #2291'), findsOneWidget);
     expect(find.text('Deactivated'), findsNWidgets(2));
+    expect(find.text('1-20 of 26 workers'), findsOneWidget);
+  });
+
+  testWidgets('Page 2 shows the rest of the drivers', (tester) async {
+    await _pumpStaff(tester, desktop);
+    expect(find.text('Lau Wei Jie'), findsNothing);
+
+    await tester.tap(find.byTooltip('Next page'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('21-26 of 26 workers'), findsOneWidget);
+    expect(find.text('Lau Wei Jie'), findsOneWidget);
+    expect(find.text('Daniel Lee'), findsNothing);
   });
 
   testWidgets('Search narrows the table', (tester) async {
@@ -208,8 +248,8 @@ void main() {
 
     expect(find.text('Daniel Lee was saved.'), findsOneWidget);
     expect(find.text('Delivering #2291'), findsOneWidget);
-    // Five drivers in the table, plus the open panel.
-    expect(find.text('All branches'), findsNWidgets(6));
+    // 11 packers now, so 9 drivers fit on the page, plus the open panel.
+    expect(find.text('All branches'), findsNWidgets(10));
   });
 
   testWidgets('Deactivating asks first, then updates the row', (tester) async {

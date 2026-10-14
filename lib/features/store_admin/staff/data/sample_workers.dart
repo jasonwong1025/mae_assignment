@@ -148,5 +148,65 @@ List<Worker> sampleWorkers() {
       ordersToday: const [2280],
       joinedAt: DateTime(2026, 9, 30),
     ),
+
+    // More workers, so the table has more than one page.
+    _extra('w11', 'Aiman Hakimi', WorkerRole.packingStaff, branchId: 'ss15'),
+    _extra('w12', 'Bryan Ong', WorkerRole.packingStaff, branchId: 'ss15'),
+    _extra('w13', 'Farah Nabila', WorkerRole.packingStaff, branchId: 'ss15'),
+    _extra('w14', 'Gopal Nair', WorkerRole.packingStaff, branchId: 'ss15'),
+    _extra('w15', 'Irfan Danial', WorkerRole.packingStaff, branchId: 'ss15'),
+    _extra('w16', 'Jessica Lim', WorkerRole.packingStaff, branchId: 'ss15'),
+    _extra('w17', 'Melissa Chua', WorkerRole.packingStaff, branchId: 'ss15'),
+    _extra('w18', 'Zulaikha Omar', WorkerRole.packingStaff, branchId: 'ss15'),
+    _extra('w19', 'Rachel Teo', WorkerRole.packingStaff, branchId: 'ss15'),
+    _extra(
+      'w20',
+      'Adam Faiz',
+      WorkerRole.packingStaff,
+      branchId: 'bukit-jalil',
+    ),
+    _extra(
+      'w21',
+      'Siew Ling Goh',
+      WorkerRole.packingStaff,
+      branchId: 'bukit-jalil',
+    ),
+    _extra(
+      'w22',
+      'Vinod Raj',
+      WorkerRole.packingStaff,
+      branchId: 'bukit-jalil',
+    ),
+    _extra('w23', 'Hannah Lee', WorkerRole.packingStaff, branchId: 'puchong'),
+    _extra('w24', 'Izzat Karim', WorkerRole.packingStaff, branchId: 'puchong'),
+    _extra('w25', 'Azlan Shah', WorkerRole.deliveryDriver),
+    _extra('w26', 'Benjamin Yap', WorkerRole.deliveryDriver),
+    _extra('w27', 'Danish Iskandar', WorkerRole.deliveryDriver),
+    _extra('w28', 'Ganesh Pillai', WorkerRole.deliveryDriver),
+    _extra('w29', 'Haziq Amir', WorkerRole.deliveryDriver),
+    _extra('w30', 'Jason Tan', WorkerRole.deliveryDriver),
+    _extra('w31', 'Marcus Ho', WorkerRole.deliveryDriver),
+    _extra('w32', 'Naveen Kumar', WorkerRole.deliveryDriver),
+    _extra('w33', 'Ridzuan Ali', WorkerRole.deliveryDriver),
+    _extra('w34', 'Tan Wei Loon', WorkerRole.deliveryDriver),
   ];
+}
+
+/// A worker with ordinary details: active, on duty and free.
+Worker _extra(String id, String name, WorkerRole role, {String? branchId}) {
+  // Number from the id, used to make each phone number different.
+  final number = int.parse(id.substring(1));
+
+  return Worker(
+    id: id,
+    name: name,
+    email: '${name.toLowerCase().replaceAll(' ', '.')}@grocerly.my',
+    phone: '012-555 ${(200 + number).toString().padLeft(4, '0')}',
+    role: role,
+    branchId: branchId,
+    isActive: true,
+    isOnDuty: true,
+    ordersToday: const [],
+    joinedAt: DateTime(2026, 1, number),
+  );
 }

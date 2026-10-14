@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shell/data/models/branch.dart';
 import '../../../shell/presentation/ui/admin_scaffold.dart';
 import '../../../shell/presentation/ui/admin_sidebar.dart';
+import '../../../shell/presentation/ui/pagination_bar.dart';
 import '../../../shell/presentation/view_models/branch_view_model.dart';
 import '../../data/models/worker.dart';
 import '../../../shell/presentation/ui/side_panel_frame.dart';
@@ -12,6 +13,7 @@ import '../ui/worker_card.dart';
 import '../ui/worker_detail_panel.dart';
 import '../ui/worker_form.dart';
 import '../ui/worker_labels.dart';
+import '../view_models/staff_filter_view_model.dart';
 import '../view_models/staff_view_model.dart';
 
 /// Staff tab: packers of the selected branch and all drivers.
@@ -29,7 +31,6 @@ class _StaffViewState extends ConsumerState<StaffView> {
   static const double _sidePanelWidth = 1000;
 
   final _searchController = TextEditingController();
-  String _searchText = '';
 
   /// Worker open in the side panel.
   String? _selectedWorkerId;
@@ -104,22 +105,12 @@ class _StaffViewState extends ConsumerState<StaffView> {
     );
   }
 
-  /// Packers first, then drivers, each sorted by name.
-  List<Worker> _shownWorkers(List<Worker> workers) {
-    final shown = workers
-        .where((worker) => worker.matchesSearch(_searchText))
-        .toList();
-    shown.sort((a, b) {
-      if (a.role != b.role) return a.role.index.compareTo(b.role.index);
-      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-    });
-    return shown;
-  }
-
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final staff = ref.watch(staffViewModelProvider);
+    final filter = ref.watch(staffFilterViewModelProvider);
+    final filterViewModel = ref.read(staffFilterViewModelProvider.notifier);
     final branchState = ref.watch(branchViewModelProvider).value;
     final branches = branchState?.branches ?? const <Branch>[];
 
@@ -142,9 +133,7 @@ class _StaffViewState extends ConsumerState<StaffView> {
                   branchName: branchState?.selected.name,
                   isWide: showTable,
                   searchController: _searchController,
-                  onSearchChanged: (text) {
-                    setState(() => _searchText = text);
-                  },
+                  onSearchChanged: filterViewModel.setSearchText,
                   onAddWorker: () {
                     _openAddForm(inSidePanel: hasRoomForPanel);
                   },
@@ -162,14 +151,14 @@ class _StaffViewState extends ConsumerState<StaffView> {
                         style: textTheme.bodyMedium,
                       ),
                     ),
-                    data: (workers) {
-                      final shown = _shownWorkers(workers);
+                    data: (result) {
+                      final shown = result.items;
 
                       if (shown.isEmpty) {
                         return Align(
                           alignment: Alignment.topLeft,
                           child: Text(
-                            _searchText.trim().isEmpty
+                            filter.searchText.trim().isEmpty
                                 ? 'No workers yet. Add the first one.'
                                 : 'No workers match your search.',
                             style: textTheme.bodyMedium,
@@ -177,8 +166,9 @@ class _StaffViewState extends ConsumerState<StaffView> {
                         );
                       }
 
+                      final Widget list;
                       if (!showTable) {
-                        return ListView.separated(
+                        list = ListView.separated(
                           itemCount: shown.length,
                           separatorBuilder: (context, index) =>
                               const SizedBox(height: 8),
@@ -193,15 +183,38 @@ class _StaffViewState extends ConsumerState<StaffView> {
                             );
                           },
                         );
+                      } else {
+                        list = StaffTable(
+                          workers: shown,
+                          branches: branches,
+                          selectedWorkerId: showPanel
+                              ? _selectedWorkerId
+                              : null,
+                          onWorkerTap: (worker) {
+                            _openWorker(worker, inSidePanel: hasRoomForPanel);
+                          },
+                        );
                       }
 
-                      return StaffTable(
-                        workers: shown,
-                        branches: branches,
-                        selectedWorkerId: showPanel ? _selectedWorkerId : null,
-                        onWorkerTap: (worker) {
-                          _openWorker(worker, inSidePanel: hasRoomForPanel);
-                        },
+                      return Column(
+                        children: [
+                          // The key puts a new page back at the top.
+                          Expanded(
+                            child: KeyedSubtree(
+                              key: ValueKey(result.page),
+                              child: list,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          PaginationBar(
+                            result: result,
+                            itemName: 'workers',
+                            onPageChanged: (page) {
+                              _closePanel();
+                              filterViewModel.setPage(page);
+                            },
+                          ),
+                        ],
                       );
                     },
                   ),

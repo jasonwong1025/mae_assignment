@@ -76,7 +76,8 @@ class _WorkerDetailPanelState extends ConsumerState<WorkerDetailPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final workers = ref.watch(staffViewModelProvider).value ?? const <Worker>[];
+    final workers =
+        ref.watch(staffViewModelProvider).value?.items ?? const <Worker>[];
     final worker = workers
         .where((worker) => worker.id == widget.workerId)
         .firstOrNull;
