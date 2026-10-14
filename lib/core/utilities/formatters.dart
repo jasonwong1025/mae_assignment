@@ -56,6 +56,12 @@ class Formatters {
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
+  /// Metres as "850 m" or "2.1 km".
+  static String distance(double metres) {
+    if (metres < 1000) return '${metres.round()} m';
+    return '${(metres / 1000).toStringAsFixed(1)} km';
+  }
+
   /// 4 becomes "4m", 132 becomes "2h 12m".
   static String minutes(int minutes) {
     if (minutes < 60) return '${minutes}m';

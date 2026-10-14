@@ -7,6 +7,7 @@ import '../../features/authentication/presentation/views/login_view.dart';
 import '../../features/authentication/presentation/views/onboarding_view.dart';
 import '../../features/authentication/presentation/views/register_view.dart';
 import '../../features/store_admin/dashboard/presentation/views/dashboard_view.dart';
+import '../../features/store_admin/dispatch/presentation/views/dispatch_view.dart';
 import '../../features/store_admin/inventory/presentation/views/inventory_view.dart';
 import '../../features/store_admin/orders/presentation/views/orders_view.dart';
 import '../../features/store_admin/staff/presentation/views/staff_view.dart';
@@ -23,6 +24,7 @@ class AppRoutes {
   static const String adminOrders = '/admin/orders';
   static const String adminInventory = '/admin/inventory';
   static const String adminStaff = '/admin/staff';
+  static const String adminDispatch = '/admin/dispatch';
 
   /// Pages for people who are not signed in.
   static const List<String> signedOutPages = [onboarding, login, register];
@@ -92,6 +94,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.adminStaff,
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: StaffView()),
+      ),
+      GoRoute(
+        path: AppRoutes.adminDispatch,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: DispatchView()),
       ),
     ],
   );

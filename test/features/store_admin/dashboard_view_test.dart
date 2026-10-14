@@ -71,14 +71,14 @@ void main() {
   testWidgets('Pages that are not built yet cannot be tapped', (tester) async {
     await _pumpDashboard(tester, tablet);
 
-    final dispatch = tester.widget<ListTile>(
-      find.widgetWithText(ListTile, 'Dispatch'),
+    final reviews = tester.widget<ListTile>(
+      find.widgetWithText(ListTile, 'Reviews'),
     );
     final dashboard = tester.widget<ListTile>(
       find.widgetWithText(ListTile, 'Dashboard'),
     );
 
-    expect(dispatch.enabled, isFalse);
+    expect(reviews.enabled, isFalse);
     expect(dashboard.enabled, isTrue);
     expect(dashboard.selected, isTrue);
   });

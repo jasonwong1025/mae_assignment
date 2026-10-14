@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'package:latlong2/latlong.dart';
+
 import 'models/order.dart';
 
 /// Sample orders for one branch, used while the backend is not connected.
@@ -29,6 +31,7 @@ List<Order> _ss15Orders(DateTime now) {
       placedMinutesAgo: 22,
       minutesInStatus: 22,
       address: '12, Jalan SS15/4, Subang Jaya',
+      location: const LatLng(3.0771, 101.5848),
       note: 'Please ring the bell twice.',
       items: const [
         OrderItem(name: 'Fresh milk 1L', quantity: 2, unitPrice: 7.90),
@@ -60,6 +63,7 @@ List<Order> _ss15Orders(DateTime now) {
       placedMinutesAgo: 2,
       minutesInStatus: 2,
       address: 'B-10-3, Subang Avenue, Subang Jaya',
+      location: const LatLng(3.0812, 101.5855),
       items: const [
         OrderItem(name: 'Bananas (bunch)', quantity: 1, unitPrice: 5.20),
         OrderItem(name: 'Greek yogurt', quantity: 3, unitPrice: 4.90),
@@ -74,6 +78,7 @@ List<Order> _ss15Orders(DateTime now) {
       placedMinutesAgo: 15,
       minutesInStatus: 4,
       address: '45, Jalan SS17/2, Subang Jaya',
+      location: const LatLng(3.0795, 101.5960),
       worker: 'Daniel',
       items: const [
         OrderItem(name: 'Chicken breast 500g', quantity: 2, unitPrice: 11.90),
@@ -91,6 +96,7 @@ List<Order> _ss15Orders(DateTime now) {
       placedMinutesAgo: 34,
       minutesInStatus: 18,
       address: '8, Jalan USJ 2/5, Subang Jaya',
+      location: const LatLng(3.0625, 101.5912),
       worker: 'Hakim',
       attentionReason:
           'Oat milk is out of stock. Waiting for the customer to accept '
@@ -128,6 +134,39 @@ List<Order> _ss15Orders(DateTime now) {
     ),
     _order(
       now,
+      number: 2292,
+      customer: 'Ooi Hui Min',
+      phone: '012-618 3390',
+      status: OrderStatus.ready,
+      placedMinutesAgo: 30,
+      minutesInStatus: 7,
+      address: '5, Jalan SS16/1, Subang Jaya',
+      location: const LatLng(3.0815, 101.5820),
+      worker: 'Bryan',
+      items: const [
+        OrderItem(name: 'Fresh milk 1L', quantity: 1, unitPrice: 7.90),
+        OrderItem(name: 'Apples (6)', quantity: 1, unitPrice: 9.90),
+      ],
+    ),
+    _order(
+      now,
+      number: 2284,
+      customer: 'Ahmad Fauzi',
+      phone: '019-870 2215',
+      status: OrderStatus.ready,
+      placedMinutesAgo: 44,
+      minutesInStatus: 12,
+      address: '30, Jalan USJ 9/5, Subang Jaya',
+      location: const LatLng(3.0475, 101.5830),
+      payment: PaymentMethod.cash,
+      worker: 'Hakim',
+      items: const [
+        OrderItem(name: 'Jasmine rice 5kg', quantity: 1, unitPrice: 28.90),
+        OrderItem(name: 'Eggs (10)', quantity: 2, unitPrice: 6.80),
+      ],
+    ),
+    _order(
+      now,
       number: 2290,
       customer: 'Raj Kumar',
       phone: '012-887 4410',
@@ -135,6 +174,8 @@ List<Order> _ss15Orders(DateTime now) {
       placedMinutesAgo: 48,
       minutesInStatus: 9,
       address: '23, Jalan SS19/1, Subang Jaya',
+      location: const LatLng(3.0745, 101.5745),
+      driverId: 'w7',
       worker: 'Amir',
       items: const [
         OrderItem(name: 'Basmati rice 2kg', quantity: 1, unitPrice: 19.90),
@@ -151,6 +192,8 @@ List<Order> _ss15Orders(DateTime now) {
       placedMinutesAgo: 62,
       minutesInStatus: 21,
       address: 'A-5-12, Main Place Residence, USJ 21',
+      location: const LatLng(3.0310, 101.5840),
+      driverId: 'w8',
       payment: PaymentMethod.cash,
       worker: 'Firdaus',
       items: const [
@@ -216,6 +259,7 @@ List<Order> _bukitJalilOrders(DateTime now) {
       placedMinutesAgo: 3,
       minutesInStatus: 3,
       address: 'C-12-7, The Park Sky Residence, Bukit Jalil',
+      location: const LatLng(3.0560, 101.6800),
       items: const [
         OrderItem(name: 'Paneer 200g', quantity: 2, unitPrice: 9.90),
         OrderItem(name: 'Spinach', quantity: 1, unitPrice: 3.50),
@@ -238,6 +282,22 @@ List<Order> _bukitJalilOrders(DateTime now) {
     ),
     _order(
       now,
+      number: 1179,
+      customer: 'Lee Mei Fong',
+      phone: '017-554 0921',
+      status: OrderStatus.ready,
+      placedMinutesAgo: 25,
+      minutesInStatus: 5,
+      address: '7, Jalan Jalil Jaya 2, Bukit Jalil',
+      location: const LatLng(3.0505, 101.6745),
+      worker: 'Hafiz',
+      items: const [
+        OrderItem(name: 'Chicken wings 1kg', quantity: 1, unitPrice: 15.90),
+        OrderItem(name: 'Potatoes 1kg', quantity: 1, unitPrice: 5.40),
+      ],
+    ),
+    _order(
+      now,
       number: 1178,
       customer: 'Nurul Huda',
       phone: '013-998 2204',
@@ -245,6 +305,8 @@ List<Order> _bukitJalilOrders(DateTime now) {
       placedMinutesAgo: 41,
       minutesInStatus: 12,
       address: '21, Jalan Jalil Perkasa 5, Bukit Jalil',
+      location: const LatLng(3.0620, 101.6730),
+      driverId: 'w9',
       worker: 'Wei Jie',
       items: const [
         OrderItem(name: 'Diapers (M)', quantity: 1, unitPrice: 45.90),
@@ -280,6 +342,7 @@ List<Order> _puchongOrders(DateTime now) {
       placedMinutesAgo: 26,
       minutesInStatus: 11,
       address: '9, Jalan Puteri 5/2, Bandar Puteri Puchong',
+      location: const LatLng(3.0225, 101.6110),
       worker: 'Syafiq',
       attentionReason:
           'Brown rice is out of stock. Waiting for the customer to accept '
@@ -292,6 +355,22 @@ List<Order> _puchongOrders(DateTime now) {
           isOutOfStock: true,
         ),
         OrderItem(name: 'Canned tuna', quantity: 3, unitPrice: 6.20),
+      ],
+    ),
+    _order(
+      now,
+      number: 905,
+      customer: 'Muthu Krishnan',
+      phone: '012-702 6618',
+      status: OrderStatus.ready,
+      placedMinutesAgo: 33,
+      minutesInStatus: 9,
+      address: '14, Jalan Kenari 3, Bandar Puchong Jaya',
+      location: const LatLng(3.0400, 101.6200),
+      worker: 'Syafiq',
+      items: const [
+        OrderItem(name: 'Atta flour 2kg', quantity: 1, unitPrice: 11.50),
+        OrderItem(name: 'Ghee 400g', quantity: 1, unitPrice: 18.90),
       ],
     ),
     _order(
@@ -326,9 +405,11 @@ Order _order(
   required List<OrderItem> items,
   bool isDelivery = true,
   String? address,
+  LatLng? location,
   String? note,
   PaymentMethod payment = PaymentMethod.online,
   String? worker,
+  String? driverId,
   String? attentionReason,
 }) {
   final placedAt = now.subtract(Duration(minutes: placedMinutesAgo));
@@ -342,6 +423,7 @@ Order _order(
     statusSince: statusSince,
     isDelivery: isDelivery,
     address: address,
+    location: location,
     customerNote: note,
     items: items,
     deliveryFee: isDelivery ? 5.00 : 0,
@@ -349,6 +431,7 @@ Order _order(
     // Online orders are paid at checkout, cash orders when handed over.
     isPaid: payment == PaymentMethod.online || status == OrderStatus.completed,
     assignedWorker: worker,
+    driverId: driverId,
     attentionReason: attentionReason,
     timeline: _timeline(
       placedAt: placedAt,
