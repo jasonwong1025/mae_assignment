@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../../app/router/app_router.dart';
 import '../../../../../core/utilities/formatters.dart';
 import '../../../../authentication/data/repositories/auth_repository.dart';
 import '../../../shell/data/models/branch.dart';
@@ -61,13 +63,9 @@ class _DashboardContent extends StatelessWidget {
   final Branch branch;
   final String adminName;
 
+  /// Products are added on the Inventory tab.
   void _onAddItem(BuildContext context) {
-    // TODO: open the add item page once Inventory is built.
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(content: Text('Adding items is not connected yet.')),
-      );
+    context.go(AppRoutes.adminInventory);
   }
 
   @override

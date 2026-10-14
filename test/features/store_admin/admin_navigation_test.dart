@@ -54,5 +54,10 @@ void main() {
     await tester.tap(find.widgetWithText(ListTile, 'Dashboard'));
     await tester.pumpAndSettle();
     expect(find.text('orders today · up 12 vs yesterday'), findsOneWidget);
+
+    // "Add item" on the dashboard opens the Inventory tab.
+    await tester.tap(find.text('Add item'));
+    await tester.pumpAndSettle();
+    expect(find.text('Prices and stock at SS15 Subang'), findsOneWidget);
   });
 }
