@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/app_router.dart';
 import '../ui/onboarding_slide.dart';
-import '../ui/page_indicator.dart';
+import '../../../../shared/ui/page_indicator.dart';
 
 /// First screen of the app: swipeable intro slides plus
 /// "Get started" (register) and "I already have an account" (login).

@@ -6,7 +6,7 @@ import '../../../shell/presentation/ui/admin_scaffold.dart';
 import '../../../shell/presentation/ui/admin_sidebar.dart';
 import '../../../shell/presentation/view_models/branch_view_model.dart';
 import '../../data/models/worker.dart';
-import '../ui/staff_panel_frame.dart';
+import '../../../shell/presentation/ui/side_panel_frame.dart';
 import '../ui/staff_table.dart';
 import '../ui/worker_card.dart';
 import '../ui/worker_detail_panel.dart';
@@ -253,7 +253,7 @@ class _AddWorkerPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StaffPanelFrame(
+    return SidePanelFrame(
       title: 'Add worker',
       onClose: onClose,
       child: WorkerForm(onCancel: onClose, onSaved: onAdded),

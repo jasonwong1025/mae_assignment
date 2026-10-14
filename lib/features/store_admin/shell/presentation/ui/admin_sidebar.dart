@@ -13,7 +13,7 @@ import 'branch_switcher.dart';
 enum AdminPage {
   dashboard('Dashboard', Icons.dashboard_outlined, AppRoutes.adminDashboard),
   orders('Orders', Icons.receipt_long_outlined, AppRoutes.adminOrders),
-  inventory('Inventory', Icons.inventory_2_outlined),
+  inventory('Inventory', Icons.inventory_2_outlined, AppRoutes.adminInventory),
   staff('Staff', Icons.badge_outlined, AppRoutes.adminStaff),
   dispatch('Dispatch', Icons.local_shipping_outlined),
   refundsAndAlerts('Refunds & alerts', Icons.report_problem_outlined),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../app/theme/app_colors.dart';
+import '../../app/theme/app_colors.dart';
 
 /// Row of dots showing which slide is active (the "● ○ ○" in the wireframe).
 class PageIndicator extends StatelessWidget {

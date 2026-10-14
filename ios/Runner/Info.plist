@@ -68,5 +68,7 @@
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
-	</dict>
+		<key>NSPhotoLibraryUsageDescription</key>
+	<string>Grocerly needs your photos so you can add pictures to products.</string>
+</dict>
 </plist>

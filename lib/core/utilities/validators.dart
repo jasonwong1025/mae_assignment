@@ -45,6 +45,28 @@ class Validators {
     return null;
   }
 
+  /// For any field that must not be empty. Shows [message] if it is.
+  static String? Function(String?) required(String message) {
+    return (value) {
+      if (value == null || value.trim().isEmpty) return message;
+      return null;
+    };
+  }
+
+  /// A price above zero, e.g. "7.90".
+  static String? price(String? value) {
+    final amount = double.tryParse(value?.trim() ?? '');
+    if (amount == null || amount <= 0) return 'Please enter a valid price';
+    return null;
+  }
+
+  /// A whole number, zero or more.
+  static String? wholeNumber(String? value) {
+    final number = int.tryParse(value?.trim() ?? '');
+    if (number == null || number < 0) return 'Please enter a whole number';
+    return null;
+  }
+
   /// For creating a password (sign-up, reset).
   static String? newPassword(String? value) {
     if ((value ?? '').length < 8) return 'Use at least 8 characters';

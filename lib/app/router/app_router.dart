@@ -7,6 +7,7 @@ import '../../features/authentication/presentation/views/login_view.dart';
 import '../../features/authentication/presentation/views/onboarding_view.dart';
 import '../../features/authentication/presentation/views/register_view.dart';
 import '../../features/store_admin/dashboard/presentation/views/dashboard_view.dart';
+import '../../features/store_admin/inventory/presentation/views/inventory_view.dart';
 import '../../features/store_admin/orders/presentation/views/orders_view.dart';
 import '../../features/store_admin/staff/presentation/views/staff_view.dart';
 
@@ -20,6 +21,7 @@ class AppRoutes {
   static const String home = '/home';
   static const String adminDashboard = '/admin/dashboard';
   static const String adminOrders = '/admin/orders';
+  static const String adminInventory = '/admin/inventory';
   static const String adminStaff = '/admin/staff';
 
   /// Pages for people who are not signed in.
@@ -80,6 +82,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.adminOrders,
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: OrdersView()),
+      ),
+      GoRoute(
+        path: AppRoutes.adminInventory,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: InventoryView()),
       ),
       GoRoute(
         path: AppRoutes.adminStaff,

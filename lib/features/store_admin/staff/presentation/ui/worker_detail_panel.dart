@@ -7,7 +7,7 @@ import '../../../shell/data/models/branch.dart';
 import '../../../shell/presentation/view_models/branch_view_model.dart';
 import '../../data/models/worker.dart';
 import '../view_models/staff_view_model.dart';
-import 'staff_panel_frame.dart';
+import '../../../shell/presentation/ui/side_panel_frame.dart';
 import 'worker_form.dart';
 import 'worker_labels.dart';
 
@@ -85,7 +85,7 @@ class _WorkerDetailPanelState extends ConsumerState<WorkerDetailPanel> {
 
     if (worker == null) {
       // E.g. a packer moved to another branch.
-      return StaffPanelFrame(
+      return SidePanelFrame(
         title: 'Worker',
         onClose: widget.onClose,
         child: Padding(
@@ -99,7 +99,7 @@ class _WorkerDetailPanelState extends ConsumerState<WorkerDetailPanel> {
     }
 
     if (_isEditing) {
-      return StaffPanelFrame(
+      return SidePanelFrame(
         title: 'Edit worker',
         onClose: widget.onClose,
         child: WorkerForm(
@@ -113,7 +113,7 @@ class _WorkerDetailPanelState extends ConsumerState<WorkerDetailPanel> {
       );
     }
 
-    return StaffPanelFrame(
+    return SidePanelFrame(
       title: worker.name,
       onClose: widget.onClose,
       child: _WorkerDetails(

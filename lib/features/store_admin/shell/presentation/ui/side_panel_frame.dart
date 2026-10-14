@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../../../app/theme/app_colors.dart';
 
 /// Side panel with a title, a close button and [child] below.
-class StaffPanelFrame extends StatelessWidget {
-  const StaffPanelFrame({
+/// Used by the admin tabs for details and forms.
+class SidePanelFrame extends StatelessWidget {
+  const SidePanelFrame({
     super.key,
     required this.title,
     required this.onClose,

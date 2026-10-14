@@ -17,6 +17,7 @@ class LabeledTextField extends StatelessWidget {
     this.suffixIcon,
     this.validator,
     this.autofillHints,
+    this.field,
   });
 
   final String label;
@@ -31,6 +32,9 @@ class LabeledTextField extends StatelessWidget {
   final Widget? suffixIcon;
   final String? Function(String?)? validator;
   final Iterable<String>? autofillHints;
+
+  /// Shown instead of the text box, e.g. a dropdown. The label stays.
+  final Widget? field;
 
   @override
   Widget build(BuildContext context) {
@@ -59,15 +63,19 @@ class LabeledTextField extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 6),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          textInputAction: textInputAction,
-          obscureText: obscureText,
-          validator: validator,
-          autofillHints: autofillHints,
-          decoration: InputDecoration(hintText: hint, suffixIcon: suffixIcon),
-        ),
+        field ??
+            TextFormField(
+              controller: controller,
+              keyboardType: keyboardType,
+              textInputAction: textInputAction,
+              obscureText: obscureText,
+              validator: validator,
+              autofillHints: autofillHints,
+              decoration: InputDecoration(
+                hintText: hint,
+                suffixIcon: suffixIcon,
+              ),
+            ),
       ],
     );
   }
