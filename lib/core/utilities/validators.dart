@@ -45,7 +45,7 @@ class Validators {
     return null;
   }
 
-  /// For any field that must not be empty. Shows [message] if it is.
+  /// Field must not be empty. Shows [message] if it is.
   static String? Function(String?) required(String message) {
     return (value) {
       if (value == null || value.trim().isEmpty) return message;
@@ -53,14 +53,14 @@ class Validators {
     };
   }
 
-  /// A price above zero, e.g. "7.90".
+  /// Price must be above zero.
   static String? price(String? value) {
     final amount = double.tryParse(value?.trim() ?? '');
     if (amount == null || amount <= 0) return 'Please enter a valid price';
     return null;
   }
 
-  /// A whole number, zero or more.
+  /// Must be a whole number, 0 or more.
   static String? wholeNumber(String? value) {
     final number = int.tryParse(value?.trim() ?? '');
     if (number == null || number < 0) return 'Please enter a whole number';

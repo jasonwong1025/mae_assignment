@@ -33,7 +33,7 @@ class LabeledTextField extends StatelessWidget {
   final String? Function(String?)? validator;
   final Iterable<String>? autofillHints;
 
-  /// Shown instead of the text box, e.g. a dropdown. The label stays.
+  /// Replaces the text box, e.g. with a dropdown.
   final Widget? field;
 
   @override

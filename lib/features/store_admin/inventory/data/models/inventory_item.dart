@@ -11,7 +11,7 @@ enum StockStatus {
   final String label;
 }
 
-/// A product at one branch: its price, stock and visibility there.
+/// A product at one branch.
 class InventoryItem {
   const InventoryItem({
     required this.product,
@@ -24,13 +24,13 @@ class InventoryItem {
   final Product product;
   final String branchId;
 
-  /// In ringgit. Each branch sets its own.
+  /// Price at this branch, in ringgit.
   final double price;
 
-  /// Units this branch has.
+  /// Stock at this branch.
   final int stock;
 
-  /// True if customers of this branch cannot see it.
+  /// True if hidden from customers at this branch.
   final bool isHidden;
 
   StockStatus get stockStatus {

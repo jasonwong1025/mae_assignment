@@ -20,14 +20,14 @@ class InventoryException implements Exception {
   String toString() => message;
 }
 
-/// Products, categories and per-branch stock for the Inventory tab.
-/// No backend yet: everything is kept in memory and resets on restart.
+/// Data for the Inventory tab.
+/// No backend yet: kept in memory and reset on restart.
 class InventoryRepository {
   InventoryRepository(this._imagePicker);
 
   final ImagePickerService _imagePicker;
 
-  // Copied so new categories can be added to it.
+  // A copy, so categories can be added.
   final List<ProductCategory> _categories = [...sampleCategories()];
 
   /// Every product at every branch.
@@ -37,12 +37,12 @@ class InventoryRepository {
 
   Future<List<ProductCategory>> getCategories() async => [..._categories];
 
-  /// Lets the admin choose up to [limit] photos from the device.
+  /// Opens the device's photos. Returns up to [limit].
   Future<List<Uint8List>> pickPhotos(int limit) async {
     try {
       return await _imagePicker.pickPhotos(limit);
     } catch (error) {
-      // Printed so the real cause shows in the debug console.
+      // Show the real error in the debug console.
       debugPrint('Picking photos failed: $error');
       throw const InventoryException('Could not open your photos.');
     }
@@ -67,8 +67,8 @@ class InventoryRepository {
     return _items.where((item) => item.branchId == branchId).toList();
   }
 
-  /// Adds a product to the catalogue. [branchId] gets [price] and
-  /// [stock]. Other branches get the same price and 0 stock.
+  /// Adds a product to every branch. [branchId] gets [stock];
+  /// the others get 0. All get [price].
   Future<void> addProduct({
     required String name,
     required String brand,
@@ -115,8 +115,8 @@ class InventoryRepository {
     }
   }
 
-  /// Saves one branch's item: its price, stock and visibility there,
-  /// and the product details, which change at every branch.
+  /// Saves an item. Price, stock and hidden change at its branch only.
+  /// Product details change at every branch.
   Future<void> updateItem(InventoryItem changed) async {
     for (var i = 0; i < _items.length; i++) {
       final item = _items[i];

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Stock number with - and + buttons. "Save stock" appears once the
-/// number is different from [stock].
+/// Stock number with - and + buttons.
+/// "Save stock" shows when the number differs from [stock].
 class StockEditor extends StatefulWidget {
   const StockEditor({super.key, required this.stock, required this.onSave});
 
-  /// The saved stock.
+  /// Saved stock.
   final int stock;
   final ValueChanged<int> onSave;
 
@@ -29,7 +29,7 @@ class _StockEditorState extends State<StockEditor> {
     super.dispose();
   }
 
-  /// The typed number. Null if the box is empty.
+  /// Typed number. Null if empty.
   int? get _typed => int.tryParse(_controller.text);
 
   void _change(int by) {
@@ -58,7 +58,7 @@ class _StockEditorState extends State<StockEditor> {
                 controller: _controller,
                 textAlign: TextAlign.center,
                 keyboardType: TextInputType.number,
-                // Digits only, so the stock is never negative or text.
+                // Digits only.
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 onChanged: (_) => setState(() {}),
                 decoration: const InputDecoration(

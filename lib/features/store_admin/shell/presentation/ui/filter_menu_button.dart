@@ -11,8 +11,8 @@ class FilterOption<T> {
   final String label;
 }
 
-/// Button that opens a menu to filter a list by one thing.
-/// The first menu item is always "all" and means no filter.
+/// Button that opens a filter menu.
+/// The first item is "all", which means no filter.
 class FilterMenuButton<T> extends StatelessWidget {
   const FilterMenuButton({
     super.key,
@@ -23,7 +23,7 @@ class FilterMenuButton<T> extends StatelessWidget {
     required this.onSelected,
   });
 
-  /// Shown on the button when nothing is chosen, e.g. "Category".
+  /// Button text when nothing is chosen, e.g. "Category".
   final String name;
 
   /// First menu item, e.g. "All categories".
@@ -36,7 +36,7 @@ class FilterMenuButton<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The menu uses numbers: 0 is "all", 1 is the first option, and so on.
+    // Menu values: 0 is "all", 1 is the first option, and so on.
     final selectedIndex =
         options.indexWhere((option) => option.value == selected) + 1;
     final labels = [allLabel, for (final option in options) option.label];

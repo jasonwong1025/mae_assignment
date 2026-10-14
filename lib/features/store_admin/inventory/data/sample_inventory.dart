@@ -18,7 +18,7 @@ List<ProductCategory> sampleCategories() {
   ];
 }
 
-/// Branch ids, in the order the stock numbers below are written.
+/// Branch order of the stock numbers below.
 const sampleBranchIds = ['ss15', 'bukit-jalil', 'puchong'];
 
 /// Sample products at every branch.
@@ -221,8 +221,8 @@ List<InventoryItem> sampleInventory() {
   ];
 }
 
-/// One product listed at all three branches.
-/// [stock] and [prices] follow the order of [sampleBranchIds].
+/// One product at all three branches.
+/// [stock] and [prices] are in [sampleBranchIds] order.
 List<InventoryItem> _everywhere(
   String id,
   String name,

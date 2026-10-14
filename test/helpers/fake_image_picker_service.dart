@@ -4,18 +4,18 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/services/image_picker_service.dart';
 
-/// A real 1x1 pixel PNG, so Image.memory can show it.
+/// A real 1x1 pixel PNG.
 final Uint8List tinyPng = base64Decode(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA'
   '60e6kgAAAABJRU5ErkJggg==',
 );
 
-/// Stand-in for ImagePickerService, so tests do not open a real gallery.
+/// Fake ImagePickerService, so tests do not open a gallery.
 class FakeImagePickerService extends Fake implements ImagePickerService {
-  /// How many photos the "user" chooses.
+  /// Number of photos to return.
   int photosChosen = 1;
 
-  /// The limit the app asked for last time.
+  /// Limit asked for in the last call.
   int? lastLimit;
 
   @override

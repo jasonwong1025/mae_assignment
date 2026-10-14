@@ -87,7 +87,7 @@ InventoryItem _item({int stock = 20, int low = 10, bool hidden = false}) {
 
 void main() {
   const desktop = Size(1600, 900);
-  // Tall enough to show a whole form without scrolling.
+  // Tall enough to show a whole form.
   const tallDesktop = Size(1600, 1500);
   const phone = Size(390, 844);
 
@@ -258,8 +258,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Stock updated to 3.'), findsOneWidget);
-    // 3 is at or below the low stock level of 5.
-    // Once in the table row and once in the panel.
+    // 3 is low (level is 5). Shown in the row and the panel.
     expect(find.text('Low'), findsNWidgets(2));
     expect(find.text('Save stock'), findsNothing);
   });
@@ -342,7 +341,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Full cream milk was saved.'), findsOneWidget);
-    // In the table and as the panel title.
+    // In the table and the panel title.
     expect(find.text('Full cream milk'), findsNWidgets(2));
     expect(find.text('RM 8.50'), findsNWidgets(2));
   });
@@ -365,7 +364,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('No photos yet'), findsNothing);
-    // Two photos, so the carousel can go to the next one.
+    // Two photos, so there is a next one.
     expect(find.byTooltip('Next photo'), findsOneWidget);
     await tester.tap(find.byTooltip('Next photo'));
     await tester.pumpAndSettle();
@@ -380,7 +379,7 @@ void main() {
     await tester.tap(find.text('Add product'));
     await tester.pumpAndSettle();
 
-    // Three photos, then the picker is only asked for the two left.
+    // 3 photos first, then only 2 more fit.
     await tester.tap(find.byIcon(Icons.add_photo_alternate_outlined));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.add_photo_alternate_outlined));
@@ -388,7 +387,7 @@ void main() {
 
     expect(imagePicker.lastLimit, 2);
     expect(find.byTooltip('Remove photo'), findsNWidgets(5));
-    // No room for more, so the Add tile is gone.
+    // Full, so the Add tile is gone.
     expect(find.byIcon(Icons.add_photo_alternate_outlined), findsNothing);
 
     await tester.tap(find.byTooltip('Remove photo').first);

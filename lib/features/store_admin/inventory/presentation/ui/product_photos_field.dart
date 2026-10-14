@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import '../../../../../app/theme/app_colors.dart';
 import '../../data/models/product.dart';
 
-/// Row of photo tiles for the product form. Each photo has a remove
-/// button, and an "Add" tile is shown until the limit is reached.
+/// Photo tiles for the product form, with remove buttons and an
+/// "Add" tile until the limit is reached.
 class ProductPhotosField extends StatelessWidget {
   const ProductPhotosField({
     super.key,
@@ -20,7 +20,7 @@ class ProductPhotosField extends StatelessWidget {
   final List<Uint8List> photos;
   final VoidCallback onAdd;
 
-  /// Called with the position of the photo to remove.
+  /// Called with the index of the photo to remove.
   final ValueChanged<int> onRemove;
 
   @override
@@ -79,7 +79,7 @@ class _PhotoTile extends StatelessWidget {
               fit: BoxFit.cover,
             ),
           ),
-          // Small round "x" in the top right corner.
+          // Remove button in the top right corner.
           Positioned(
             top: 2,
             right: 2,

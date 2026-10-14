@@ -15,9 +15,8 @@ import '../ui/product_form.dart';
 import '../view_models/inventory_filter_view_model.dart';
 import '../view_models/inventory_view_model.dart';
 
-/// Inventory tab: the product catalogue with the selected branch's
-/// price and stock. The admin can add, edit and hide products and
-/// change stock.
+/// Inventory tab: products with the selected branch's price and stock.
+/// The admin can add, edit and hide products and change stock.
 class InventoryView extends ConsumerStatefulWidget {
   const InventoryView({super.key});
 
@@ -230,8 +229,7 @@ class _InventoryViewState extends ConsumerState<InventoryView> {
                           _showMessage('$name was added.');
                         },
                       )
-                    // The key resets the panel when another product is
-                    // opened.
+                    // The key resets the panel when another product is opened.
                     : ProductDetailPanel(
                         key: ValueKey(_selectedProductId),
                         productId: _selectedProductId!,
@@ -272,7 +270,7 @@ class _AddProductPanel extends ConsumerWidget {
   }
 }
 
-/// Title and "Add product" button, then the search box and filters.
+/// Title, "Add product" button, search box and filters.
 /// No title on phones (the app bar shows it).
 class _Header extends ConsumerWidget {
   const _Header({
@@ -352,7 +350,7 @@ class _Header extends ConsumerWidget {
       ),
     ];
 
-    // Filters in one row. Scrolls sideways if they do not fit.
+    // Scrolls sideways if the filters do not fit.
     final filterRow = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../../app/theme/app_colors.dart';
 import '../../data/models/inventory_item.dart';
 
-/// Icon for a category. Categories added by the admin get a general one.
+/// Icon for a category. New categories get a general one.
 IconData categoryIcon(String categoryId) {
   switch (categoryId) {
     case 'fruits-vegetables':
@@ -33,8 +33,7 @@ IconData categoryIcon(String categoryId) {
   }
 }
 
-/// Small square picture of a product: its cover photo, or the category
-/// icon if it has no photos.
+/// Cover photo, or the category icon if there is none.
 class ProductThumbnail extends StatelessWidget {
   const ProductThumbnail({
     super.key,
@@ -106,7 +105,7 @@ class StockStatusChip extends StatelessWidget {
   }
 }
 
-/// Small "Hidden" tag for products customers cannot see.
+/// Small "Hidden" tag.
 class HiddenChip extends StatelessWidget {
   const HiddenChip({super.key});
 

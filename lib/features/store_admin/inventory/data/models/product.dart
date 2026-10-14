@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-/// A group of products, e.g. "Dairy & Eggs".
+/// Product category, e.g. "Dairy & Eggs".
 class ProductCategory {
   const ProductCategory({required this.id, required this.name});
 
@@ -8,7 +8,7 @@ class ProductCategory {
   final String name;
 }
 
-/// A product in the company catalogue. Shared by every branch.
+/// A product. Shared by every branch.
 class Product {
   const Product({
     required this.id,
@@ -26,21 +26,21 @@ class Product {
   final String brand;
   final String categoryId;
 
-  /// Size of one unit, e.g. "1L" or "500g".
+  /// E.g. "1L" or "500g".
   final String packSize;
 
-  /// Shown to customers. Can be empty.
+  /// Can be empty.
   final String description;
 
   /// Stock at or below this counts as low.
   final int lowStockLevel;
 
-  /// Up to [maxPhotos] pictures. The first one is the cover.
-  /// Kept as image data for now; will be Firebase Storage links later.
+  /// Up to [maxPhotos]. The first is the cover.
+  /// Image data for now. Firebase Storage links later.
   final List<Uint8List> photos;
 
   static const int maxPhotos = 5;
 
-  /// Cover picture, or null if there are no photos.
+  /// First photo. Null if none.
   Uint8List? get cover => photos.isEmpty ? null : photos.first;
 }

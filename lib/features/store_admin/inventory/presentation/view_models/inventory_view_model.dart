@@ -29,8 +29,8 @@ class InventoryState {
 }
 
 /// State for the Inventory tab.
-/// Methods that change something return an error message, or null if
-/// it worked.
+/// Methods that change data return an error message, or null if it
+/// worked.
 class InventoryViewModel extends AsyncNotifier<InventoryState> {
   @override
   Future<InventoryState> build() async {
@@ -81,7 +81,7 @@ class InventoryViewModel extends AsyncNotifier<InventoryState> {
     return null;
   }
 
-  /// Saves the edit form: product details and this branch's price.
+  /// Saves product details and this branch's price.
   Future<String?> saveDetails(
     InventoryItem item, {
     required String name,
@@ -106,8 +106,7 @@ class InventoryViewModel extends AsyncNotifier<InventoryState> {
     return _save(item.copyWith(product: product, price: price));
   }
 
-  /// Opens the device's photos. Returns the chosen ones (up to
-  /// [limit]), or null if the picker could not be opened.
+  /// Picks up to [limit] photos. Null if the picker failed.
   Future<List<Uint8List>?> pickPhotos(int limit) async {
     try {
       return await ref.read(inventoryRepositoryProvider).pickPhotos(limit);
@@ -125,7 +124,7 @@ class InventoryViewModel extends AsyncNotifier<InventoryState> {
     return _save(item.copyWith(isHidden: hidden));
   }
 
-  /// Returns the new category, or null if the name is already used.
+  /// Returns the new category, or null if the name is taken.
   Future<ProductCategory?> addCategory(String name) async {
     final ProductCategory category;
     try {

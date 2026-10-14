@@ -6,8 +6,8 @@ import '../../../../../app/theme/app_colors.dart';
 import '../../../../../shared/ui/page_indicator.dart';
 import 'product_labels.dart';
 
-/// Product photos, one at a time. Swipe or use the arrows to change.
-/// Shows the category icon if there are no photos.
+/// Product photos, one at a time. Swipe or use the arrows.
+/// Shows the category icon if there are none.
 class ProductPhotoCarousel extends StatefulWidget {
   const ProductPhotoCarousel({
     super.key,
@@ -88,7 +88,7 @@ class _ProductPhotoCarouselState extends State<ProductPhotoCarousel> {
                     );
                   },
                 ),
-                // Arrows, because a mouse cannot swipe.
+                // Arrows for mouse users.
                 if (_currentPage > 0)
                   Align(
                     alignment: Alignment.centerLeft,
@@ -120,7 +120,7 @@ class _ProductPhotoCarouselState extends State<ProductPhotoCarousel> {
   }
 }
 
-/// Round white button on top of the photo.
+/// Round button on top of the photo.
 class _ArrowButton extends StatelessWidget {
   const _ArrowButton({
     required this.tooltip,

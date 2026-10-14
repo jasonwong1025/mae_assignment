@@ -12,8 +12,8 @@ import 'product_labels.dart';
 import 'product_photo_carousel.dart';
 import 'stock_editor.dart';
 
-/// Details of one product at the selected branch, with Edit and Hide
-/// buttons and the stock editor. Edit shows the form in the same panel.
+/// Details of one product at the selected branch.
+/// Edit shows the form in the same panel.
 class ProductDetailPanel extends ConsumerStatefulWidget {
   const ProductDetailPanel({
     super.key,
@@ -214,7 +214,7 @@ class _ProductDetails extends StatelessWidget {
         Text(Formatters.money(item.price), style: textTheme.titleLarge),
 
         _SectionTitle('Stock at $branchName'),
-        // The key resets the editor when the saved stock changes.
+        // The key resets the editor after stock is saved.
         StockEditor(
           key: ValueKey('${product.id}-${item.stock}'),
           stock: item.stock,

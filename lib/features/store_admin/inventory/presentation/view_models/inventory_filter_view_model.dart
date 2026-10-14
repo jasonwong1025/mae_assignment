@@ -17,7 +17,7 @@ enum VisibilityFilter {
   final String label;
 }
 
-/// The search text and the three filters. Null means "show all".
+/// Search text and filters. Null means no filter.
 class InventoryFilter {
   const InventoryFilter({
     this.searchText = '',
@@ -48,7 +48,7 @@ class InventoryFilter {
   }
 }
 
-/// State for the search box and filters of the Inventory tab.
+/// State for the Inventory search box and filters.
 class InventoryFilterViewModel extends Notifier<InventoryFilter> {
   @override
   InventoryFilter build() => const InventoryFilter();

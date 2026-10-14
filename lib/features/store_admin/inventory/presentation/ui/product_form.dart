@@ -49,7 +49,7 @@ class _ProductFormState extends ConsumerState<ProductForm> {
 
   String? _categoryId;
 
-  /// Photos in the form. Saved to the product only on Save.
+  /// Photos in the form. Saved on Save.
   late List<Uint8List> _photos;
   bool _isSaving = false;
 
@@ -92,7 +92,7 @@ class _ProductFormState extends ConsumerState<ProductForm> {
       ..showSnackBar(SnackBar(content: Text(text)));
   }
 
-  /// Opens the device's photos and adds the chosen ones.
+  /// Picks photos and adds them to the form.
   Future<void> _onAddPhotos() async {
     final spaceLeft = Product.maxPhotos - _photos.length;
     final picked = await ref
@@ -107,7 +107,7 @@ class _ProductFormState extends ConsumerState<ProductForm> {
     setState(() => _photos = [..._photos, ...picked]);
   }
 
-  /// Asks for a name, creates the category and selects it.
+  /// Creates a category and selects it.
   Future<void> _onNewCategory() async {
     final name = await showDialog<String>(
       context: context,
@@ -234,11 +234,10 @@ class _ProductFormState extends ConsumerState<ProductForm> {
               child: const Text('New category'),
             ),
             field: DropdownButtonFormField<String>(
-              // The key rebuilds the dropdown when a new category is
-              // created and selected.
+              // The key refreshes the dropdown when the category changes.
               key: ValueKey(_categoryId),
               initialValue: _categoryId,
-              // Fill the width, so long names are cut instead of overflowing.
+              // Stops long names from overflowing.
               isExpanded: true,
               hint: const Text('Choose a category'),
               items: [
@@ -328,7 +327,7 @@ class _ProductFormState extends ConsumerState<ProductForm> {
   }
 }
 
-/// Dialog that asks for a new category name. Returns the typed name.
+/// Asks for a category name and returns it.
 class _NewCategoryDialog extends StatefulWidget {
   const _NewCategoryDialog();
 
