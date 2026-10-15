@@ -21,6 +21,9 @@ class WorkerOrderItem {
     required this.brand,
     required this.packSize,
     required this.quantity,
+    this.unitPrice = 0,
+    this.category = '',
+    this.description = '',
     this.imageUrl,
   });
 
@@ -35,6 +38,15 @@ class WorkerOrderItem {
   /// E.g. "1L" or "500g".
   final String packSize;
   final int quantity;
+
+  /// Price of one at the order's branch, in ringgit.
+  final double unitPrice;
+
+  /// Category name, e.g. "Dairy & Eggs". Empty if unknown.
+  final String category;
+
+  /// Product description from the catalogue. Can be empty.
+  final String description;
 
   /// Product photo. Null shows a placeholder.
   final String? imageUrl;
@@ -57,6 +69,7 @@ class WorkerOrder {
     required List<WorkerOrderItem> items,
     required this.status,
     required this.placedAt,
+    this.dueAt,
     required this.statusSince,
     required this.packerId,
     required this.packerName,
@@ -111,6 +124,10 @@ class WorkerOrder {
 
   final OrderStatus status;
   final DateTime placedAt;
+
+  /// When the customer was promised the order: pickup time or delivery
+  /// time. Packing tasks are sorted by this, soonest first.
+  final DateTime? dueAt;
 
   /// When the order entered its current status.
   final DateTime statusSince;
@@ -221,6 +238,7 @@ class WorkerOrder {
       packedLineIds: packedLineIds ?? this.packedLineIds,
       status: status ?? this.status,
       placedAt: placedAt,
+      dueAt: dueAt,
       statusSince: statusSince ?? this.statusSince,
       packerId: packerId,
       packerName: packerName,

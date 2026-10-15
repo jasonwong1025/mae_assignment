@@ -28,19 +28,20 @@ void main() {
         location: AppRoutes.workerPickup,
       );
 
-      expect(find.text('2 orders waiting · oldest first'), findsOneWidget);
+      expect(find.text('Waiting for Pickup (2)'), findsOneWidget);
       // 2305 was packed by Daniel; 2306 by Hakim and is still listed.
       expect(find.text('Siti Aminah'), findsOneWidget);
       expect(find.text('Kelvin Lim'), findsOneWidget);
       expect(find.textContaining('Packed by you'), findsOneWidget);
-      expect(find.textContaining('Packed by Hakim Roslan'), findsOneWidget);
+      expect(find.textContaining('Packed by Hakim Roslan'), findsWidgets);
       expect(
         tester.getTopLeft(find.text('#2305')).dy,
         lessThan(tester.getTopLeft(find.text('#2306')).dy),
       );
 
-      // Not listed: a ready delivery and another branch's pickup.
-      expect(find.text('#2308'), findsNothing);
+      // A ready delivery is not a pickup: it is listed under Waiting for
+      // drivers instead. Another branch's pickup is not listed at all.
+      expect(find.text('For Amir Hamzah'), findsOneWidget);
       expect(find.text('#1183'), findsNothing);
     });
 
@@ -65,6 +66,10 @@ void main() {
         location: AppRoutes.workerPickup,
       );
 
+      // Only the icon shows until it is tapped.
+      expect(find.byType(TextField), findsNothing);
+      await tester.tap(find.byTooltip('Search'));
+      await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), '#2306');
       await tester.pumpAndSettle();
       expect(find.text('Kelvin Lim'), findsOneWidget);
@@ -79,8 +84,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('No matching orders'), findsOneWidget);
 
-      await tester.tap(find.byTooltip('Clear search'));
+      // Closing hides the field and shows every order again.
+      await tester.tap(find.byTooltip('Close search'));
       await tester.pumpAndSettle();
+      expect(find.byType(TextField), findsNothing);
       expect(find.text('Siti Aminah'), findsOneWidget);
       expect(find.text('Kelvin Lim'), findsOneWidget);
     });
@@ -103,31 +110,55 @@ void main() {
 
       expect(find.text('No orders waiting for pickup'), findsOneWidget);
     });
+  });
 
-    testWidgets('"Handed over by you today" opens to list my handovers', (
+  group('Waiting for drivers', () {
+    testWidgets('lists ready delivery bags until the driver verifies', (
       tester,
     ) async {
-      await pumpWorkerApp(
+      final (_, repository) = await pumpWorkerApp(
         tester,
         'Daniel Lee',
         location: AppRoutes.workerPickup,
       );
 
-      // Collapsed at first: the seed handover #2307 is not shown.
-      expect(find.text('Handed over by you today (1)'), findsOneWidget);
-      expect(find.text('#2307 · Raj Kumar'), findsNothing);
+      // 2308 (Hakim packed it, Amir delivers) waits for its driver.
+      await scrollIntoView(tester, find.text('Waiting for drivers (1)'));
+      await scrollIntoView(tester, find.text('David Wong'));
+      expect(find.text('#2308'), findsOneWidget);
+      expect(find.text('For Amir Hamzah'), findsOneWidget);
 
-      await scrollIntoView(tester, find.text('Handed over by you today (1)'));
-      await tester.tap(find.text('Handed over by you today (1)'));
+      // Once Amir verifies the bag, it is collected and leaves the list.
+      await repository.verifyCollection(
+        mockWorker('Amir Hamzah'),
+        'ord-2308',
+        method: VerificationMethod.manual,
+        code: '2308',
+      );
       await tester.pumpAndSettle();
-      expect(find.text('#2307 · Raj Kumar'), findsOneWidget);
+      // The section hides when nothing is waiting.
+      expect(find.textContaining('Waiting for drivers'), findsNothing);
+      expect(find.text('David Wong'), findsNothing);
+    });
+
+    testWidgets('shows only my branch', (tester) async {
+      await pumpWorkerApp(
+        tester,
+        'Hafiz Zainal',
+        location: AppRoutes.workerPickup,
+      );
+
+      await scrollIntoView(tester, find.text('Waiting for drivers (1)'));
+      await scrollIntoView(tester, find.text('Lim Kok Wai'));
+      expect(find.text('#1184'), findsOneWidget);
+      expect(find.text('David Wong'), findsNothing);
     });
   });
 
   group('Pickup handover', () {
     testWidgets('verify, confirm, and hand over an order someone else '
         'packed', (tester) async {
-      await pumpWorkerApp(
+      final (container, _) = await pumpWorkerApp(
         tester,
         'Daniel Lee',
         location: AppRoutes.workerPickup,
@@ -139,8 +170,8 @@ void main() {
       expect(find.textContaining('Packed by Hakim Roslan'), findsOneWidget);
 
       // Items are listed (read-only) below the checks.
-      await scrollIntoView(tester, find.text('Cream crackers'));
-      expect(find.text('Cream crackers'), findsOneWidget);
+      await scrollIntoView(tester, find.text('Potato chips'));
+      expect(find.text('Potato chips'), findsOneWidget);
       await scrollIntoView(
         tester,
         find.text('Customer gave order number #2306'),
@@ -167,13 +198,13 @@ void main() {
         find.text('Order #2306 handed over to Kelvin Lim.'),
         findsOneWidget,
       );
+      expect(find.text('Waiting for Pickup (1)'), findsOneWidget);
       expect(find.text('Kelvin Lim'), findsNothing);
-      expect(find.text('Handed over by you today (2)'), findsOneWidget);
 
-      await scrollIntoView(tester, find.text('Handed over by you today (2)'));
-      await tester.tap(find.text('Handed over by you today (2)'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('#2306 · Kelvin Lim'));
+      // The record shows who handed it over and how it was checked.
+      container.read(appRouterProvider).go(
+        AppRoutes.workerPickupOrder('ord-2306'),
+      );
       await tester.pumpAndSettle();
       expect(find.textContaining('Handed over by you at'), findsOneWidget);
       expect(find.textContaining('(manual check)'), findsOneWidget);

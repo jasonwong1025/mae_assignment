@@ -1,7 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_item_tile.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/view_models/packing_order_view_model.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 
@@ -19,9 +22,28 @@ Future<(ProviderContainer, WorkerOrdersRepository)> _pumpAs(
 
 /// Scrolls to the product called [name] and taps it.
 Future<void> _tapProduct(WidgetTester tester, String name) async {
-  await scrollIntoView(tester, find.text(name));
-  await tester.tap(find.text(name));
+  // Tapping the row opens the product's details; the checkbox ticks it.
+  final checkbox = find.descendant(
+    of: find.ancestor(
+      of: find.text(name),
+      matching: find.byType(PackingItemTile),
+    ),
+    matching: find.byType(Checkbox),
+  );
+  await scrollIntoView(tester, checkbox);
+  await tester.tap(checkbox);
   await tester.pumpAndSettle();
+}
+
+/// Scrolls back up to the "To pack" heading and checks its packed count,
+/// e.g. "3/5". (The heading leaves the built area when the list scrolls.)
+Future<void> _expectCount(WidgetTester tester, String count) async {
+  await tester.scrollUntilVisible(
+    find.text(count),
+    -200,
+    scrollable: find.byType(Scrollable).first,
+  );
+  expect(find.text(count), findsOneWidget);
 }
 
 void main() {
@@ -31,14 +53,15 @@ void main() {
     ) async {
       await _pumpAs(tester, 'Daniel Lee');
 
-      expect(find.text('UP NEXT'), findsOneWidget);
-      expect(find.text('#2302'), findsOneWidget);
-      expect(find.text('Continue packing'), findsOneWidget);
+      // Due soonest first: 2301 (25m), 2303 (40m), 2302 (55m).
+      expect(find.textContaining('Deliver by'), findsWidgets);
+      expect(
+        tester.getTopLeft(find.text('#2301')).dy,
+        lessThan(tester.getTopLeft(find.text('#2303')).dy),
+      );
+      await scrollIntoView(tester, find.text('#2302'));
       expect(find.text('2 of 5 packed'), findsOneWidget);
-      expect(find.text('2 being packed · 1 to start'), findsOneWidget);
-
-      await scrollIntoView(tester, find.text('#2301'));
-      expect(find.text('#2301'), findsOneWidget);
+      expect(find.textContaining('Pickup by'), findsOneWidget);
 
       // Hakim's order and other branches' orders are not listed.
       expect(find.text('#2304'), findsNothing);
@@ -73,54 +96,54 @@ void main() {
       // Opened (pushed) on top of My Tasks, already being packed.
       expect(find.text('Order #2301'), findsOneWidget);
       expect(find.text('Review & mark ready'), findsOneWidget);
-      expect(find.text('0 of 3 products packed'), findsOneWidget);
+      await _expectCount(tester, '0/3');
     });
 
     testWidgets('tapping an order opens its packing screen', (tester) async {
       await _pumpAs(tester, 'Daniel Lee');
 
+      await scrollIntoView(tester, find.text('Wong Kar Yee'));
       await tester.tap(find.text('Wong Kar Yee'));
       await tester.pumpAndSettle();
 
       expect(find.text('Order #2302'), findsOneWidget);
-      expect(find.text('2 of 5 products packed'), findsOneWidget);
+      await _expectCount(tester, '2/5');
 
       // Back returns to My Tasks.
       await tester.tap(find.byTooltip('Back'));
       await tester.pumpAndSettle();
-      expect(find.text('UP NEXT'), findsOneWidget);
+      expect(find.text('#2301'), findsOneWidget);
     });
   });
 
   group('Packing order', () {
     testWidgets('pack every product, review, and mark ready', (tester) async {
       final (container, _) = await _pumpAs(tester, 'Daniel Lee');
-      await tester.tap(find.text('Continue packing'));
+      await scrollIntoView(tester, find.text('Wong Kar Yee'));
+      await tester.tap(find.text('Wong Kar Yee'));
       await tester.pumpAndSettle();
 
-      expect(find.text('2 of 5 products packed'), findsOneWidget);
-      expect(find.text('3 products left to pack'), findsOneWidget);
+      await _expectCount(tester, '2/5');
       expect(buttonWithText(tester, 'Review & mark ready').enabled, isFalse);
 
       // Brand, pack size and quantity are shown for each product.
-      expect(find.text('Farm Fresh · 1L'), findsNWidgets(2));
+      expect(find.text('Farm Fresh · 1L'), findsOneWidget);
+      expect(find.text('Oatside · 1L'), findsOneWidget);
       expect(find.text('×2'), findsOneWidget);
 
-      await _tapProduct(tester, 'Fresh milk, full cream');
-      expect(find.text('3 of 5 products packed'), findsOneWidget);
-      await _tapProduct(tester, 'Fresh milk, low fat');
-      await _tapProduct(tester, 'Fine sugar');
+      await _tapProduct(tester, 'Fresh milk');
+      await _expectCount(tester, '3/5');
+      await _tapProduct(tester, 'Oat milk');
+      await _tapProduct(tester, 'Sugar');
 
-      expect(find.text('5 of 5 products packed'), findsOneWidget);
+      expect(find.textContaining('TO PACK'), findsNothing);
       expect(buttonWithText(tester, 'Review & mark ready').enabled, isTrue);
 
       await tester.tap(find.text('Review & mark ready'));
       await tester.pumpAndSettle();
       expect(find.text('Review order #2302'), findsOneWidget);
-      expect(buttonWithText(tester, 'Mark as ready').enabled, isFalse);
+      expect(buttonWithText(tester, 'Mark as ready').enabled, isTrue);
 
-      await tester.tap(find.text("I've checked all products and quantities"));
-      await tester.pumpAndSettle();
       await tester.tap(find.text('Mark as ready'));
       await tester.pumpAndSettle();
 
@@ -145,7 +168,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Review & mark ready'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Keep packing'));
+      await tester.tap(find.byTooltip('Close'));
       await tester.pumpAndSettle();
 
       expect(find.text('Order #2303 is ready'), findsNothing);
@@ -161,13 +184,17 @@ void main() {
         location: AppRoutes.workerPackingOrder('ord-2301'),
       );
 
+      // The checkbox is disabled, so the tap opens the details instead.
       await _tapProduct(tester, 'Wholemeal bread');
-      expect(find.text('0 of 3 products packed'), findsOneWidget);
+      expect(find.text('Mark as packed'), findsNothing);
+      await tester.tap(find.byTooltip('Close'));
+      await tester.pumpAndSettle();
+      await _expectCount(tester, '0/3');
 
       await tester.tap(find.text('Start packing'));
       await tester.pumpAndSettle();
       await _tapProduct(tester, 'Wholemeal bread');
-      expect(find.text('1 of 3 products packed'), findsOneWidget);
+      await _expectCount(tester, '1/3');
     });
 
     testWidgets('tapping a packed product unticks it', (tester) async {
@@ -178,7 +205,27 @@ void main() {
       );
 
       await _tapProduct(tester, 'Jasmine rice');
-      expect(find.text('1 of 5 products packed'), findsOneWidget);
+      await _expectCount(tester, '1/5');
+    });
+
+    testWidgets('tapping a product shows its details and can tick it', (
+      tester,
+    ) async {
+      await _pumpAs(
+        tester,
+        'Daniel Lee',
+        location: AppRoutes.workerPackingOrder('ord-2302'),
+      );
+
+      await scrollIntoView(tester, find.text('Sugar'));
+      await tester.tap(find.text('Sugar'));
+      await tester.pumpAndSettle();
+      expect(find.text('CSR'), findsOneWidget);
+      expect(find.text('RM 2.85 each'), findsOneWidget);
+
+      await tester.tap(find.text('Mark as packed'));
+      await tester.pumpAndSettle();
+      await _expectCount(tester, '3/5');
     });
 
     testWidgets('changes made elsewhere show up live', (tester) async {
@@ -196,7 +243,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('3 of 5 products packed'), findsOneWidget);
+      await _expectCount(tester, '3/5');
     });
 
     testWidgets('a cancelled order is read-only', (tester) async {
@@ -213,8 +260,32 @@ void main() {
       expect(find.text('Start packing'), findsNothing);
       expect(find.text('Back to My Tasks'), findsOneWidget);
 
-      await _tapProduct(tester, 'Milk chocolate');
-      expect(find.text('0 of 1 products packed'), findsOneWidget);
+      await _tapProduct(tester, 'Chocolate bar');
+      await _expectCount(tester, '0/1');
+    });
+
+    testWidgets('the packer sees when the driver collected the bag', (
+      tester,
+    ) async {
+      final (_, repository) = await _pumpAs(
+        tester,
+        'Hakim Roslan',
+        location: AppRoutes.workerPackingOrder('ord-2308'),
+      );
+      expect(
+        find.text('Packed and waiting for Amir Hamzah.'),
+        findsOneWidget,
+      );
+
+      await repository.verifyCollection(
+        mockWorker('Amir Hamzah'),
+        'ord-2308',
+        method: VerificationMethod.manual,
+        code: '2308',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Collected by Amir Hamzah at'), findsOneWidget);
     });
 
     testWidgets('a ready order is read-only', (tester) async {

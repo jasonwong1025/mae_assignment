@@ -37,8 +37,6 @@ class WorkerAccountView extends ConsumerWidget {
                 _ProfileCard(worker: worker),
                 const SizedBox(height: AppSpacing.l),
                 _DetailsCard(worker: worker),
-                const SizedBox(height: AppSpacing.l),
-                const _PreviewNotice(),
                 const SizedBox(height: AppSpacing.xl),
                 FilledButton.icon(
                   onPressed: () => context.go(AppRoutes.workerDevSelect),
@@ -199,45 +197,6 @@ class _DetailRow extends StatelessWidget {
               children: [
                 Text(label, style: textTheme.bodySmall),
                 Text(value, style: textTheme.bodyLarge),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Explains that this is a mock profile, not a real account.
-class _PreviewNotice extends StatelessWidget {
-  const _PreviewNotice();
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.l),
-      decoration: BoxDecoration(
-        color: AppColors.orange.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.science_outlined, color: AppColors.textPrimary),
-          const SizedBox(width: AppSpacing.m),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Preview mode', style: textTheme.titleMedium),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'This is a mock profile for trying out the Store Worker '
-                  'app. It is not a Firebase account and nothing is saved.',
-                  style: textTheme.bodyMedium,
-                ),
               ],
             ),
           ),

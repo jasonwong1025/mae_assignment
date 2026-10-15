@@ -16,8 +16,8 @@ import '../../../orders/data/models/worker_order.dart';
 import '../../../orders/data/worker_order_policy.dart';
 import '../../../session/presentation/view_models/worker_session_view_model.dart';
 import '../ui/packing_item_tile.dart';
-import '../ui/packing_progress_bar.dart';
 import '../ui/packing_review_sheet.dart';
+import '../ui/product_details_sheet.dart';
 import '../view_models/packing_order_view_model.dart';
 import '../../../shell/presentation/ui/worker_notice.dart';
 
@@ -213,9 +213,16 @@ class _PackingContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final toPack = order.items.where((i) => !order.isPacked(i.lineId)).toList();
     final packed = order.items.where((i) => order.isPacked(i.lineId)).toList();
+    final counter = '${order.packedLineCount}/${order.lineCount}';
+
+    // Null while the checklist cannot be ticked (before Start packing, or
+    // read-only orders).
+    ValueChanged<bool>? onChanged(WorkerOrderItem item) {
+      if (!canEdit) return null;
+      return (value) => onSetPacked(item.lineId, value);
+    }
 
     Widget tile(WorkerOrderItem item) {
       return Padding(
@@ -223,9 +230,13 @@ class _PackingContent extends StatelessWidget {
         child: PackingItemTile(
           item: item,
           isPacked: order.isPacked(item.lineId),
-          onChanged: canEdit
-              ? (value) => onSetPacked(item.lineId, value)
-              : null,
+          onChanged: onChanged(item),
+          onTap: () => showProductDetailsSheet(
+            context,
+            item: item,
+            isPacked: order.isPacked(item.lineId),
+            onChanged: onChanged(item),
+          ),
         ),
       );
     }
@@ -233,36 +244,24 @@ class _PackingContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Progress stays at the top while the list scrolls.
-        Container(
-          color: AppColors.surface,
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.l,
-            AppSpacing.m,
-            AppSpacing.l,
-            AppSpacing.m,
-          ),
-          child: PackingProgressBar(order: order, large: true),
-        ),
-        const Divider(),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.all(AppSpacing.l),
             children: [
               _OrderHeader(order: order),
-              const SizedBox(height: AppSpacing.m),
-              _StatusBanner(order: order),
-              _SectionTitle('To pack (${toPack.length})'),
-              if (toPack.isEmpty)
-                Text(
-                  order.status == OrderStatus.packing
-                      ? 'Everything is packed. Review the order and mark it '
-                            'ready.'
-                      : 'Nothing left to pack.',
-                  style: textTheme.bodyMedium,
-                )
-              else
+              // No banner while packing: the checklist speaks for itself.
+              if (order.status != OrderStatus.packing) ...[
+                const SizedBox(height: AppSpacing.m),
+                _StatusBanner(order: order),
+              ],
+              // Something left to pack: TO PACK carries the counter.
+              if (toPack.isNotEmpty) ...[
+                _SectionTitle(
+                  'To pack (${toPack.length})',
+                  trailing: counter,
+                ),
                 for (final item in toPack) tile(item),
+              ],
               if (packed.isNotEmpty) ...[
                 _SectionTitle('Packed (${packed.length})'),
                 for (final item in packed) tile(item),
@@ -378,22 +377,25 @@ class _StatusBanner extends StatelessWidget {
         AppColors.info,
         'Tap Start packing, then tick each product as it goes into the bag.',
       ),
+      // Not shown while packing (see _PackingContent).
       OrderStatus.packing => (
-        Icons.touch_app_outlined,
+        Icons.inventory_2_outlined,
         AppColors.info,
-        'Tap a product to tick it. Check the brand, size and quantity first.',
+        'Being packed.',
       ),
       OrderStatus.ready => (
         Icons.check_circle_outline_rounded,
         AppColors.success,
-        order.isDelivery
-            ? 'Packed and waiting for ${order.driverName ?? 'the driver'}.'
-            : 'Packed and waiting on the pickup shelf.',
+        !order.isDelivery
+            ? 'Packed and waiting on the pickup shelf.'
+            : _collectedText() ??
+                  'Packed and waiting for ${order.driverName ?? 'the driver'}.',
       ),
       OrderStatus.outForDelivery => (
         Icons.local_shipping_outlined,
         AppColors.darkGreen,
-        'Packed. ${order.driverName ?? 'The driver'} is delivering it.',
+        '${_collectedText() ?? 'Packed.'} '
+            '${order.driverName ?? 'The driver'} is delivering it.',
       ),
       OrderStatus.completed => (
         Icons.task_alt_rounded,
@@ -411,23 +413,45 @@ class _StatusBanner extends StatelessWidget {
 
     return WorkerNotice(icon: icon, color: color, text: text);
   }
+
+  /// "Collected by Amir Hamzah at 3:42pm." once the assigned driver has
+  /// verified the bag; null before that.
+  String? _collectedText() {
+    final at = order.collectionVerifiedAt;
+    if (at == null || order.collectionVerifiedBy != order.driverId) {
+      return null;
+    }
+    return 'Collected by ${order.driverName ?? 'the driver'} at '
+        '${Formatters.time(at)}.';
+  }
 }
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
+  const _SectionTitle(this.text, {this.trailing});
 
   final String text;
 
+  /// Shown on the right, e.g. the packed count "2/5".
+  final String? trailing;
+
   @override
   Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.4,
+    );
+
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.xl, bottom: AppSpacing.s),
-      child: Text(
-        text.toUpperCase(),
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.4,
-        ),
+      child: Row(
+        children: [
+          Expanded(child: Text(text.toUpperCase(), style: style)),
+          if (trailing != null)
+            Text(
+              trailing!,
+              style: style?.copyWith(color: AppColors.darkGreen),
+            ),
+        ],
       ),
     );
   }
@@ -455,8 +479,6 @@ class _ActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     if (order.status == OrderStatus.pending && canStart) {
       return BottomActionBar(
         children: [
@@ -476,14 +498,6 @@ class _ActionBar extends StatelessWidget {
       final canReview = left == 0 && !isSaving && !isBusy;
       return BottomActionBar(
         children: [
-          if (left > 0) ...[
-            Text(
-              left == 1 ? '1 product left to pack' : '$left products left to pack',
-              textAlign: TextAlign.center,
-              style: textTheme.bodyMedium,
-            ),
-            const SizedBox(height: AppSpacing.s),
-          ],
           FilledButton.icon(
             onPressed: canReview ? onReview : null,
             icon: isBusy

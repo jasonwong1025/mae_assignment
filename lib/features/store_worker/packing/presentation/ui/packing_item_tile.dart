@@ -5,14 +5,15 @@ import '../../../../../app/theme/app_spacing.dart';
 import '../../../orders/data/models/worker_order.dart';
 
 /// One product on the packing checklist: photo, name, brand and pack size,
-/// a large quantity, and a checkbox. The whole row can be tapped, so it is
-/// easy to hit while holding groceries.
+/// a large quantity, and a checkbox. Tapping the row opens the product's
+/// details ([onTap]); the checkbox ticks it.
 class PackingItemTile extends StatelessWidget {
   const PackingItemTile({
     super.key,
     required this.item,
     required this.isPacked,
     required this.onChanged,
+    this.onTap,
   });
 
   final WorkerOrderItem item;
@@ -20,6 +21,9 @@ class PackingItemTile extends StatelessWidget {
 
   /// Null makes the row read-only (e.g. before Start packing).
   final ValueChanged<bool>? onChanged;
+
+  /// Opens the product's details. Null: the row does nothing when tapped.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -37,12 +41,12 @@ class PackingItemTile extends StatelessWidget {
         ),
       ),
       child: InkWell(
-        onTap: enabled ? () => onChanged!(!isPacked) : null,
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.m),
           child: Row(
             children: [
-              _ProductImage(imageUrl: item.imageUrl),
+              ProductImage(imageUrl: item.imageUrl),
               const SizedBox(width: AppSpacing.m),
               Expanded(
                 child: Column(
@@ -59,11 +63,16 @@ class PackingItemTile extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.s),
               _QuantityBadge(quantity: item.quantity),
-              Checkbox(
-                value: isPacked,
-                onChanged: enabled
-                    ? (value) => onChanged!(value ?? false)
-                    : null,
+              // Scaled up (it does not change the layout) and round.
+              Transform.scale(
+                scale: 1.3,
+                child: Checkbox(
+                  value: isPacked,
+                  shape: const CircleBorder(),
+                  onChanged: enabled
+                      ? (value) => onChanged!(value ?? false)
+                      : null,
+                ),
               ),
             ],
           ),
@@ -74,23 +83,24 @@ class PackingItemTile extends StatelessWidget {
 }
 
 /// Product photo, or a basket icon when there is none (or it fails).
-class _ProductImage extends StatelessWidget {
-  const _ProductImage({required this.imageUrl});
+class ProductImage extends StatelessWidget {
+  const ProductImage({super.key, required this.imageUrl, this.size = 64});
 
   final String? imageUrl;
 
-  static const double _size = 64;
+  /// Width and height.
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     final placeholder = Container(
-      width: _size,
-      height: _size,
+      width: size,
+      height: size,
       color: AppColors.softWhite,
-      child: const Icon(
+      child: Icon(
         Icons.shopping_basket_outlined,
         color: AppColors.textSecondary,
-        size: 30,
+        size: size * 0.47,
       ),
     );
 
@@ -100,8 +110,8 @@ class _ProductImage extends StatelessWidget {
           ? placeholder
           : Image.network(
               imageUrl!,
-              width: _size,
-              height: _size,
+              width: size,
+              height: size,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) => placeholder,
             ),

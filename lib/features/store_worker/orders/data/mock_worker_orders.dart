@@ -1,4 +1,5 @@
 import '../../../../shared/models/order_status.dart';
+import '../../../store_admin/inventory/data/sample_inventory.dart';
 import 'models/worker_order.dart';
 
 /// Sample orders for the Store Worker preview, used while the backend is
@@ -12,6 +13,9 @@ import 'models/worker_order.dart';
 /// TODO: delete once orders come from the backend.
 List<WorkerOrder> seedWorkerOrders(DateTime now) {
   DateTime ago(int minutes) => now.subtract(Duration(minutes: minutes));
+
+  // Promised pickup or delivery time; negative is in the past.
+  DateTime fromNow(int minutes) => now.add(Duration(minutes: minutes));
 
   // The sample handover and delivery are meant to be from "today". Just
   // after midnight, 35 or 90 minutes ago would be yesterday and they would
@@ -37,34 +41,14 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       isDelivery: true,
       address: '12, Jalan SS15/4, 47500 Subang Jaya',
       customerNote: 'Please ring the bell twice.',
-      items: const [
-        WorkerOrderItem(
-          lineId: 'L1',
-          productId: 'p-milk-full',
-          name: 'Fresh milk, full cream',
-          brand: 'Farm Fresh',
-          packSize: '1L',
-          quantity: 2,
-        ),
-        WorkerOrderItem(
-          lineId: 'L2',
-          productId: 'p-bread-wholemeal',
-          name: 'Wholemeal bread',
-          brand: 'Gardenia',
-          packSize: '400g',
-          quantity: 1,
-        ),
-        WorkerOrderItem(
-          lineId: 'L3',
-          productId: 'p-eggs-10',
-          name: 'Grade A eggs',
-          brand: 'Nutriplus',
-          packSize: '10 pcs',
-          quantity: 1,
-        ),
+      items: [
+        _item(_ss15, 'L1', 'p1', 2),
+        _item(_ss15, 'L2', 'p5', 1),
+        _item(_ss15, 'L3', 'p3', 1),
       ],
       status: OrderStatus.pending,
       placedAt: ago(22),
+      dueAt: fromNow(25),
       statusSince: ago(22),
       packerId: _daniel,
       packerName: _danielName,
@@ -75,7 +59,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
     ),
 
     // Daniel: pickup being packed, 2 of 5 lines ticked. Includes two
-    // milks that look alike (full cream and low fat).
+    // milks that look alike (Farm Fresh milk and Oatside oat milk, both 1L).
     WorkerOrder(
       id: 'ord-2302',
       number: 2302,
@@ -84,51 +68,17 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerName: 'Wong Kar Yee',
       customerPhone: '016-221 4480',
       isDelivery: false,
-      items: const [
-        WorkerOrderItem(
-          lineId: 'L1',
-          productId: 'p-rice-5kg',
-          name: 'Jasmine rice',
-          brand: 'Jati',
-          packSize: '5kg',
-          quantity: 1,
-        ),
-        WorkerOrderItem(
-          lineId: 'L2',
-          productId: 'p-oil-2kg',
-          name: 'Cooking oil',
-          brand: 'Saji',
-          packSize: '2kg',
-          quantity: 1,
-        ),
-        WorkerOrderItem(
-          lineId: 'L3',
-          productId: 'p-milk-full',
-          name: 'Fresh milk, full cream',
-          brand: 'Farm Fresh',
-          packSize: '1L',
-          quantity: 1,
-        ),
-        WorkerOrderItem(
-          lineId: 'L4',
-          productId: 'p-milk-lowfat',
-          name: 'Fresh milk, low fat',
-          brand: 'Farm Fresh',
-          packSize: '1L',
-          quantity: 2,
-        ),
-        WorkerOrderItem(
-          lineId: 'L5',
-          productId: 'p-sugar-1kg',
-          name: 'Fine sugar',
-          brand: 'Gula Prai',
-          packSize: '1kg',
-          quantity: 1,
-        ),
+      items: [
+        _item(_ss15, 'L1', 'p12', 1),
+        _item(_ss15, 'L2', 'p13', 1),
+        _item(_ss15, 'L3', 'p1', 1),
+        _item(_ss15, 'L4', 'p2', 2),
+        _item(_ss15, 'L5', 'p36', 1),
       ],
       packedLineIds: const {'L1', 'L2'},
       status: OrderStatus.packing,
       placedAt: ago(30),
+      dueAt: fromNow(55),
       statusSince: ago(8),
       packerId: _daniel,
       packerName: _danielName,
@@ -146,43 +96,16 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerPhone: '017-909 1123',
       isDelivery: true,
       address: '45, Jalan SS17/2, 47500 Subang Jaya',
-      items: const [
-        WorkerOrderItem(
-          lineId: 'L1',
-          productId: 'p-chicken-breast',
-          name: 'Chicken breast',
-          brand: 'Ayamas',
-          packSize: '500g',
-          quantity: 2,
-        ),
-        WorkerOrderItem(
-          lineId: 'L2',
-          productId: 'p-broccoli',
-          name: 'Broccoli',
-          brand: 'Fresh produce',
-          packSize: '1 head',
-          quantity: 1,
-        ),
-        WorkerOrderItem(
-          lineId: 'L3',
-          productId: 'p-yogurt-greek',
-          name: 'Greek yogurt',
-          brand: 'Marigold',
-          packSize: '130g',
-          quantity: 3,
-        ),
-        WorkerOrderItem(
-          lineId: 'L4',
-          productId: 'p-bananas',
-          name: 'Bananas',
-          brand: 'Fresh produce',
-          packSize: '1 bunch',
-          quantity: 1,
-        ),
+      items: [
+        _item(_ss15, 'L1', 'p10', 2),
+        _item(_ss15, 'L2', 'p8', 1),
+        _item(_ss15, 'L3', 'p4', 3),
+        _item(_ss15, 'L4', 'p7', 1),
       ],
       packedLineIds: const {'L1', 'L2', 'L3'},
       status: OrderStatus.packing,
       placedAt: ago(26),
+      dueAt: fromNow(40),
       statusSince: ago(5),
       packerId: _daniel,
       packerName: _danielName,
@@ -202,26 +125,13 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerName: 'Nur Aisyah',
       customerPhone: '013-778 9021',
       isDelivery: false,
-      items: const [
-        WorkerOrderItem(
-          lineId: 'L1',
-          productId: 'p-noodles-curry',
-          name: 'Curry instant noodles',
-          brand: 'Maggi',
-          packSize: '5 x 79g',
-          quantity: 2,
-        ),
-        WorkerOrderItem(
-          lineId: 'L2',
-          productId: 'p-tea-bags',
-          name: 'Tea bags',
-          brand: 'BOH',
-          packSize: '50 bags',
-          quantity: 1,
-        ),
+      items: [
+        _item(_ss15, 'L1', 'p33', 2),
+        _item(_ss15, 'L2', 'p38', 1),
       ],
       status: OrderStatus.pending,
       placedAt: ago(6),
+      dueAt: fromNow(50),
       statusSince: ago(6),
       packerId: _hakim,
       packerName: _hakimName,
@@ -237,27 +147,14 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerName: 'Siti Aminah',
       customerPhone: '019-332 7781',
       isDelivery: false,
-      items: const [
-        WorkerOrderItem(
-          lineId: 'L1',
-          productId: 'p-detergent',
-          name: 'Liquid detergent',
-          brand: 'Dynamo',
-          packSize: '2.7kg',
-          quantity: 1,
-        ),
-        WorkerOrderItem(
-          lineId: 'L2',
-          productId: 'p-tissue',
-          name: 'Facial tissue',
-          brand: 'Premier',
-          packSize: '4 boxes',
-          quantity: 1,
-        ),
+      items: [
+        _item(_ss15, 'L1', 'p45', 1),
+        _item(_ss15, 'L2', 'p18', 1),
       ],
       packedLineIds: const {'L1', 'L2'},
       status: OrderStatus.ready,
       placedAt: ago(55),
+      dueAt: fromNow(10),
       statusSince: ago(25),
       packerId: _daniel,
       packerName: _danielName,
@@ -276,35 +173,15 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerName: 'Kelvin Lim',
       customerPhone: '012-880 4512',
       isDelivery: false,
-      items: const [
-        WorkerOrderItem(
-          lineId: 'L1',
-          productId: 'p-coffee-3in1',
-          name: '3-in-1 white coffee',
-          brand: 'Old Town',
-          packSize: '15 sticks',
-          quantity: 1,
-        ),
-        WorkerOrderItem(
-          lineId: 'L2',
-          productId: 'p-biscuits-cream',
-          name: 'Cream crackers',
-          brand: 'Hup Seng',
-          packSize: '428g',
-          quantity: 2,
-        ),
-        WorkerOrderItem(
-          lineId: 'L3',
-          productId: 'p-milk-full',
-          name: 'Fresh milk, full cream',
-          brand: 'Farm Fresh',
-          packSize: '1L',
-          quantity: 1,
-        ),
+      items: [
+        _item(_ss15, 'L1', 'p37', 1),
+        _item(_ss15, 'L2', 'p17', 2),
+        _item(_ss15, 'L3', 'p1', 1),
       ],
       packedLineIds: const {'L1', 'L2', 'L3'},
       status: OrderStatus.ready,
       placedAt: ago(48),
+      dueAt: fromNow(20),
       statusSince: ago(15),
       packerId: _hakim,
       packerName: _hakimName,
@@ -323,27 +200,14 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerName: 'Raj Kumar',
       customerPhone: '014-662 0937',
       isDelivery: false,
-      items: const [
-        WorkerOrderItem(
-          lineId: 'L1',
-          productId: 'p-flour',
-          name: 'Wheat flour',
-          brand: 'Blue Key',
-          packSize: '1kg',
-          quantity: 2,
-        ),
-        WorkerOrderItem(
-          lineId: 'L2',
-          productId: 'p-butter',
-          name: 'Salted butter',
-          brand: 'Anchor',
-          packSize: '227g',
-          quantity: 1,
-        ),
+      items: [
+        _item(_ss15, 'L1', 'p35', 2),
+        _item(_ss15, 'L2', 'p29', 1),
       ],
       packedLineIds: const {'L1', 'L2'},
       status: OrderStatus.completed,
       placedAt: ago(120),
+      dueAt: fromNow(-20),
       statusSince: ago(35),
       packerId: _hakim,
       packerName: _hakimName,
@@ -368,27 +232,14 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       isDelivery: true,
       address: 'B-10-3, Subang Avenue, Jalan SS16/1, 47500 Subang Jaya',
       customerNote: 'Leave with the guard if I do not answer.',
-      items: const [
-        WorkerOrderItem(
-          lineId: 'L1',
-          productId: 'p-water-1.5l',
-          name: 'Mineral water',
-          brand: 'Spritzer',
-          packSize: '6 x 1.5L',
-          quantity: 2,
-        ),
-        WorkerOrderItem(
-          lineId: 'L2',
-          productId: 'p-rice-5kg',
-          name: 'Jasmine rice',
-          brand: 'Jati',
-          packSize: '5kg',
-          quantity: 1,
-        ),
+      items: [
+        _item(_ss15, 'L1', 'p15', 2),
+        _item(_ss15, 'L2', 'p12', 1),
       ],
       packedLineIds: const {'L1', 'L2'},
       status: OrderStatus.ready,
       placedAt: ago(60),
+      dueAt: fromNow(15),
       statusSince: ago(12),
       packerId: _hakim,
       packerName: _hakimName,
@@ -411,27 +262,14 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerPhone: '011-2345 6780',
       isDelivery: true,
       address: '8, Jalan SS15/2A, 47500 Subang Jaya',
-      items: const [
-        WorkerOrderItem(
-          lineId: 'L1',
-          productId: 'p-apples',
-          name: 'Fuji apples',
-          brand: 'Fresh produce',
-          packSize: '4 pcs',
-          quantity: 1,
-        ),
-        WorkerOrderItem(
-          lineId: 'L2',
-          productId: 'p-orange-juice',
-          name: 'Orange juice',
-          brand: 'Peel Fresh',
-          packSize: '1L',
-          quantity: 2,
-        ),
+      items: [
+        _item(_ss15, 'L1', 'p9', 1),
+        _item(_ss15, 'L2', 'p16', 2),
       ],
       packedLineIds: const {'L1', 'L2'},
       status: OrderStatus.outForDelivery,
       placedAt: ago(70),
+      dueAt: fromNow(5),
       statusSince: ago(9),
       packerId: _daniel,
       packerName: _danielName,
@@ -458,19 +296,13 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerPhone: '013-410 2209',
       isDelivery: true,
       address: '21, Jalan SS14/1, 47500 Subang Jaya',
-      items: const [
-        WorkerOrderItem(
-          lineId: 'L1',
-          productId: 'p-diapers-m',
-          name: 'Baby diapers, size M',
-          brand: 'Drypers',
-          packSize: '54 pcs',
-          quantity: 1,
-        ),
+      items: [
+        _item(_ss15, 'L1', 'p19', 1),
       ],
       packedLineIds: const {'L1'},
       status: OrderStatus.completed,
       placedAt: ago(180),
+      dueAt: fromNow(-60),
       statusSince: ago(90),
       packerId: _hakim,
       packerName: _hakimName,
@@ -499,18 +331,12 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerName: 'Jun Hao Lee',
       customerPhone: '016-905 1180',
       isDelivery: false,
-      items: const [
-        WorkerOrderItem(
-          lineId: 'L1',
-          productId: 'p-chocolate',
-          name: 'Milk chocolate',
-          brand: 'Beryl\'s',
-          packSize: '100g',
-          quantity: 3,
-        ),
+      items: [
+        _item(_ss15, 'L1', 'p41', 3),
       ],
       status: OrderStatus.cancelled,
       placedAt: ago(40),
+      dueAt: fromNow(30),
       statusSince: ago(32),
       packerId: _daniel,
       packerName: _danielName,
@@ -530,26 +356,13 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerPhone: '012-450 7788',
       isDelivery: true,
       address: '3, Jalan Jalil Perkasa 1, 57000 Bukit Jalil',
-      items: const [
-        WorkerOrderItem(
-          lineId: 'L1',
-          productId: 'p-milk-full',
-          name: 'Fresh milk, full cream',
-          brand: 'Farm Fresh',
-          packSize: '1L',
-          quantity: 1,
-        ),
-        WorkerOrderItem(
-          lineId: 'L2',
-          productId: 'p-eggs-10',
-          name: 'Grade A eggs',
-          brand: 'Nutriplus',
-          packSize: '10 pcs',
-          quantity: 2,
-        ),
+      items: [
+        _item(_bukitJalil, 'L1', 'p1', 1),
+        _item(_bukitJalil, 'L2', 'p3', 2),
       ],
       status: OrderStatus.pending,
       placedAt: ago(10),
+      dueAt: fromNow(45),
       statusSince: ago(10),
       packerId: _hafiz,
       packerName: _hafizName,
@@ -568,35 +381,15 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerName: 'Tan Mei Chen',
       customerPhone: '017-221 9087',
       isDelivery: false,
-      items: const [
-        WorkerOrderItem(
-          lineId: 'L1',
-          productId: 'p-soy-sauce',
-          name: 'Light soy sauce',
-          brand: 'Kimball',
-          packSize: '340ml',
-          quantity: 1,
-        ),
-        WorkerOrderItem(
-          lineId: 'L2',
-          productId: 'p-noodles-curry',
-          name: 'Curry instant noodles',
-          brand: 'Maggi',
-          packSize: '5 x 79g',
-          quantity: 1,
-        ),
-        WorkerOrderItem(
-          lineId: 'L3',
-          productId: 'p-bread-wholemeal',
-          name: 'Wholemeal bread',
-          brand: 'Gardenia',
-          packSize: '400g',
-          quantity: 1,
-        ),
+      items: [
+        _item(_bukitJalil, 'L1', 'p14', 1),
+        _item(_bukitJalil, 'L2', 'p33', 1),
+        _item(_bukitJalil, 'L3', 'p5', 1),
       ],
       packedLineIds: const {'L1'},
       status: OrderStatus.packing,
       placedAt: ago(18),
+      dueAt: fromNow(35),
       statusSince: ago(6),
       packerId: _hafiz,
       packerName: _hafizName,
@@ -613,19 +406,13 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerName: 'Arif Hassan',
       customerPhone: '019-887 6610',
       isDelivery: false,
-      items: const [
-        WorkerOrderItem(
-          lineId: 'L1',
-          productId: 'p-oil-2kg',
-          name: 'Cooking oil',
-          brand: 'Saji',
-          packSize: '2kg',
-          quantity: 1,
-        ),
+      items: [
+        _item(_bukitJalil, 'L1', 'p13', 1),
       ],
       packedLineIds: const {'L1'},
       status: OrderStatus.ready,
       placedAt: ago(42),
+      dueAt: fromNow(15),
       statusSince: ago(20),
       packerId: _hafiz,
       packerName: _hafizName,
@@ -645,27 +432,14 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerPhone: '016-773 2290',
       isDelivery: true,
       address: 'A-5-2, Residensi Jalil, Jalan Jalil Utama, 57000 Bukit Jalil',
-      items: const [
-        WorkerOrderItem(
-          lineId: 'L1',
-          productId: 'p-water-1.5l',
-          name: 'Mineral water',
-          brand: 'Spritzer',
-          packSize: '6 x 1.5L',
-          quantity: 1,
-        ),
-        WorkerOrderItem(
-          lineId: 'L2',
-          productId: 'p-tissue',
-          name: 'Facial tissue',
-          brand: 'Premier',
-          packSize: '4 boxes',
-          quantity: 1,
-        ),
+      items: [
+        _item(_bukitJalil, 'L1', 'p15', 1),
+        _item(_bukitJalil, 'L2', 'p46', 1),
       ],
       packedLineIds: const {'L1', 'L2'},
       status: OrderStatus.ready,
       placedAt: ago(50),
+      dueAt: fromNow(25),
       statusSince: ago(14),
       packerId: _hafiz,
       packerName: _hafizName,
@@ -688,19 +462,13 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerPhone: '012-668 1023',
       isDelivery: true,
       address: '17, Jalan Bukit Jalil Indah 2, 57000 Bukit Jalil',
-      items: const [
-        WorkerOrderItem(
-          lineId: 'L1',
-          productId: 'p-chicken-breast',
-          name: 'Chicken breast',
-          brand: 'Ayamas',
-          packSize: '500g',
-          quantity: 1,
-        ),
+      items: [
+        _item(_bukitJalil, 'L1', 'p10', 1),
       ],
       packedLineIds: const {'L1'},
       status: OrderStatus.outForDelivery,
       placedAt: ago(75),
+      dueAt: fromNow(10),
       statusSince: ago(11),
       packerId: _hafiz,
       packerName: _hafizName,
@@ -734,3 +502,39 @@ const _hafiz = 'mock-hafiz';
 const _hafizName = 'Hafiz Zainal';
 const _weiJie = 'mock-weijie';
 const _weiJieName = 'Tan Wei Jie';
+
+/// The admin's sample products, by id, so order lines show the same names,
+/// brands, sizes, categories and descriptions as the Inventory tab.
+final _inventory = sampleInventory();
+final _catalogue = {
+  for (final item in _inventory) item.product.id: item.product,
+};
+
+/// Each product's price at each branch, keyed "branchId/productId".
+final _prices = {
+  for (final item in _inventory) '${item.branchId}/${item.product.id}': item.price,
+};
+final _categoryNames = {
+  for (final category in sampleCategories()) category.id: category.name,
+};
+
+/// One order line for catalogue product [productId], priced at [branchId].
+WorkerOrderItem _item(
+  String branchId,
+  String lineId,
+  String productId,
+  int quantity,
+) {
+  final product = _catalogue[productId]!;
+  return WorkerOrderItem(
+    lineId: lineId,
+    productId: product.id,
+    name: product.name,
+    brand: product.brand,
+    packSize: product.packSize,
+    unitPrice: _prices['$branchId/$productId'] ?? 0,
+    category: _categoryNames[product.categoryId] ?? '',
+    description: product.description,
+    quantity: quantity,
+  );
+}

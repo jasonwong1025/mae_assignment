@@ -74,8 +74,8 @@ class WorkerOrdersRepository {
   // Lists
   // ---------------------------------------------------------------------
 
-  /// My Tasks: orders assigned to [worker] to pack that are not ready yet.
-  /// Orders being packed come first, then the longest waiting.
+  /// My Tasks: orders assigned to [worker] to pack that are not ready yet,
+  /// due soonest first.
   Stream<List<WorkerOrder>> watchMyPackingTasks(WorkerProfile worker) {
     return _watchList((orders) {
       final tasks = orders.where((order) {
@@ -84,9 +84,8 @@ class WorkerOrdersRepository {
                 order.status == OrderStatus.packing);
       }).toList();
       tasks.sort((a, b) {
-        if (a.status != b.status) {
-          return a.status == OrderStatus.packing ? -1 : 1;
-        }
+        final byDue = _compareDates(a.dueAt, b.dueAt);
+        if (byDue != 0) return byDue;
         return a.packerAssignedAt.compareTo(b.packerAssignedAt);
       });
       return tasks;
@@ -94,25 +93,26 @@ class WorkerOrdersRepository {
   }
 
   /// Ready for Pickup: every ready self-pickup order at [worker]'s branch,
-  /// whoever packed it. Ready the longest first.
+  /// whoever packed it. Pickup time soonest first.
   Stream<List<WorkerOrder>> watchReadyForPickup(WorkerProfile worker) {
     return _watchList((orders) {
       final ready = orders.where((order) {
         return WorkerOrderPolicy.canViewPickupOrder(worker, order);
       }).toList();
-      ready.sort((a, b) => _compareDates(a.readyAt, b.readyAt));
+      ready.sort(_byDueThenReady);
       return ready;
     });
   }
 
-  /// Pickups [worker] handed over, newest first.
-  Stream<List<WorkerOrder>> watchMyCompletedPickups(WorkerProfile worker) {
+  /// Delivery bags at [worker]'s branch waiting for their driver to
+  /// collect them, delivery time soonest first. Read-only for packers.
+  Stream<List<WorkerOrder>> watchWaitingForDrivers(WorkerProfile worker) {
     return _watchList((orders) {
-      final done = orders.where((order) {
-        return WorkerOrderPolicy.canViewCompletedPickup(worker, order);
+      final waiting = orders.where((order) {
+        return WorkerOrderPolicy.canViewWaitingForDriver(worker, order);
       }).toList();
-      done.sort((a, b) => _compareDates(b.completedAt, a.completedAt));
-      return done;
+      waiting.sort(_byDueThenReady);
+      return waiting;
     });
   }
 
@@ -379,6 +379,12 @@ class WorkerOrdersRepository {
       case OrderStatus.cancelled:
         return 4;
     }
+  }
+
+  /// Promised time soonest first; then ready the longest.
+  static int _byDueThenReady(WorkerOrder a, WorkerOrder b) {
+    final byDue = _compareDates(a.dueAt, b.dueAt);
+    return byDue != 0 ? byDue : _compareDates(a.readyAt, b.readyAt);
   }
 
   /// Earliest first; missing dates last.

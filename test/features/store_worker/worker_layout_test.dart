@@ -68,7 +68,7 @@ void main() {
         // Selector, then the three packer tabs.
         expect(find.text('Store Worker preview'), findsOneWidget);
         await _show(tester, container, AppRoutes.workerPacking);
-        expect(find.text('UP NEXT'), findsOneWidget);
+        expect(find.text('#2301'), findsOneWidget);
         await _show(tester, container, AppRoutes.workerPickup);
         await _show(tester, container, AppRoutes.workerAccount);
 
@@ -86,7 +86,6 @@ void main() {
         );
         await _show(tester, container, AppRoutes.workerPackingOrder('ord-2303'));
         await _tap(tester, 'Review & mark ready');
-        await _tap(tester, "I've checked all products and quantities");
         await _tap(tester, 'Mark as ready');
         expect(find.text('Order #2303 is ready'), findsOneWidget);
 

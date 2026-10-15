@@ -5,9 +5,8 @@ import '../../../../../app/theme/app_spacing.dart';
 import '../../../../../core/utilities/formatters.dart';
 import '../../../orders/data/models/worker_order.dart';
 
-/// Orders waiting at least this long are highlighted, so they get handed
-/// over (or followed up) first.
-const int _longWaitMinutes = 30;
+/// Orders due within this many minutes are highlighted in amber.
+const int _dueSoonMinutes = 15;
 
 /// Who packed [order], as shown to the worker with [workerId].
 String packedByText(WorkerOrder order, String workerId) {
@@ -22,27 +21,49 @@ int minutesReady(WorkerOrder order) {
   return readyAt == null ? 0 : Formatters.minutesSince(readyAt);
 }
 
-/// One order in Ready for Pickup. The customer's name is large because
-/// that is what the packer matches against the person at the counter.
+/// One order on Ready for Pickup, used for all three lists (waiting for
+/// pickup, waiting for drivers, handed over): order number, the customer's
+/// name in large text (what the packer matches at the counter), one detail
+/// line, and a time on the right.
 class PickupOrderCard extends StatelessWidget {
   const PickupOrderCard({
     super.key,
     required this.order,
-    required this.workerId,
-    required this.onTap,
+    required this.detail,
+    required this.timeLabel,
+    required this.time,
+    this.highlightTime = false,
+    this.onTap,
   });
 
   final WorkerOrder order;
 
-  /// The signed-in packer, to show "Packed by you".
-  final String workerId;
-  final VoidCallback onTap;
+  /// Line under the name, e.g. "Packed by you" or "For Amir Hamzah".
+  final String detail;
+
+  /// Small word above the time, e.g. "Pickup", "Deliver" or "Handed over".
+  final String timeLabel;
+  final DateTime? time;
+
+  /// True to colour the time by how soon it is (amber soon, red late).
+  final bool highlightTime;
+
+  /// Null for read-only cards (no tap, no arrow).
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final waited = minutesReady(order);
-    final longWait = waited >= _longWaitMinutes;
+    final time = this.time;
+    var timeColor = AppColors.textSecondary;
+    if (highlightTime && time != null) {
+      final minutesLeft = time.difference(DateTime.now()).inMinutes;
+      if (minutesLeft < 0) {
+        timeColor = AppColors.error;
+      } else if (minutesLeft <= _dueSoonMinutes) {
+        timeColor = AppColors.warning;
+      }
+    }
 
     return Card(
       elevation: 0,
@@ -69,41 +90,35 @@ class PickupOrderCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      '${order.lineCount} products · ${order.itemCount} items'
-                      ' · ${packedByText(order, workerId)}',
-                      style: textTheme.bodySmall,
-                    ),
+                    Text(detail, style: textTheme.bodySmall),
                   ],
                 ),
               ),
-              const SizedBox(width: AppSpacing.s),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Icon(
-                    Icons.schedule_rounded,
-                    size: 18,
-                    color: longWait ? AppColors.warning : AppColors.textSecondary,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    Formatters.minutes(waited),
-                    style: textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: longWait
-                          ? AppColors.warning
-                          : AppColors.textSecondary,
+              if (time != null) ...[
+                const SizedBox(width: AppSpacing.s),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Icon(Icons.schedule_rounded, size: 18, color: timeColor),
+                    const SizedBox(height: 2),
+                    Text(timeLabel, style: textTheme.bodySmall),
+                    Text(
+                      Formatters.time(time),
+                      style: textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: timeColor,
+                      ),
                     ),
-                  ),
-                  Text('waiting', style: textTheme.bodySmall),
-                ],
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.textSecondary,
-              ),
+                  ],
+                ),
+              ],
+              if (onTap != null) ...[
+                const SizedBox(width: AppSpacing.xs),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.textSecondary,
+                ),
+              ],
             ],
           ),
         ),

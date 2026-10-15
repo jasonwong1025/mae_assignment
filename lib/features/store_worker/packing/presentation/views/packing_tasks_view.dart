@@ -82,7 +82,7 @@ class _PackingTasksViewState extends ConsumerState<PackingTasksView> {
   }
 }
 
-/// Summary line, the "Up next" card, then the other orders.
+/// One card per order, due soonest first.
 class _TaskList extends StatelessWidget {
   const _TaskList({
     required this.orders,
@@ -98,51 +98,22 @@ class _TaskList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final packingCount = orders
-        .where((order) => order.status == OrderStatus.packing)
-        .length;
-    final toStartCount = orders.length - packingCount;
-
     return ListView.separated(
       padding: const EdgeInsets.all(AppSpacing.l),
-      // Summary + one card per order.
-      itemCount: orders.length + 1,
-      separatorBuilder: (context, index) {
-        // A heading between "Up next" and the rest.
-        if (index == 1 && orders.length > 1) {
-          return Padding(
-            padding: const EdgeInsets.only(
-              top: AppSpacing.l,
-              bottom: AppSpacing.s,
-            ),
-            child: Text(
-              'ALSO ASSIGNED TO YOU',
-              style: textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.4,
-              ),
-            ),
-          );
-        }
-        return const SizedBox(height: AppSpacing.m);
-      },
+      itemCount: orders.length,
+      separatorBuilder: (context, index) =>
+          const SizedBox(height: AppSpacing.m),
       itemBuilder: (context, index) {
-        if (index == 0) {
-          return Text(
-            '$packingCount being packed · $toStartCount to start',
-            style: textTheme.bodyMedium,
-          );
-        }
-        final order = orders[index - 1];
-        final isStarting = startingOrderId == order.id;
+        final order = orders[index];
+        final isPending = order.status == OrderStatus.pending;
         return PackingTaskCard(
           order: order,
-          isNext: index == 1,
-          isStarting: isStarting,
-          onOpen: () => onOpen(order),
-          // Only one order can be starting at a time.
-          onStart: startingOrderId == null ? () => onStart(order) : null,
+          isStarting: startingOrderId == order.id,
+          // Pending: start packing (then open). Packing: just open.
+          // Disabled while another order is starting.
+          onTap: startingOrderId != null
+              ? null
+              : () => isPending ? onStart(order) : onOpen(order),
         );
       },
     );

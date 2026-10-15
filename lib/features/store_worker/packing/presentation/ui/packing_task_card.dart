@@ -10,81 +10,67 @@ import '../../../../../shared/ui/order_status_label.dart';
 import '../../../orders/data/models/worker_order.dart';
 import 'packing_progress_bar.dart';
 
-/// One order on My Tasks. Tapping the card opens the order.
+/// Orders due within this many minutes are highlighted as urgent.
+const int _dueSoonMinutes = 15;
+
+/// One order on My Tasks: number, status, pickup or delivery, customer,
+/// when it is due, and packing progress.
 ///
-/// The first order in the list is shown as "Up next" ([isNext]): bigger,
-/// with a full-width Start packing or Continue packing button.
+/// Tapping a pending order (or its Start button) starts packing it;
+/// tapping an order already being packed opens it.
 class PackingTaskCard extends StatelessWidget {
   const PackingTaskCard({
     super.key,
     required this.order,
-    required this.isNext,
     required this.isStarting,
-    required this.onOpen,
-    required this.onStart,
+    required this.onTap,
   });
 
   final WorkerOrder order;
-  final bool isNext;
 
   /// True while Start packing is running for this order.
   final bool isStarting;
-  final VoidCallback onOpen;
 
-  /// Null while another order is starting, which disables the button.
-  final VoidCallback? onStart;
+  /// Null while another order is starting, which disables the card.
+  final VoidCallback? onTap;
 
-  bool get _isPacking => order.status == OrderStatus.packing;
-
-  String get _assignedAgo {
-    final minutes = Formatters.minutesSince(order.packerAssignedAt);
-    return 'Assigned ${Formatters.minutes(minutes)} ago';
-  }
+  bool get _isPending => order.status == OrderStatus.pending;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
     return Card(
-      elevation: isNext ? 2 : 0,
+      elevation: 0,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(isNext ? 16 : 12),
-        side: BorderSide(
-          color: isNext ? AppColors.darkGreen : AppColors.border,
-          width: isNext ? 2 : 1,
-        ),
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: AppColors.border),
       ),
       child: InkWell(
-        onTap: onOpen,
+        onTap: onTap,
         child: Padding(
-          padding: EdgeInsets.all(isNext ? AppSpacing.l : AppSpacing.m),
+          padding: const EdgeInsets.all(AppSpacing.l),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (isNext) ...[
-                Text(
-                  'UP NEXT',
-                  style: textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.6,
-                    color: AppColors.darkGreen,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-              ],
-              // Wrap, so the tags move to a second line on narrow screens or
-              // with large text instead of overflowing.
-              Wrap(
-                spacing: AppSpacing.s,
-                runSpacing: AppSpacing.xs,
-                crossAxisAlignment: WrapCrossAlignment.center,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '#${order.number}',
-                    style: isNext ? textTheme.titleLarge : textTheme.titleMedium,
+                  // Wrap, so the status badge drops under the number on
+                  // narrow screens or with large text.
+                  Expanded(
+                    child: Wrap(
+                      spacing: AppSpacing.s,
+                      runSpacing: AppSpacing.xs,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text('#${order.number}', style: textTheme.titleLarge),
+                        OrderStatusBadge(status: order.status),
+                      ],
+                    ),
                   ),
-                  OrderStatusBadge(status: order.status),
+                  const SizedBox(width: AppSpacing.s),
                   FulfilmentTag(isDelivery: order.isDelivery),
                 ],
               ),
@@ -94,48 +80,102 @@ class PackingTaskCard extends StatelessWidget {
                 style: textTheme.bodyLarge,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 2),
-              Text(
-                '${order.lineCount} products · ${order.itemCount} items · '
-                '$_assignedAgo',
-                style: textTheme.bodySmall,
-              ),
-              const SizedBox(height: AppSpacing.m),
-              PackingProgressBar(order: order),
-              if (isNext) ...[
-                const SizedBox(height: AppSpacing.l),
-                FilledButton.icon(
-                  onPressed: _isPacking ? onOpen : onStart,
-                  icon: isStarting
-                      ? const ButtonLoadingIndicator()
-                      : Icon(
-                          _isPacking
-                              ? Icons.arrow_forward_rounded
-                              : Icons.play_arrow_rounded,
-                        ),
-                  label: Text(_isPacking ? 'Continue packing' : 'Start packing'),
-                ),
-              ] else ...[
-                const SizedBox(height: AppSpacing.s),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: _isPacking ? onOpen : onStart,
-                    icon: isStarting
-                        ? const ButtonLoadingIndicator()
-                        : Icon(
-                            _isPacking
-                                ? Icons.arrow_forward_rounded
-                                : Icons.play_arrow_rounded,
-                          ),
-                    label: Text(_isPacking ? 'Continue' : 'Start'),
-                  ),
-                ),
+              if (order.dueAt != null) ...[
+                const SizedBox(height: AppSpacing.xs),
+                _DueTime(order: order),
               ],
+              const SizedBox(height: AppSpacing.m),
+              // Pending: the order size and Start on one row, in exactly the
+              // space the progress bar takes on a packing card (an invisible
+              // copy of it sets the height), so every card is the same size.
+              if (_isPending)
+                Stack(
+                  children: [
+                    Visibility(
+                      visible: false,
+                      maintainSize: true,
+                      maintainAnimation: true,
+                      maintainState: true,
+                      child: PackingProgressBar(order: order),
+                    ),
+                    Positioned.fill(
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${order.lineCount} products · '
+                              '${order.itemCount} items',
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: onTap,
+                            // Small enough to fit the progress bar's height;
+                            // the whole card is tappable as well.
+                            style: TextButton.styleFrom(
+                              minimumSize: Size.zero,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.s,
+                                vertical: AppSpacing.xs,
+                              ),
+                              visualDensity: VisualDensity.compact,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            icon: isStarting
+                                ? const ButtonLoadingIndicator()
+                                : const Icon(Icons.play_arrow_rounded),
+                            label: const Text('Start'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                )
+              else
+                PackingProgressBar(order: order),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// "Pickup by 1:30pm", amber when due soon, red when overdue.
+class _DueTime extends StatelessWidget {
+  const _DueTime({required this.order});
+
+  final WorkerOrder order;
+
+  @override
+  Widget build(BuildContext context) {
+    final dueAt = order.dueAt!;
+    final minutesLeft = dueAt.difference(DateTime.now()).inMinutes;
+    final isLate = minutesLeft < 0;
+    final color = isLate
+        ? AppColors.error
+        : (minutesLeft <= _dueSoonMinutes
+              ? AppColors.warning
+              : AppColors.textSecondary);
+    final verb = order.isDelivery ? 'Deliver by' : 'Pickup by';
+
+    return Row(
+      children: [
+        Icon(Icons.schedule_rounded, size: 16, color: color),
+        const SizedBox(width: AppSpacing.xs),
+        Expanded(
+          child: Text(
+            '$verb ${Formatters.time(dueAt)}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

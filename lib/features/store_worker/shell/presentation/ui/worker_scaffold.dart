@@ -19,6 +19,8 @@ class WorkerScaffold extends ConsumerWidget {
     super.key,
     required this.currentTab,
     required this.child,
+    this.titleOverride,
+    this.actions = const [],
   });
 
   /// Pages never get wider than this, even on tablets and web.
@@ -27,6 +29,13 @@ class WorkerScaffold extends ConsumerWidget {
   /// The tab being shown, highlighted in the bottom navigation.
   final WorkerTab currentTab;
   final Widget child;
+
+  /// Replaces the logo, page title and branch in the app bar while set,
+  /// e.g. with a search field. The change animates.
+  final Widget? titleOverride;
+
+  /// Buttons on the right of the app bar, e.g. a search icon.
+  final List<Widget> actions;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -42,14 +51,32 @@ class WorkerScaffold extends ConsumerWidget {
         titleSpacing: AppSpacing.l,
         toolbarHeight: 64,
         shape: const Border(bottom: BorderSide(color: AppColors.border)),
-        title: _AppBarTitle(
-          title: currentTab.label,
-          branchName: worker?.branchName,
+        // Fades and slides in from the right when the title is replaced
+        // (e.g. a search field opening from the search icon).
+        title: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: SizeTransition(
+              sizeFactor: animation,
+              axis: Axis.horizontal,
+              alignment: Alignment.centerRight,
+              child: child,
+            ),
+          ),
+          layoutBuilder: (current, previous) => Stack(
+            alignment: Alignment.centerLeft,
+            children: [...previous, ?current],
+          ),
+          child:
+              titleOverride ??
+              _AppBarTitle(
+                key: const ValueKey('worker-title'),
+                title: currentTab.label,
+                branchName: worker?.branchName,
+              ),
         ),
-        actions: const [
-          PreviewModeBadge(),
-          SizedBox(width: AppSpacing.l),
-        ],
+        actions: [...actions, if (actions.isNotEmpty) const SizedBox(width: 4)],
       ),
       body: SafeArea(
         // The app bar and bottom navigation already keep clear of the
@@ -89,7 +116,11 @@ class WorkerScaffold extends ConsumerWidget {
 
 /// Logo, page title, and "Grocerly · branch name" under it.
 class _AppBarTitle extends StatelessWidget {
-  const _AppBarTitle({required this.title, required this.branchName});
+  const _AppBarTitle({
+    super.key,
+    required this.title,
+    required this.branchName,
+  });
 
   final String title;
   final String? branchName;
@@ -121,47 +152,6 @@ class _AppBarTitle extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// Small "Preview" pill showing that the app is running on mock data.
-class PreviewModeBadge extends StatelessWidget {
-  const PreviewModeBadge({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: 'Preview mode: mock data, not connected to Firebase',
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 10,
-          vertical: AppSpacing.xs,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.orange.withValues(alpha: 0.16),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.science_outlined,
-              size: 14,
-              color: AppColors.textPrimary,
-            ),
-            SizedBox(width: AppSpacing.xs),
-            Text(
-              'Preview',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

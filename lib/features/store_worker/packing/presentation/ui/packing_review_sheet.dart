@@ -5,118 +5,142 @@ import '../../../../../app/theme/app_spacing.dart';
 import '../../../orders/data/models/worker_order.dart';
 
 /// Final check before an order is marked ready: every product and
-/// quantity, and a box the packer must tick to confirm.
-/// Returns true if they confirmed.
+/// quantity, then Mark as ready. The X in the top-right corner closes the
+/// sheet and keeps packing.
+/// Returns true if they marked it ready.
 Future<bool> showPackingReviewSheet(BuildContext context, WorkerOrder order) {
   return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    // Drawn below together with the close button, like the product
+    // details sheet.
+    showDragHandle: false,
     builder: (context) => _PackingReviewSheet(order: order),
   ).then((confirmed) => confirmed ?? false);
 }
 
-class _PackingReviewSheet extends StatefulWidget {
+class _PackingReviewSheet extends StatelessWidget {
   const _PackingReviewSheet({required this.order});
 
   final WorkerOrder order;
 
   @override
-  State<_PackingReviewSheet> createState() => _PackingReviewSheetState();
-}
-
-class _PackingReviewSheetState extends State<_PackingReviewSheet> {
-  bool _checked = false;
-
-  @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final order = widget.order;
 
     return ConstrainedBox(
       // Leave the top of the order screen visible behind the sheet.
       constraints: BoxConstraints(
         maxHeight: MediaQuery.sizeOf(context).height * 0.85,
       ),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl,
-          0,
-          AppSpacing.xl,
-          AppSpacing.l,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Review order #${order.number}', style: textTheme.titleLarge),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Check every product and quantity in the bag before marking '
-              'the order ready.',
-              style: textTheme.bodyMedium,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Drag handle in the middle, close (X) in the top-right corner.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xl,
+              AppSpacing.s,
+              AppSpacing.s,
+              0,
             ),
-            const SizedBox(height: AppSpacing.m),
-            Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: order.items.length,
-                separatorBuilder: (context, index) => const Divider(),
-                itemBuilder: (context, index) {
-                  final item = order.items[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.s),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 44,
-                          child: Text(
-                            '×${item.quantity}',
-                            style: textTheme.titleMedium?.copyWith(
-                              color: AppColors.darkGreen,
-                            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 32,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.textSecondary.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
+                    tooltip: 'Close',
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.of(context).pop(false),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Flexible(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.xl,
+                0,
+                AppSpacing.xl,
+                AppSpacing.l,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Review order #${order.number}',
+                    style: textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'Check every product and quantity in the bag before '
+                    'marking the order ready.',
+                    style: textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: order.items.length,
+                      separatorBuilder: (context, index) => const Divider(),
+                      itemBuilder: (context, index) {
+                        final item = order.items[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.s,
                           ),
-                        ),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Row(
                             children: [
-                              Text(item.name, style: textTheme.bodyLarge),
-                              Text(
-                                '${item.brand} · ${item.packSize}',
-                                style: textTheme.bodySmall,
+                              SizedBox(
+                                width: 44,
+                                child: Text(
+                                  '×${item.quantity}',
+                                  style: textTheme.titleMedium?.copyWith(
+                                    color: AppColors.darkGreen,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(item.name, style: textTheme.bodyLarge),
+                                    Text(
+                                      '${item.brand} · ${item.packSize}',
+                                      style: textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                      ],
+                        );
+                      },
                     ),
-                  );
-                },
+                  ),
+                  const SizedBox(height: AppSpacing.l),
+                  FilledButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    child: const Text('Mark as ready'),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: AppSpacing.s),
-            CheckboxListTile(
-              value: _checked,
-              onChanged: (value) => setState(() => _checked = value ?? false),
-              controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: EdgeInsets.zero,
-              title: const Text("I've checked all products and quantities"),
-            ),
-            const SizedBox(height: AppSpacing.s),
-            FilledButton(
-              onPressed: _checked
-                  ? () => Navigator.of(context).pop(true)
-                  : null,
-              child: const Text('Mark as ready'),
-            ),
-            const SizedBox(height: AppSpacing.s),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Keep packing'),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

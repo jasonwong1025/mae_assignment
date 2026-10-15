@@ -208,7 +208,7 @@ void main() {
       final container = await _pumpApp(tester);
       await _go(tester, container, AppRoutes.login);
 
-      expect(find.text('Packing and delivery (mock data)'), findsOneWidget);
+      expect(find.text('Packing and delivery'), findsOneWidget);
       await tester.ensureVisible(find.text('Store Worker'));
       await tester.tap(find.text('Store Worker'));
       await tester.pumpAndSettle();
@@ -343,7 +343,6 @@ void main() {
       expect(_location(container), AppRoutes.workerAccount);
       expect(find.text('Daniel Lee'), findsOneWidget);
       expect(find.text('daniel.lee@grocerly.my'), findsOneWidget);
-      expect(find.text('Preview mode'), findsOneWidget);
 
       await _scrollTo(tester, find.text('Exit preview'));
       await tester.tap(find.text('Exit preview'));

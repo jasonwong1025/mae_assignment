@@ -62,9 +62,9 @@ void main() {
       final repository = _repository();
 
       expect(await repository.watchMyPackingTasks(_daniel).first.then(_ids), [
-        'ord-2302',
-        'ord-2303',
         'ord-2301',
+        'ord-2303',
+        'ord-2302',
       ]);
       expect(await repository.watchMyPackingTasks(_hakim).first.then(_ids), [
         'ord-2304',
@@ -80,10 +80,6 @@ void main() {
       expect(await repository.watchReadyForPickup(_hafiz).first.then(_ids), [
         'ord-1183',
       ]);
-      expect(
-        await repository.watchMyCompletedPickups(_daniel).first.then(_ids),
-        ['ord-2307'],
-      );
       expect(await repository.watchMyDeliveries(_amir).first.then(_ids), [
         'ord-2309',
         'ord-2308',
@@ -207,9 +203,6 @@ void main() {
     test('a packer hands over an order packed by someone else', () async {
       final repository = _repository();
       final hakimQueue = await _record(repository.watchReadyForPickup(_hakim));
-      final danielDone = await _record(
-        repository.watchMyCompletedPickups(_daniel),
-      );
 
       await repository.completePickup(
         _daniel,
@@ -222,7 +215,6 @@ void main() {
         ['ord-2305', 'ord-2306'],
         ['ord-2305'],
       ]);
-      expect(danielDone.last, ['ord-2306', 'ord-2307']);
 
       final order = await repository.watchOrder(_daniel, 'ord-2306').first;
       expect(order!.status, OrderStatus.completed);
@@ -411,11 +403,11 @@ void main() {
       await repository.startPacking(_daniel, 'ord-2301');
       await _settle();
 
-      // Same order of ids (2301 was assigned last), but the list is resent
+      // Same order of ids (sorted by due time), but the list is resent
       // because 2301 itself changed.
       expect(danielTasks, [
-        ['ord-2302', 'ord-2303', 'ord-2301'],
-        ['ord-2302', 'ord-2303', 'ord-2301'],
+        ['ord-2301', 'ord-2303', 'ord-2302'],
+        ['ord-2301', 'ord-2303', 'ord-2302'],
       ]);
 
       // A screen that opens now still sees 2301 as being packed.

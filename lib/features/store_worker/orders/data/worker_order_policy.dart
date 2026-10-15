@@ -51,6 +51,18 @@ class WorkerOrderPolicy {
         order.pickupCompletedBy == worker.id;
   }
 
+  /// Waiting for drivers: delivery orders at the packer's branch that are
+  /// packed and ready but not yet verified by their driver. Read-only, so
+  /// any packer can find the bag when a driver asks; only the driver
+  /// collects it.
+  static bool canViewWaitingForDriver(WorkerProfile worker, WorkerOrder order) {
+    return worker.isPackingStaff &&
+        _inBranch(worker, order) &&
+        order.isDelivery &&
+        order.status == OrderStatus.ready &&
+        order.collectionVerifiedBy != order.driverId;
+  }
+
   /// My Deliveries: delivery orders assigned to this driver at their
   /// branch, in any status, including while still being packed.
   static bool canViewDelivery(WorkerProfile worker, WorkerOrder order) {

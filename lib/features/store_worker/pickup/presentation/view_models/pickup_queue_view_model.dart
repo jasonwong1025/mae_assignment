@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart' show DateUtils;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../orders/data/models/worker_order.dart';
@@ -27,15 +26,16 @@ class PickupQueueViewModel extends StreamNotifier<List<WorkerOrder>> {
   }
 }
 
-final pickupHandoversViewModelProvider =
+final pickupWaitingForDriversViewModelProvider =
     StreamNotifierProvider.autoDispose<
-      PickupHandoversViewModel,
+      PickupWaitingForDriversViewModel,
       List<WorkerOrder>
-    >(PickupHandoversViewModel.new);
+    >(PickupWaitingForDriversViewModel.new);
 
-/// State for "Handed over by you today": pickups the signed-in packer
-/// completed today, newest first.
-class PickupHandoversViewModel extends StreamNotifier<List<WorkerOrder>> {
+/// State for "Waiting for drivers": delivery bags at the packer's branch
+/// that are ready but not yet collected (verified) by their driver.
+class PickupWaitingForDriversViewModel
+    extends StreamNotifier<List<WorkerOrder>> {
   @override
   Stream<List<WorkerOrder>> build() async* {
     final worker = ref.watch(workerSessionProvider);
@@ -43,15 +43,8 @@ class PickupHandoversViewModel extends StreamNotifier<List<WorkerOrder>> {
       yield const [];
       return;
     }
-    final repository = ref.watch(workerOrdersRepositoryProvider);
-    yield* repository.watchMyCompletedPickups(worker).map(_today);
-  }
-
-  /// Only orders completed on today's date.
-  static List<WorkerOrder> _today(List<WorkerOrder> orders) {
-    final now = DateTime.now();
-    return orders
-        .where((order) => DateUtils.isSameDay(order.completedAt, now))
-        .toList();
+    yield* ref
+        .watch(workerOrdersRepositoryProvider)
+        .watchWaitingForDrivers(worker);
   }
 }
