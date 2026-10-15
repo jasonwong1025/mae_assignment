@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../data/models/order.dart';
+import '../../app/theme/app_colors.dart';
+import '../models/order_status.dart';
 
 /// Colour that stands for each order status, used wherever a status is
-/// shown so the same status always has the same colour.
+/// shown (admin board and Store Worker app) so the same status always has
+/// the same colour.
 Color orderStatusColor(OrderStatus status) {
   switch (status) {
     case OrderStatus.pending:
@@ -54,6 +55,40 @@ class OrderStatusLabel extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Status as a small rounded tag in the status colour, e.g. "Packing".
+/// Sized for mobile cards and headers.
+class OrderStatusBadge extends StatelessWidget {
+  const OrderStatusBadge({super.key, required this.status, this.label});
+
+  final OrderStatus status;
+
+  /// Text to show instead of the status name, e.g. "Ready for pickup".
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = orderStatusColor(status);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label ?? status.label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          // Grey text on its own tint is hard to read, so pending uses the
+          // main text colour.
+          color: status == OrderStatus.pending ? AppColors.textPrimary : color,
+        ),
+      ),
     );
   }
 }

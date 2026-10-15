@@ -13,6 +13,7 @@ import '../../../../shared/ui/labeled_text_field.dart';
 import '../../../../shared/ui/or_divider.dart';
 import '../../../../shared/ui/password_field.dart';
 import '../../../../shared/models/app_user.dart';
+import '../../../store_worker/session/worker_preview.dart';
 import '../view_models/login_view_model.dart';
 
 /// Sign-in page for every role. Uses email and password.
@@ -39,6 +40,14 @@ class _LoginViewState extends ConsumerState<LoginView> {
   }
 
   Future<void> _onContinueAs(UserRole role) async {
+    // While the Store Worker app runs on mock data (development builds),
+    // its button opens the mock worker list instead of signing in, so no
+    // email or password is needed.
+    if (role == UserRole.storeWorker && ref.read(workerPreviewEnabledProvider)) {
+      context.push(AppRoutes.workerDevSelect);
+      return;
+    }
+
     final isValid = _formKey.currentState!.validate();
     if (!isValid) return;
 
@@ -161,7 +170,9 @@ class _LoginViewState extends ConsumerState<LoginView> {
                             _RoleButton(
                               icon: Icons.inventory_2_outlined,
                               title: UserRole.storeWorker.label,
-                              subtitle: 'Packing and delivery',
+                              subtitle: ref.watch(workerPreviewEnabledProvider)
+                                  ? 'Packing and delivery'
+                                  : 'Packing and delivery',
                               isLoading:
                                   isLoading &&
                                   _selectedRole == UserRole.storeWorker,

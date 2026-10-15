@@ -56,6 +56,13 @@ class Formatters {
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
+  /// Whole minutes from [time] until now, for "waiting 12m" labels.
+  /// Never negative, even if the phone's clock is behind.
+  static int minutesSince(DateTime time) {
+    final minutes = DateTime.now().difference(time).inMinutes;
+    return minutes < 0 ? 0 : minutes;
+  }
+
   /// 4 becomes "4m", 132 becomes "2h 12m".
   static String minutes(int minutes) {
     if (minutes < 60) return '${minutes}m';

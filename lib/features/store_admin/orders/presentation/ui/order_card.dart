@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../../app/theme/app_colors.dart';
 import '../../../../../core/utilities/formatters.dart';
+import '../../../../../shared/ui/fulfilment_tag.dart';
 import '../../data/models/order.dart';
 
 /// One order on the board. Tapping it opens the order's details.
@@ -105,7 +106,7 @@ class OrderCard extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  _FulfilmentTag(isDelivery: order.isDelivery),
+                  FulfilmentTag(isDelivery: order.isDelivery),
                   const SizedBox(width: 6),
                   const Icon(
                     Icons.person_outline_rounded,
@@ -124,34 +125,6 @@ class OrderCard extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Small "Delivery" or "Pickup" tag.
-class _FulfilmentTag extends StatelessWidget {
-  const _FulfilmentTag({required this.isDelivery});
-
-  final bool isDelivery;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: isDelivery
-            ? AppColors.greenTint
-            : AppColors.orange.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        isDelivery ? 'Delivery' : 'Pickup',
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: AppColors.textPrimary,
         ),
       ),
     );

@@ -174,6 +174,22 @@ class AppTheme {
       ),
 
       dividerTheme: const DividerThemeData(color: AppColors.border, space: 1),
+
+      // Sheets that slide up from the bottom (Store Worker confirmations).
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        showDragHandle: true,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+      ),
+
+      // Progress bars, e.g. packing progress.
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: AppColors.darkGreen,
+        linearTrackColor: AppColors.greenTint,
+      ),
     );
   }
 }

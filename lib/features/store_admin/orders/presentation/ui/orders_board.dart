@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../../app/theme/app_colors.dart';
 import '../../data/models/order.dart';
 import 'order_card.dart';
-import 'order_status_label.dart';
+import '../../../../../shared/ui/order_status_label.dart';
 
 /// Orders of one status, in the order they should be listed:
 /// - still in progress: problems first, then the longest waiting

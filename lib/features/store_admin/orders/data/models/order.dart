@@ -1,20 +1,9 @@
-/// The columns of the orders board, in the order they are shown.
-enum OrderStatus {
-  pending('Pending'),
-  packing('Packing'),
-  ready('Ready'),
-  outForDelivery('Out for delivery'),
-  completed('Completed'),
-  cancelled('Cancelled');
+import '../../../../../shared/models/order_status.dart';
 
-  const OrderStatus(this.label);
-
-  /// Name shown to the admin, e.g. "Out for delivery".
-  final String label;
-
-  /// Completed and cancelled orders will not change any more.
-  bool get isFinished => this == completed || this == cancelled;
-}
+// OrderStatus (the columns of the orders board) now lives in shared/ so the
+// Store Worker app uses the same statuses. Re-exported so files that import
+// this one keep working.
+export '../../../../../shared/models/order_status.dart';
 
 enum PaymentMethod {
   cash('Cash'),

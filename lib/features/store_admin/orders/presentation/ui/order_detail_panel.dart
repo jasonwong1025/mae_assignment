@@ -5,7 +5,7 @@ import '../../../../../app/theme/app_colors.dart';
 import '../../../../../core/utilities/formatters.dart';
 import '../../data/models/order.dart';
 import '../view_models/orders_view_model.dart';
-import 'order_status_label.dart';
+import '../../../../../shared/ui/order_status_label.dart';
 
 /// Everything about one order: customer, delivery, items, payment and
 /// what has happened so far. Read only; the admin monitors orders here

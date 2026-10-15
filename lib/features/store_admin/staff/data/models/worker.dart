@@ -1,13 +1,8 @@
-/// A worker is one of these two roles.
-enum WorkerRole {
-  packingStaff('Packing Staff'),
-  deliveryDriver('Delivery Driver');
+import '../../../../../shared/models/worker_role.dart';
 
-  const WorkerRole(this.label);
-
-  /// Name shown on screen.
-  final String label;
-}
+// WorkerRole now lives in shared/ so the Store Worker app can use it too.
+// Re-exported so files that import this one keep working.
+export '../../../../../shared/models/worker_role.dart';
 
 /// A Store Worker.
 class Worker {

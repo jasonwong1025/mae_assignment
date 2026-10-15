@@ -1,0 +1,40 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../orders/data/models/worker_order.dart';
+import '../../../orders/data/repositories/worker_orders_repository.dart';
+import '../../../session/presentation/view_models/worker_session_view_model.dart';
+
+final packingTasksViewModelProvider =
+    StreamNotifierProvider.autoDispose<PackingTasksViewModel, List<WorkerOrder>>(
+      PackingTasksViewModel.new,
+    );
+
+/// State for My Tasks: the orders the signed-in packer has to pack.
+/// - AsyncLoading: waiting for the first list
+/// - AsyncData: the latest list, next order first; replaced on every change
+/// - AsyncError: loading failed
+class PackingTasksViewModel extends StreamNotifier<List<WorkerOrder>> {
+  @override
+  Stream<List<WorkerOrder>> build() async* {
+    // Watching the session means this starts again for a new worker.
+    final worker = ref.watch(workerSessionProvider);
+    if (worker == null) {
+      yield const [];
+      return;
+    }
+    yield* ref.watch(workerOrdersRepositoryProvider).watchMyPackingTasks(worker);
+  }
+
+  /// Starts packing [orderId]. Returns an error message, or null if it
+  /// worked. The list updates by itself.
+  Future<String?> startPacking(String orderId) async {
+    final worker = ref.read(workerSessionProvider);
+    if (worker == null) return 'Choose a worker first.';
+    try {
+      await ref.read(workerOrdersRepositoryProvider).startPacking(worker, orderId);
+      return null;
+    } on WorkerOrderException catch (e) {
+      return e.message;
+    }
+  }
+}
