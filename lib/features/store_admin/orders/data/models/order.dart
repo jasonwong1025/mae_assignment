@@ -1,14 +1,6 @@
-import '../../../../../shared/models/order_status.dart';
 import 'package:latlong2/latlong.dart';
 
-/// The columns of the orders board, in the order they are shown.
-enum OrderStatus {
-  pending('Pending'),
-  packing('Packing'),
-  ready('Ready'),
-  outForDelivery('Out for delivery'),
-  completed('Completed'),
-  cancelled('Cancelled');
+import '../../../../../shared/models/order_status.dart';
 
 // OrderStatus (the columns of the orders board) now lives in shared/ so the
 // Store Worker app uses the same statuses. Re-exported so files that import

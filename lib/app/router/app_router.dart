@@ -192,6 +192,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.workerAccount,
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: WorkerAccountView()),
+      ),
       GoRoute(
         path: AppRoutes.adminDispatch,
         pageBuilder: (context, state) =>
