@@ -1,4 +1,14 @@
 import '../../../../../shared/models/order_status.dart';
+import 'package:latlong2/latlong.dart';
+
+/// The columns of the orders board, in the order they are shown.
+enum OrderStatus {
+  pending('Pending'),
+  packing('Packing'),
+  ready('Ready'),
+  outForDelivery('Out for delivery'),
+  completed('Completed'),
+  cancelled('Cancelled');
 
 // OrderStatus (the columns of the orders board) now lives in shared/ so the
 // Store Worker app uses the same statuses. Re-exported so files that import
@@ -29,8 +39,10 @@ class Order {
     required this.isPaid,
     required this.timeline,
     this.address,
+    this.location,
     this.customerNote,
     this.assignedWorker,
+    this.driverId,
     this.attentionReason,
   });
 
@@ -49,6 +61,9 @@ class Order {
   /// Address of the customer
   final String? address;
 
+  /// Where the address is on the map. Delivery orders only.
+  final LatLng? location;
+
   /// Message the customer left with the order
   final String? customerNote;
 
@@ -62,6 +77,9 @@ class Order {
 
   /// Staff member packing or delivering the order
   final String? assignedWorker;
+
+  /// Id of the driver delivering it. Null until a driver is assigned.
+  final String? driverId;
 
   /// Why the order needs the admin's attention
   final String? attentionReason;
@@ -93,6 +111,40 @@ class Order {
 
   /// How long the order has been in its current status.
   int minutesInStatus(DateTime now) => now.difference(statusSince).inMinutes;
+
+  /// Copy with a new driver, noted in the timeline.
+  Order withDriver({
+    required String driverId,
+    required String driverName,
+    required DateTime now,
+  }) {
+    return Order(
+      number: number,
+      customerName: customerName,
+      customerPhone: customerPhone,
+      status: status,
+      statusSince: statusSince,
+      isDelivery: isDelivery,
+      address: address,
+      location: location,
+      customerNote: customerNote,
+      items: items,
+      deliveryFee: deliveryFee,
+      paymentMethod: paymentMethod,
+      isPaid: isPaid,
+      assignedWorker: driverName,
+      driverId: driverId,
+      attentionReason: attentionReason,
+      timeline: [
+        ...timeline,
+        OrderEvent(
+          title: 'Driver $driverName assigned',
+          time: now,
+          by: 'Admin',
+        ),
+      ],
+    );
+  }
 }
 
 /// One product line of an order.

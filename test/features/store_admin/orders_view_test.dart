@@ -132,7 +132,7 @@ void main() {
     for (final status in OrderStatus.values) {
       expect(find.text(status.label.toUpperCase()), findsOneWidget);
     }
-    expect(find.byType(OrderCard), findsNWidgets(11));
+    expect(find.byType(OrderCard), findsNWidgets(13));
     expect(find.text('Farah Idris'), findsOneWidget);
     expect(find.text('K. Devi'), findsOneWidget);
     expect(find.textContaining('SS15 Subang · today'), findsOneWidget);
@@ -196,7 +196,7 @@ void main() {
     await tester.tap(find.text('Puchong'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(OrderCard), findsNWidgets(2));
+    expect(find.byType(OrderCard), findsNWidgets(3));
     expect(find.text('Aisyah Rahman'), findsOneWidget);
     expect(find.text('Farah Idris'), findsNothing);
   });

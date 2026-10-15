@@ -61,6 +61,10 @@ class Formatters {
   static int minutesSince(DateTime time) {
     final minutes = DateTime.now().difference(time).inMinutes;
     return minutes < 0 ? 0 : minutes;
+  /// Metres as "850 m" or "2.1 km".
+  static String distance(double metres) {
+    if (metres < 1000) return '${metres.round()} m';
+    return '${(metres / 1000).toStringAsFixed(1)} km';
   }
 
   /// 4 becomes "4m", 132 becomes "2h 12m".

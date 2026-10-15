@@ -99,6 +99,25 @@ class Worker {
     );
   }
 
+  /// Copy working on [orderNumber]. Null makes the worker free.
+  Worker withCurrentOrder(int? orderNumber) {
+    return Worker(
+      id: id,
+      name: name,
+      email: email,
+      phone: phone,
+      role: role,
+      branchId: branchId,
+      isActive: isActive,
+      isOnDuty: isOnDuty,
+      currentOrderNumber: orderNumber,
+      minutesOnCurrentOrder: orderNumber == null ? null : 0,
+      ordersToday: ordersToday,
+      rating: rating,
+      joinedAt: joinedAt,
+    );
+  }
+
   /// Copy that is active or not. Deactivating also clears duty and order.
   Worker withActive(bool active) {
     return Worker(

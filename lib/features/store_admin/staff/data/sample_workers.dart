@@ -187,13 +187,19 @@ List<Worker> sampleWorkers() {
     _extra('w30', 'Jason Tan', WorkerRole.deliveryDriver),
     _extra('w31', 'Marcus Ho', WorkerRole.deliveryDriver),
     _extra('w32', 'Naveen Kumar', WorkerRole.deliveryDriver),
-    _extra('w33', 'Ridzuan Ali', WorkerRole.deliveryDriver),
-    _extra('w34', 'Tan Wei Loon', WorkerRole.deliveryDriver),
+    _extra('w33', 'Ridzuan Ali', WorkerRole.deliveryDriver, isOnDuty: false),
+    _extra('w34', 'Tan Wei Loon', WorkerRole.deliveryDriver, isOnDuty: false),
   ];
 }
 
-/// A worker with ordinary details: active, on duty and free.
-Worker _extra(String id, String name, WorkerRole role, {String? branchId}) {
+/// A worker with ordinary details: active and free.
+Worker _extra(
+  String id,
+  String name,
+  WorkerRole role, {
+  String? branchId,
+  bool isOnDuty = true,
+}) {
   // Number from the id, used to make each phone number different.
   final number = int.parse(id.substring(1));
 
@@ -205,7 +211,7 @@ Worker _extra(String id, String name, WorkerRole role, {String? branchId}) {
     role: role,
     branchId: branchId,
     isActive: true,
-    isOnDuty: true,
+    isOnDuty: isOnDuty,
     ordersToday: const [],
     joinedAt: DateTime(2026, 1, number),
   );

@@ -44,6 +44,13 @@ class StaffRepository {
     return PageResult.fromList(matching, page: page);
   }
 
+  /// All active drivers. Drivers work for every branch.
+  Future<List<Worker>> getDrivers() async {
+    return _workers
+        .where((worker) => worker.isDriver && worker.isActive)
+        .toList();
+  }
+
   /// Adds a worker. They sign in with [temporaryPassword].
   Future<Worker> addWorker({
     required String name,
