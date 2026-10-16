@@ -1,5 +1,5 @@
-import 'package:mae_assignment/features/store_admin/shell/data/models/branch.dart';
 import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
+import 'package:mae_assignment/shared/models/branch.dart';
 
 // WorkerStatusChip and WorkerAvatar moved to shared/ so the Store Worker
 // app can use them too. Re-exported so the Staff tab keeps working.

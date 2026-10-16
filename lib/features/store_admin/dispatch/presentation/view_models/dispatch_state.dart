@@ -1,8 +1,8 @@
 import 'package:latlong2/latlong.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver_location.dart';
 import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
-import 'package:mae_assignment/features/store_admin/shell/data/models/branch.dart';
 import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
+import 'package:mae_assignment/shared/models/branch.dart';
 
 const _distance = Distance();
 

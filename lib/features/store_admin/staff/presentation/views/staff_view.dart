@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mae_assignment/features/store_admin/shell/data/models/branch.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_scaffold.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_sidebar.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/ui/pagination_bar.dart';
@@ -14,6 +13,7 @@ import 'package:mae_assignment/features/store_admin/staff/presentation/ui/worker
 import 'package:mae_assignment/features/store_admin/staff/presentation/ui/worker_labels.dart';
 import 'package:mae_assignment/features/store_admin/staff/presentation/view_models/staff_filter_view_model.dart';
 import 'package:mae_assignment/features/store_admin/staff/presentation/view_models/staff_view_model.dart';
+import 'package:mae_assignment/shared/models/branch.dart';
 
 /// Staff tab: packers of the selected branch and all drivers.
 /// The admin can add, edit and deactivate workers.

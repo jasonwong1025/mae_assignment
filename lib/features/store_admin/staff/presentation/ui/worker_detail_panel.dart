@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
-import 'package:mae_assignment/features/store_admin/shell/data/models/branch.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/ui/side_panel_frame.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
 import 'package:mae_assignment/features/store_admin/staff/presentation/ui/worker_form.dart';
 import 'package:mae_assignment/features/store_admin/staff/presentation/ui/worker_labels.dart';
 import 'package:mae_assignment/features/store_admin/staff/presentation/view_models/staff_view_model.dart';
+import 'package:mae_assignment/shared/models/branch.dart';
 
 /// Details of one worker, with Edit and Deactivate buttons.
 /// Edit shows the form in the same panel.

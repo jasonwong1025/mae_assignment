@@ -1,11 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-
 import 'package:mae_assignment/app/theme/app_colors.dart';
-import 'package:mae_assignment/features/store_admin/shell/data/models/branch.dart';
 import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
 import 'package:mae_assignment/features/store_admin/staff/presentation/ui/worker_labels.dart';
+import 'package:mae_assignment/shared/models/branch.dart';
 
 /// Staff table for tablet and web. Scrolls sideways if too narrow.
 class StaffTable extends StatelessWidget {

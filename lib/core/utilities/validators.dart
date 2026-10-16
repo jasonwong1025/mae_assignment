@@ -60,6 +60,13 @@ class Validators {
     return null;
   }
 
+  /// Must be a number, 0 or more (e.g. a fee that can be free).
+  static String? amount(String? value) {
+    final number = double.tryParse(value?.trim() ?? '');
+    if (number == null || number < 0) return 'Please enter a number';
+    return null;
+  }
+
   /// Must be a whole number, 0 or more.
   static String? wholeNumber(String? value) {
     final number = int.tryParse(value?.trim() ?? '');

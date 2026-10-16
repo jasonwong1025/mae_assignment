@@ -9,10 +9,10 @@ import 'package:mae_assignment/features/store_admin/dashboard/presentation/ui/ac
 import 'package:mae_assignment/features/store_admin/dashboard/presentation/ui/live_orders_card.dart';
 import 'package:mae_assignment/features/store_admin/dashboard/presentation/ui/orders_today_card.dart';
 import 'package:mae_assignment/features/store_admin/dashboard/presentation/view_models/dashboard_view_model.dart';
-import 'package:mae_assignment/features/store_admin/shell/data/models/branch.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_scaffold.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_sidebar.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
+import 'package:mae_assignment/shared/models/branch.dart';
 
 /// Store admin home page: today's numbers for the selected branch.
 class DashboardView extends ConsumerWidget {
@@ -91,7 +91,7 @@ class _DashboardContent extends StatelessWidget {
               const SizedBox(height: 24),
               OrdersTodayCard(
                 summary: summary,
-                openingHour: branch.openingHour,
+                openingHour: branch.hoursOn(DateTime.now()).opensAt ~/ 60,
               ),
               const SizedBox(height: 16),
               if (isWide)
@@ -145,14 +145,22 @@ class _Header extends StatelessWidget {
 
   /// "closes in 2h 12m", "opens at 8am" or "closed for today".
   String _openingStatus(DateTime now) {
-    if (now.hour < branch.openingHour) {
-      return 'opens at ${Formatters.hour(branch.openingHour)}';
-    }
+    final hours = branch.hoursOn(now);
+    if (hours.isClosed) return 'closed for today';
 
     final minutesNow = now.hour * 60 + now.minute;
-    final minutesLeft = branch.closingHour * 60 - minutesNow;
+    if (minutesNow < hours.opensAt) {
+      return 'opens at ${Formatters.time(_atMinute(now, hours.opensAt))}';
+    }
+
+    final minutesLeft = hours.closesAt - minutesNow;
     if (minutesLeft <= 0) return 'closed for today';
     return 'closes in ${Formatters.minutes(minutesLeft)}';
+  }
+
+  /// [minute] minutes after midnight on the day of [day].
+  DateTime _atMinute(DateTime day, int minute) {
+    return DateTime(day.year, day.month, day.day, minute ~/ 60, minute % 60);
   }
 
   @override
