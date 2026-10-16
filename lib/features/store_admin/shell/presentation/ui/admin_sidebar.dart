@@ -17,17 +17,19 @@ enum AdminPage {
   staff('Staff', Icons.badge_outlined, AppRoutes.adminStaff),
   dispatch('Dispatch', Icons.local_shipping_outlined, AppRoutes.adminDispatch),
   reviews('Reviews', Icons.star_outline_rounded, AppRoutes.adminReviews),
-  salesAndRevenue('Sales & revenue', Icons.bar_chart_rounded);
+  salesAndRevenue(
+    'Sales & revenue',
+    Icons.bar_chart_rounded,
+    AppRoutes.adminSales,
+  );
 
-  const AdminPage(this.label, this.icon, [this.route]);
+  const AdminPage(this.label, this.icon, this.route);
 
   final String label;
   final IconData icon;
 
-  /// Where the menu item goes. Null while the page is not built yet;
-  /// those items are shown greyed out and cannot be tapped.
-  /// Give a page its route here once its screen exists.
-  final String? route;
+  /// Where the menu item goes.
+  final String route;
 }
 
 /// Sidebar for store admin pages: branch switcher on top, the menu in the
@@ -73,7 +75,7 @@ class _MenuItem extends StatelessWidget {
   void _onTap(BuildContext context) {
     // On phones the menu is in a drawer, so close it first.
     Scaffold.of(context).closeDrawer();
-    if (!isSelected) context.go(page.route!);
+    if (!isSelected) context.go(page.route);
   }
 
   @override
@@ -82,7 +84,6 @@ class _MenuItem extends StatelessWidget {
       leading: Icon(page.icon),
       title: Text(page.label),
       selected: isSelected,
-      enabled: page.route != null,
       selectedColor: AppColors.darkGreen,
       selectedTileColor: AppColors.greenTint,
       iconColor: AppColors.textSecondary,

@@ -4,8 +4,7 @@ class DashboardSummary {
     required this.ordersToday,
     required this.ordersYesterday,
     required this.ordersByHour,
-    required this.cashRevenue,
-    required this.onlineRevenue,
+    required this.revenue,
     required this.driversOnRoad,
     required this.totalDrivers,
     required this.liveOrders,
@@ -19,9 +18,8 @@ class DashboardSummary {
   /// The last number is the current hour.
   final List<int> ordersByHour;
 
-  /// Revenue in whole ringgit.
-  final int cashRevenue;
-  final int onlineRevenue;
+  /// Today's revenue in whole ringgit.
+  final int revenue;
 
   final int driversOnRoad;
   final int totalDrivers;
@@ -31,8 +29,6 @@ class DashboardSummary {
 
   /// Latest staff actions, newest first.
   final List<ActivityEntry> activity;
-
-  int get totalRevenue => cashRevenue + onlineRevenue;
 }
 
 /// Where an unfinished order is right now.

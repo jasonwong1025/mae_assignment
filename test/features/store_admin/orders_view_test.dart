@@ -58,8 +58,6 @@ Order _order(int number, OrderStatus status, int minutesAgo) {
       OrderItem(name: 'Oat milk', quantity: 1, unitPrice: 12),
     ],
     deliveryFee: 5,
-    paymentMethod: PaymentMethod.online,
-    isPaid: true,
     timeline: const [],
   );
 }
@@ -123,12 +121,14 @@ void main() {
   testWidgets('Board shows a column for every status', (tester) async {
     await _pumpOrders(tester, desktop);
 
-    for (final status in OrderStatus.values) {
+    for (final status in adminBoardStatuses) {
       expect(find.text(status.label.toUpperCase()), findsOneWidget);
     }
-    expect(find.byType(OrderCard), findsNWidgets(13));
+    // No Cancelled column: paid orders cannot be cancelled.
+    expect(find.text('CANCELLED'), findsNothing);
+    expect(find.byType(OrderCard), findsNWidgets(12));
     expect(find.text('Farah Idris'), findsOneWidget);
-    expect(find.text('K. Devi'), findsOneWidget);
+    expect(find.text('Wei Ming'), findsOneWidget);
     expect(find.textContaining('SS15 Subang · today'), findsOneWidget);
   });
 

@@ -48,7 +48,6 @@ List<Order> _ss15Orders(DateTime now) {
       placedMinutesAgo: 6,
       minutesInStatus: 6,
       isDelivery: false,
-      payment: PaymentMethod.cash,
       items: const [
         OrderItem(name: 'Jasmine rice 5kg', quantity: 1, unitPrice: 28.90),
         OrderItem(name: 'Cooking oil 2kg', quantity: 1, unitPrice: 17.50),
@@ -145,7 +144,6 @@ List<Order> _ss15Orders(DateTime now) {
       minutesInStatus: 12,
       address: '30, Jalan USJ 9/5, Subang Jaya',
       location: const LatLng(3.0475, 101.5830),
-      payment: PaymentMethod.cash,
       worker: 'Hakim',
       items: const [
         OrderItem(name: 'Jasmine rice 5kg', quantity: 1, unitPrice: 28.90),
@@ -181,7 +179,6 @@ List<Order> _ss15Orders(DateTime now) {
       address: 'A-5-12, Main Place Residence, USJ 21',
       location: const LatLng(3.0310, 101.5840),
       driverId: 'w8',
-      payment: PaymentMethod.cash,
       worker: 'Firdaus',
       items: const [
         OrderItem(name: 'Mineral water 1.5L', quantity: 6, unitPrice: 1.80),
@@ -212,24 +209,9 @@ List<Order> _ss15Orders(DateTime now) {
       placedMinutesAgo: 95,
       minutesInStatus: 31,
       isDelivery: false,
-      payment: PaymentMethod.cash,
       worker: 'Firdaus',
       items: const [
         OrderItem(name: 'Coffee beans 250g', quantity: 1, unitPrice: 32.00),
-      ],
-    ),
-    _order(
-      now,
-      number: 2280,
-      customer: 'K. Devi',
-      phone: '014-772 8830',
-      status: OrderStatus.cancelled,
-      placedMinutesAgo: 120,
-      minutesInStatus: 110,
-      address: '3, Jalan SS18/6, Subang Jaya',
-      items: const [
-        OrderItem(name: 'Butter 250g', quantity: 1, unitPrice: 13.90),
-        OrderItem(name: 'Flour 1kg', quantity: 2, unitPrice: 3.90),
       ],
     ),
   ];
@@ -309,7 +291,6 @@ List<Order> _bukitJalilOrders(DateTime now) {
       placedMinutesAgo: 88,
       minutesInStatus: 25,
       isDelivery: false,
-      payment: PaymentMethod.cash,
       worker: 'Hafiz',
       items: const [
         OrderItem(name: 'Eggs (30)', quantity: 1, unitPrice: 17.50),
@@ -361,7 +342,6 @@ List<Order> _puchongOrders(DateTime now) {
       placedMinutesAgo: 45,
       minutesInStatus: 20,
       isDelivery: false,
-      payment: PaymentMethod.cash,
       worker: 'Syafiq',
       items: const [
         OrderItem(name: 'Orange juice 1L', quantity: 2, unitPrice: 8.90),
@@ -386,7 +366,6 @@ Order _order(
   String? address,
   LatLng? location,
   String? note,
-  PaymentMethod payment = PaymentMethod.online,
   String? worker,
   String? driverId,
 }) {
@@ -405,9 +384,6 @@ Order _order(
     customerNote: note,
     items: items,
     deliveryFee: isDelivery ? 5.00 : 0,
-    paymentMethod: payment,
-    // Online orders are paid at checkout, cash orders when handed over.
-    isPaid: payment == PaymentMethod.online || status == OrderStatus.completed,
     assignedWorker: worker,
     driverId: driverId,
     timeline: _timeline(
@@ -429,13 +405,6 @@ List<OrderEvent> _timeline({
   required bool isDelivery,
   String? worker,
 }) {
-  if (status == OrderStatus.cancelled) {
-    return [
-      OrderEvent(title: 'Order placed', time: placedAt),
-      OrderEvent(title: 'Order cancelled', time: statusSince),
-    ];
-  }
-
   // Pickup orders skip "Out for delivery".
   final steps = [
     (OrderStatus.pending, 'Order placed'),

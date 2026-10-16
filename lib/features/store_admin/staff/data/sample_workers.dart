@@ -145,7 +145,7 @@ List<Worker> sampleWorkers() {
       branchId: null,
       isActive: true,
       isOnDuty: true,
-      ordersToday: const [2280],
+      ordersToday: const [],
       joinedAt: DateTime(2026, 9, 30),
     ),
 

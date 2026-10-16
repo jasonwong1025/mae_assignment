@@ -23,8 +23,7 @@ const _sampleSummaries = {
     ordersToday: 47,
     ordersYesterday: 35,
     ordersByHour: [1, 3, 4, 5, 6, 2, 3, 4, 5, 9, 5],
-    cashRevenue: 640,
-    onlineRevenue: 1744,
+    revenue: 2384,
     driversOnRoad: 4,
     totalDrivers: 6,
     liveOrders: [
@@ -75,8 +74,7 @@ const _sampleSummaries = {
     ordersToday: 31,
     ordersYesterday: 34,
     ordersByHour: [2, 2, 3, 5, 4, 2, 1, 3, 4, 5],
-    cashRevenue: 410,
-    onlineRevenue: 1125,
+    revenue: 1535,
     driversOnRoad: 2,
     totalDrivers: 4,
     liveOrders: [
@@ -112,8 +110,7 @@ const _sampleSummaries = {
     ordersToday: 18,
     ordersYesterday: 18,
     ordersByHour: [0, 1, 2, 3, 2, 1, 2, 3, 2, 2],
-    cashRevenue: 295,
-    onlineRevenue: 560,
+    revenue: 855,
     driversOnRoad: 1,
     totalDrivers: 3,
     liveOrders: [

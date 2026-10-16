@@ -7,14 +7,16 @@ import '../../../../../shared/models/order_status.dart';
 // this one keep working.
 export '../../../../../shared/models/order_status.dart';
 
-enum PaymentMethod {
-  cash('Cash'),
-  online('Online');
-
-  const PaymentMethod(this.label);
-
-  final String label;
-}
+/// Columns of the admin orders board. Orders are paid at checkout and
+/// cannot be cancelled, so there is no Cancelled column.
+/// TODO: OrderStatus.cancelled is still used by the Store Worker app.
+const adminBoardStatuses = [
+  OrderStatus.pending,
+  OrderStatus.packing,
+  OrderStatus.ready,
+  OrderStatus.outForDelivery,
+  OrderStatus.completed,
+];
 
 /// One customer order, as the store admin sees it.
 class Order {
@@ -27,8 +29,6 @@ class Order {
     required this.isDelivery,
     required this.items,
     required this.deliveryFee,
-    required this.paymentMethod,
-    required this.isPaid,
     required this.timeline,
     this.address,
     this.location,
@@ -62,9 +62,6 @@ class Order {
 
   /// Delivery fee
   final double deliveryFee;
-
-  final PaymentMethod paymentMethod;
-  final bool isPaid;
 
   /// Staff member packing or delivering the order
   final String? assignedWorker;
@@ -116,8 +113,6 @@ class Order {
       customerNote: customerNote,
       items: items,
       deliveryFee: deliveryFee,
-      paymentMethod: paymentMethod,
-      isPaid: isPaid,
       assignedWorker: driverName,
       driverId: driverId,
       timeline: [

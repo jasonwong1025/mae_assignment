@@ -9,7 +9,7 @@ import '../../../../../shared/ui/order_status_label.dart';
 
 /// Orders of one status, in the order they should be listed:
 /// - still in progress: the longest waiting first
-/// - completed or cancelled: the most recent first
+/// - completed: the most recent first
 List<Order> ordersWithStatus(List<Order> orders, OrderStatus status) {
   final result = orders.where((order) => order.status == status).toList();
 
@@ -44,7 +44,7 @@ class OrdersBoard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const statuses = OrderStatus.values;
+    const statuses = adminBoardStatuses;
 
     return LayoutBuilder(
       builder: (context, constraints) {

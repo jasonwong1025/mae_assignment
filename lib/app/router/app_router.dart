@@ -12,6 +12,7 @@ import '../../features/store_admin/dispatch/presentation/views/dispatch_view.dar
 import '../../features/store_admin/inventory/presentation/views/inventory_view.dart';
 import '../../features/store_admin/orders/presentation/views/orders_view.dart';
 import '../../features/store_admin/reviews/presentation/views/reviews_view.dart';
+import '../../features/store_admin/sales/presentation/views/sales_view.dart';
 import '../../features/store_admin/staff/presentation/views/staff_view.dart';
 import '../../features/store_worker/delivery/presentation/views/delivery_detail_view.dart';
 import '../../features/store_worker/delivery/presentation/views/delivery_tasks_view.dart';
@@ -39,6 +40,7 @@ class AppRoutes {
   static const String adminStaff = '/admin/staff';
   static const String adminDispatch = '/admin/dispatch';
   static const String adminReviews = '/admin/reviews';
+  static const String adminSales = '/admin/sales';
 
   // Store Worker (mobile). Every worker page starts with workerRoot.
   static const String workerRoot = '/worker';
@@ -204,6 +206,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.adminReviews,
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: ReviewsView()),
+      ),
+      GoRoute(
+        path: AppRoutes.adminSales,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: SalesView()),
       ),
     ],
   );

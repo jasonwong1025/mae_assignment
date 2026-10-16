@@ -49,7 +49,7 @@ void main() {
 
     expect(find.text('47'), findsOneWidget);
     expect(find.text('orders today · up 12 vs yesterday'), findsOneWidget);
-    expect(find.textContaining('RM 2,384 today'), findsOneWidget);
+    expect(find.textContaining('RM 2,384 revenue today'), findsOneWidget);
     expect(find.text('Mei Ling Tan'), findsOneWidget);
     expect(find.text('Amir marked #2286 delivered'), findsOneWidget);
   });
@@ -68,19 +68,18 @@ void main() {
     expect(find.text('Nurul Huda'), findsOneWidget);
   });
 
-  testWidgets('Pages that are not built yet cannot be tapped', (tester) async {
+  testWidgets('The current page is highlighted in the sidebar', (tester) async {
     await _pumpDashboard(tester, tablet);
 
-    final sales = tester.widget<ListTile>(
-      find.widgetWithText(ListTile, 'Sales & revenue'),
-    );
     final dashboard = tester.widget<ListTile>(
       find.widgetWithText(ListTile, 'Dashboard'),
     );
+    final sales = tester.widget<ListTile>(
+      find.widgetWithText(ListTile, 'Sales & revenue'),
+    );
 
-    expect(sales.enabled, isFalse);
-    expect(dashboard.enabled, isTrue);
     expect(dashboard.selected, isTrue);
+    expect(sales.selected, isFalse);
   });
 
   testWidgets('Phone keeps the sidebar in a drawer', (tester) async {

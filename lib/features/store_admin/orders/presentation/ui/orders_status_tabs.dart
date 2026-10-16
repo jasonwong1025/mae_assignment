@@ -29,12 +29,12 @@ class OrdersStatusTabs extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Scrolls sideways because six tabs are wider than a phone.
+        // Scrolls sideways because the tabs are wider than a phone.
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              for (final status in OrderStatus.values)
+              for (final status in adminBoardStatuses)
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
                   child: ChoiceChip(

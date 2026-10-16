@@ -38,7 +38,10 @@ class Formatters {
   }
 
   /// Date as "12 Mar 2025".
-  static String date(DateTime date) {
+  static String date(DateTime date) => '${dayMonth(date)} ${date.year}';
+
+  /// Date without the year, as "12 Mar".
+  static String dayMonth(DateTime date) {
     const months = [
       'Jan',
       'Feb',
@@ -53,7 +56,7 @@ class Formatters {
       'Nov',
       'Dec',
     ];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
+    return '${date.day} ${months[date.month - 1]}';
   }
 
   /// Whole minutes from [time] until now, for "waiting 12m" labels.

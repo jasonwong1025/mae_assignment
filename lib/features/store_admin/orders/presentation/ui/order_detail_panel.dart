@@ -130,11 +130,10 @@ class _OrderDetails extends StatelessWidget {
         _AmountRow(label: 'Total', amount: order.total, isBold: true),
 
         const _SectionTitle('Payment'),
-        _InfoRow(
-          icon: Icons.payments_outlined,
-          text:
-              '${order.paymentMethod.label} · '
-              '${order.isPaid ? 'Paid' : 'Not paid yet'}',
+        // Every order is paid from the wallet at checkout.
+        const _InfoRow(
+          icon: Icons.account_balance_wallet_outlined,
+          text: 'Paid by Grocerly Wallet',
         ),
 
         const _SectionTitle('Timeline'),

@@ -85,9 +85,7 @@ class OrdersTodayCard extends StatelessWidget {
             const Divider(),
             const SizedBox(height: 16),
             Text(
-              '${Formatters.ringgit(summary.totalRevenue)} today: '
-              '${Formatters.ringgit(summary.cashRevenue)} cash, '
-              '${Formatters.ringgit(summary.onlineRevenue)} online. '
+              '${Formatters.ringgit(summary.revenue)} revenue today. '
               '${summary.driversOnRoad} of ${summary.totalDrivers} '
               'drivers on the road.',
               style: textTheme.bodyMedium,
