@@ -6,7 +6,7 @@ import '../../../../../core/utilities/validators.dart';
 import '../../../../../shared/ui/button_loading_indicator.dart';
 import '../../../../../shared/ui/labeled_text_field.dart';
 import '../../../../../shared/ui/password_field.dart';
-import '../../../shell/data/models/branch.dart';
+import '../../../../../shared/models/branch.dart';
 import '../../../shell/presentation/view_models/branch_view_model.dart';
 import '../../data/models/worker.dart';
 import '../view_models/staff_view_model.dart';

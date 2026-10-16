@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../orders/data/models/order.dart';
 import '../../../orders/data/repositories/orders_repository.dart';
-import '../../../shell/data/models/branch.dart';
+import '../../../../../shared/models/branch.dart';
 import '../../../staff/data/models/worker.dart';
 import '../../../staff/data/repositories/staff_repository.dart';
 import '../models/driver_location.dart';

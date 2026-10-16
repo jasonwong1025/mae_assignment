@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../../../app/theme/app_colors.dart';
-import '../../../shell/data/models/branch.dart';
+import '../../../../../shared/models/branch.dart';
 import '../../data/models/worker.dart';
 import 'worker_labels.dart';
 

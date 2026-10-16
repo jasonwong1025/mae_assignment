@@ -21,7 +21,8 @@ enum AdminPage {
     'Sales & revenue',
     Icons.bar_chart_rounded,
     AppRoutes.adminSales,
-  );
+  ),
+  branches('Branches', Icons.storefront_outlined, AppRoutes.adminBranches);
 
   const AdminPage(this.label, this.icon, this.route);
 

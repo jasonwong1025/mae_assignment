@@ -9,7 +9,7 @@ import 'package:mae_assignment/features/store_admin/dispatch/data/services/drive
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/deliveries_table.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/views/dispatch_view.dart';
 import 'package:mae_assignment/features/store_admin/orders/data/repositories/orders_repository.dart';
-import 'package:mae_assignment/features/store_admin/shell/data/repositories/branch_repository.dart';
+import 'package:mae_assignment/shared/repositories/branch_repository.dart';
 import 'package:mae_assignment/features/store_admin/staff/data/repositories/staff_repository.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 

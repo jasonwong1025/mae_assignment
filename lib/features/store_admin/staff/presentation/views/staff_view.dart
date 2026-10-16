@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../shell/data/models/branch.dart';
+import '../../../../../shared/models/branch.dart';
 import '../../../shell/presentation/ui/admin_scaffold.dart';
 import '../../../shell/presentation/ui/admin_sidebar.dart';
 import '../../../shell/presentation/ui/pagination_bar.dart';

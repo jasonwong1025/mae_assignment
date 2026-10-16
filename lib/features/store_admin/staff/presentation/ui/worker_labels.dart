@@ -1,4 +1,4 @@
-import '../../../shell/data/models/branch.dart';
+import '../../../../../shared/models/branch.dart';
 import '../../data/models/worker.dart';
 
 // WorkerStatusChip and WorkerAvatar moved to shared/ so the Store Worker

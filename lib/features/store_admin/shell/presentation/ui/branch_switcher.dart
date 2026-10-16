@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../app/theme/app_colors.dart';
-import '../../data/models/branch.dart';
+import '../../../../../shared/models/branch.dart';
 import '../view_models/branch_view_model.dart';
 
 /// Logo and app name with the current branch underneath.
@@ -43,6 +43,15 @@ class BranchSwitcher extends ConsumerWidget {
                 ),
                 const SizedBox(width: 12),
                 Text(branch.name),
+                if (branch.isTemporarilyClosed) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    'Closed',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.error,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

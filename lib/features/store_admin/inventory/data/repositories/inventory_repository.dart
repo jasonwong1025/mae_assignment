@@ -33,7 +33,8 @@ class InventoryRepository {
 
   /// Every product at every branch.
   final List<InventoryItem> _items = sampleInventory();
-  final List<String> _branchIds = sampleBranchIds;
+  // A copy, so branches can be added.
+  final List<String> _branchIds = [...sampleBranchIds];
   int _nextId = 100;
 
   Future<List<ProductCategory>> getCategories() async => [..._categories];
@@ -143,6 +144,25 @@ class InventoryRepository {
         ),
       );
     }
+  }
+
+  /// Gives a new branch every product, at the first branch's price and
+  /// with 0 stock.
+  Future<void> addBranch(String branchId) async {
+    final firstBranch = _branchIds.first;
+    final templates = _items.where((item) => item.branchId == firstBranch);
+
+    _items.addAll([
+      for (final item in templates)
+        InventoryItem(
+          product: item.product,
+          branchId: branchId,
+          price: item.price,
+          stock: 0,
+          isHidden: false,
+        ),
+    ]);
+    _branchIds.add(branchId);
   }
 
   /// Saves an item. Price, stock and hidden change at its branch only.

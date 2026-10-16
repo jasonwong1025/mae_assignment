@@ -1,7 +1,7 @@
 import 'package:latlong2/latlong.dart';
 
 import '../../../orders/data/models/order.dart';
-import '../../../shell/data/models/branch.dart';
+import '../../../../../shared/models/branch.dart';
 import '../../../staff/data/models/worker.dart';
 import '../../data/models/driver_location.dart';
 
