@@ -21,6 +21,19 @@ class UserService {
     return _users.doc(user.uid).set(user.toMap());
   }
 
+  /// A second sign-in on another device must not overwrite an existing
+  /// profile (including its role). The transaction retries on a race.
+  Future<AppUser> getOrCreateCustomer(AppUser customer) {
+    final document = _users.doc(customer.uid);
+    return _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(document);
+      final data = snapshot.data();
+      if (data != null) return AppUser.fromMap(customer.uid, data);
+      transaction.set(document, customer.toMap());
+      return customer;
+    });
+  }
+
   /// Returns null if the profile does not exist.
   Future<AppUser?> getUser(String uid) async {
     final snapshot = await _users.doc(uid).get();

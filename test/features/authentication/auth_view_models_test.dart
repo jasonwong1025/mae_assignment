@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/authentication/presentation/view_models/login_view_model.dart';
+import 'package:mae_assignment/features/authentication/presentation/view_models/google_sign_in_view_model.dart';
 import 'package:mae_assignment/features/authentication/presentation/view_models/register_view_model.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 
@@ -131,6 +132,53 @@ void main() {
       expect(
         container.read(registerViewModelProvider).error,
         'An account with this email already exists.',
+      );
+    });
+  });
+
+  group('GoogleSignInViewModel', () {
+    setUp(() => container.listen(googleSignInViewModelProvider, (_, _) {}));
+
+    test('signs in a customer', () async {
+      repository.googleUserToSignIn = const AppUser(
+        uid: 'customer-1',
+        name: 'May',
+        email: 'may@example.com',
+        phone: '',
+        role: UserRole.customer,
+      );
+
+      final result = await container
+          .read(googleSignInViewModelProvider.notifier)
+          .signIn();
+
+      expect(result, isTrue);
+      expect(repository.googleSignInCalls, 1);
+      expect(container.read(googleSignInViewModelProvider).hasError, isFalse);
+    });
+
+    test('closing the Google chooser does not show an error', () async {
+      repository.cancelGoogleSignIn = true;
+
+      final result = await container
+          .read(googleSignInViewModelProvider.notifier)
+          .signIn();
+
+      expect(result, isFalse);
+      expect(container.read(googleSignInViewModelProvider).hasError, isFalse);
+    });
+
+    test('shows a safe repository error', () async {
+      repository.errorToThrow = const AuthException('Google sign-in failed.');
+
+      final result = await container
+          .read(googleSignInViewModelProvider.notifier)
+          .signIn();
+
+      expect(result, isFalse);
+      expect(
+        container.read(googleSignInViewModelProvider).error,
+        'Google sign-in failed.',
       );
     });
   });

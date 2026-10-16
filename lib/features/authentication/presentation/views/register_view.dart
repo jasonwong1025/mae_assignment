@@ -13,6 +13,7 @@ import '../../../../shared/ui/labeled_text_field.dart';
 import '../../../../shared/ui/or_divider.dart';
 import '../../../../shared/ui/password_field.dart';
 import '../view_models/register_view_model.dart';
+import '../view_models/google_sign_in_view_model.dart';
 
 /// Sign-up page (customers only). Uses email and password.
 class RegisterView extends ConsumerStatefulWidget {
@@ -62,9 +63,11 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
     if (created && mounted) context.go(AppRoutes.home);
   }
 
-  void _onGoogle() {
-    // TODO: Google sign-in once the backend is connected.
-    _showMessage('Google sign-in is not connected yet.');
+  Future<void> _onGoogle() async {
+    final signedIn = await ref
+        .read(googleSignInViewModelProvider.notifier)
+        .signIn();
+    if (signedIn && mounted) context.go(AppRoutes.home);
   }
 
   void _showMessage(String text) {
@@ -76,10 +79,15 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final isLoading = ref.watch(registerViewModelProvider).isLoading;
+    final isGoogleLoading = ref.watch(googleSignInViewModelProvider).isLoading;
+    final isLoading =
+        ref.watch(registerViewModelProvider).isLoading || isGoogleLoading;
 
     // Show a message whenever sign-up fails.
     ref.listen(registerViewModelProvider, (previous, next) {
+      if (next is AsyncError) _showMessage(next.error.toString());
+    });
+    ref.listen(googleSignInViewModelProvider, (previous, next) {
       if (next is AsyncError) _showMessage(next.error.toString());
     });
 
@@ -157,7 +165,10 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
                             const SizedBox(height: 20),
                             const OrDivider(),
                             const SizedBox(height: 20),
-                            GoogleSignInButton(onPressed: _onGoogle),
+                            GoogleSignInButton(
+                              onPressed: isLoading ? null : _onGoogle,
+                              isLoading: isGoogleLoading,
+                            ),
                           ],
                         ),
                       ),

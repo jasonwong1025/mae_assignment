@@ -15,6 +15,7 @@ import '../../../../shared/ui/password_field.dart';
 import '../../../../shared/models/app_user.dart';
 import '../../../store_worker/session/worker_preview.dart';
 import '../view_models/login_view_model.dart';
+import '../view_models/google_sign_in_view_model.dart';
 
 /// Sign-in page for every role. Uses email and password.
 class LoginView extends ConsumerStatefulWidget {
@@ -43,7 +44,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
     // While the Store Worker app runs on mock data (development builds),
     // its button opens the mock worker list instead of signing in, so no
     // email or password is needed.
-    if (role == UserRole.storeWorker && ref.read(workerPreviewEnabledProvider)) {
+    if (role == UserRole.storeWorker &&
+        ref.read(workerPreviewEnabledProvider)) {
       context.push(AppRoutes.workerDevSelect);
       return;
     }
@@ -75,9 +77,11 @@ class _LoginViewState extends ConsumerState<LoginView> {
     _showMessage('Password reset is not connected yet.');
   }
 
-  void _onGoogle() {
-    // TODO: Google sign-in once the backend is connected.
-    _showMessage('Google sign-in is not connected yet.');
+  Future<void> _onGoogle() async {
+    final signedIn = await ref
+        .read(googleSignInViewModelProvider.notifier)
+        .signIn();
+    if (signedIn && mounted) context.go(AppRoutes.home);
   }
 
   void _showMessage(String text) {
@@ -89,10 +93,15 @@ class _LoginViewState extends ConsumerState<LoginView> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final isLoading = ref.watch(loginViewModelProvider).isLoading;
+    final isGoogleLoading = ref.watch(googleSignInViewModelProvider).isLoading;
+    final isLoading =
+        ref.watch(loginViewModelProvider).isLoading || isGoogleLoading;
 
     // Show a message whenever sign-in fails.
     ref.listen(loginViewModelProvider, (previous, next) {
+      if (next is AsyncError) _showMessage(next.error.toString());
+    });
+    ref.listen(googleSignInViewModelProvider, (previous, next) {
       if (next is AsyncError) _showMessage(next.error.toString());
     });
 
@@ -197,6 +206,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                             const SizedBox(height: 20),
                             GoogleSignInButton(
                               onPressed: isLoading ? null : _onGoogle,
+                              isLoading: isGoogleLoading,
                             ),
                           ],
                         ),

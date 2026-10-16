@@ -7,6 +7,9 @@ import 'package:mae_assignment/shared/models/app_user.dart';
 class FakeAuthRepository extends Fake implements AuthRepository {
   /// The user signIn() returns. Null makes signIn() fail.
   AppUser? userToSignIn;
+  AppUser? googleUserToSignIn;
+  bool cancelGoogleSignIn = false;
+  int googleSignInCalls = 0;
 
   /// If set, signUp() and signIn() throw this.
   AuthException? errorToThrow;
@@ -50,7 +53,17 @@ class FakeAuthRepository extends Fake implements AuthRepository {
   }
 
   @override
-  Future<AppUser?> getCurrentUser() async => signedIn ? userToSignIn : null;
+  Future<AppUser?> signInWithGoogle() async {
+    googleSignInCalls++;
+    if (errorToThrow != null) throw errorToThrow!;
+    if (cancelGoogleSignIn) return null;
+    signedIn = true;
+    return googleUserToSignIn;
+  }
+
+  @override
+  Future<AppUser?> getCurrentUser() async =>
+      signedIn ? googleUserToSignIn ?? userToSignIn : null;
 
   @override
   Future<void> signOut() async {

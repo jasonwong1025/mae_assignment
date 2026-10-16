@@ -25,6 +25,7 @@ import '../../features/store_worker/session/presentation/views/mock_worker_selec
 import '../../features/store_worker/session/worker_preview.dart';
 import '../../features/store_worker/shell/presentation/views/worker_account_view.dart';
 import '../../features/store_worker/shell/worker_routes.dart';
+import '../../shared/models/app_user.dart';
 
 /// Route paths are kept in one place so we don't mistype them in screens.
 class AppRoutes {
@@ -59,6 +60,17 @@ class AppRoutes {
 
   /// Pages for people who are not signed in.
   static const List<String> signedOutPages = [onboarding, login, register];
+}
+
+Future<String?> _adminRedirect(AuthRepository authRepository) async {
+  // This is a UI guard. Firestore rules must independently enforce access
+  // when admin data moves from demo repositories to the backend.
+  try {
+    final user = await authRepository.getCurrentUser();
+    return user?.role == UserRole.storeAdmin ? null : AppRoutes.home;
+  } catch (_) {
+    return AppRoutes.home;
+  }
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -107,6 +119,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (isSignedIn && onSignedOutPage) return AppRoutes.home;
       // if the user is not signed in and not on a signed out page, redirect to the onboarding page
       if (!isSignedIn && !onSignedOutPage) return AppRoutes.onboarding;
+
+      if (state.matchedLocation.startsWith('/admin/')) {
+        return _adminRedirect(authRepository);
+      }
       return null;
     },
 
