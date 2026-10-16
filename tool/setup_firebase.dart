@@ -73,7 +73,7 @@ Future<void> main(List<String> arguments) async {
     await run('firebase', [
       'deploy',
       '--only',
-      'firestore:rules',
+      'auth,firestore:rules',
       '--project',
       projectId,
     ], projectRoot);
