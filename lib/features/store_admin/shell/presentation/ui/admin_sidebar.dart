@@ -16,9 +16,8 @@ enum AdminPage {
   inventory('Inventory', Icons.inventory_2_outlined, AppRoutes.adminInventory),
   staff('Staff', Icons.badge_outlined, AppRoutes.adminStaff),
   dispatch('Dispatch', Icons.local_shipping_outlined, AppRoutes.adminDispatch),
-  refundsAndAlerts('Refunds & alerts', Icons.report_problem_outlined),
   reviews('Reviews', Icons.star_outline_rounded),
-  analytics('Analytics', Icons.bar_chart_rounded);
+  salesAndRevenue('Sales & revenue', Icons.bar_chart_rounded);
 
   const AdminPage(this.label, this.icon, [this.route]);
 

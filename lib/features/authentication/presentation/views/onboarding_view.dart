@@ -29,10 +29,10 @@ class _OnboardingViewState extends State<OnboardingView> {
           'grocery list or recipe into a cart.',
     ),
     OnboardingSlideData(
-      title: 'No surprises',
+      title: 'Follow every step',
       description:
-          'Approve any replacement before it is packed, and follow your '
-          'order until it reaches your door.',
+          'See when your order is packed, ready and on its way, '
+          'right up to your door.',
     ),
   ];
 

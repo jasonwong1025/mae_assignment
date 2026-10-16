@@ -95,10 +95,6 @@ class _OrderDetails extends StatelessWidget {
             ),
           ],
         ),
-        if (order.needsAttention) ...[
-          const SizedBox(height: 12),
-          _AttentionBanner(reason: order.attentionReason!),
-        ],
 
         const _SectionTitle('Customer and delivery'),
         _InfoRow(icon: Icons.person_outline_rounded, text: order.customerName),
@@ -169,40 +165,6 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-/// Yellow box explaining what is wrong with the order.
-class _AttentionBanner extends StatelessWidget {
-  const _AttentionBanner({required this.reason});
-
-  final String reason;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.yellow.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.warning),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.error_outline_rounded, color: AppColors.warning),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              reason,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// An icon with a line of text beside it.
 class _InfoRow extends StatelessWidget {
   const _InfoRow({required this.icon, required this.text});
@@ -228,7 +190,7 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
-/// "2 x Fresh milk 1L ... RM 15.80", with a note underneath if the item was out of stock or replaced
+/// "2 x Fresh milk 1L ... RM 15.80".
 class _ItemRow extends StatelessWidget {
   const _ItemRow({required this.item});
 
@@ -237,8 +199,6 @@ class _ItemRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    // Out-of-stock items are crossed out because they are not charged.
-    final crossedOut = item.isOutOfStock ? TextDecoration.lineThrough : null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
@@ -249,38 +209,9 @@ class _ItemRow extends StatelessWidget {
             width: 36,
             child: Text('${item.quantity} x', style: textTheme.bodyMedium),
           ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  style: textTheme.bodyLarge?.copyWith(decoration: crossedOut),
-                ),
-                if (item.isOutOfStock)
-                  Text(
-                    'Out of stock',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: AppColors.error,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                if (item.replacedWith != null)
-                  Text(
-                    'Replaced with ${item.replacedWith}',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: AppColors.warning,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-              ],
-            ),
-          ),
+          Expanded(child: Text(item.name, style: textTheme.bodyLarge)),
           const SizedBox(width: 12),
-          Text(
-            Formatters.money(item.lineTotal),
-            style: textTheme.bodyMedium?.copyWith(decoration: crossedOut),
-          ),
+          Text(Formatters.money(item.lineTotal), style: textTheme.bodyMedium),
         ],
       ),
     );

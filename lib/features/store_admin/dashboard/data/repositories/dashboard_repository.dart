@@ -38,7 +38,7 @@ const _sampleSummaries = {
       LiveOrder(
         number: 2288,
         customerName: 'David Wong',
-        status: LiveOrderStatus.missingItem,
+        status: LiveOrderStatus.packing,
         isDelivery: true,
         minutesInStatus: 18,
       ),
@@ -67,7 +67,7 @@ const _sampleSummaries = {
     activity: [
       ActivityEntry(message: 'Amir marked #2286 delivered', minutesAgo: 2),
       ActivityEntry(message: 'Daniel started packing #2291', minutesAgo: 4),
-      ActivityEntry(message: 'You approved a refund #2281', minutesAgo: 26),
+      ActivityEntry(message: 'Hakim started packing #2288', minutesAgo: 18),
       ActivityEntry(message: 'Firdaus picked up bag #2283', minutesAgo: 31),
     ],
   ),
@@ -120,7 +120,7 @@ const _sampleSummaries = {
       LiveOrder(
         number: 904,
         customerName: 'Aisyah Rahman',
-        status: LiveOrderStatus.missingItem,
+        status: LiveOrderStatus.packing,
         isDelivery: true,
         minutesInStatus: 11,
       ),
@@ -133,10 +133,7 @@ const _sampleSummaries = {
       ),
     ],
     activity: [
-      ActivityEntry(
-        message: 'Syafiq reported a missing item #904',
-        minutesAgo: 11,
-      ),
+      ActivityEntry(message: 'Syafiq started packing #904', minutesAgo: 11),
       ActivityEntry(message: 'Syafiq marked #903 ready', minutesAgo: 20),
     ],
   ),

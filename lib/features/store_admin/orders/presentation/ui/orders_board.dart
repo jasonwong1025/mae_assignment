@@ -8,7 +8,7 @@ import 'order_card.dart';
 import '../../../../../shared/ui/order_status_label.dart';
 
 /// Orders of one status, in the order they should be listed:
-/// - still in progress: problems first, then the longest waiting
+/// - still in progress: the longest waiting first
 /// - completed or cancelled: the most recent first
 List<Order> ordersWithStatus(List<Order> orders, OrderStatus status) {
   final result = orders.where((order) => order.status == status).toList();
@@ -18,12 +18,7 @@ List<Order> ordersWithStatus(List<Order> orders, OrderStatus status) {
     return result;
   }
 
-  result.sort((a, b) {
-    if (a.needsAttention != b.needsAttention) {
-      return a.needsAttention ? -1 : 1;
-    }
-    return a.statusSince.compareTo(b.statusSince);
-  });
+  result.sort((a, b) => a.statusSince.compareTo(b.statusSince));
   return result;
 }
 

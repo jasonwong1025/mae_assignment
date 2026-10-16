@@ -35,7 +35,6 @@ class Order {
     this.customerNote,
     this.assignedWorker,
     this.driverId,
-    this.attentionReason,
   });
 
   final int number;
@@ -73,13 +72,8 @@ class Order {
   /// Id of the driver delivering it. Null until a driver is assigned.
   final String? driverId;
 
-  /// Why the order needs the admin's attention
-  final String? attentionReason;
-
   /// What has happened to the order so far, oldest first
   final List<OrderEvent> timeline;
-
-  bool get needsAttention => attentionReason != null;
 
   /// Number of products, counting quantities
   int get itemCount {
@@ -94,7 +88,7 @@ class Order {
   double get subtotal {
     var sum = 0.0;
     for (final item in items) {
-      if (!item.isOutOfStock) sum += item.lineTotal;
+      sum += item.lineTotal;
     }
     return sum;
   }
@@ -126,7 +120,6 @@ class Order {
       isPaid: isPaid,
       assignedWorker: driverName,
       driverId: driverId,
-      attentionReason: attentionReason,
       timeline: [
         ...timeline,
         OrderEvent(
@@ -145,8 +138,6 @@ class OrderItem {
     required this.name,
     required this.quantity,
     required this.unitPrice,
-    this.isOutOfStock = false,
-    this.replacedWith,
   });
 
   final String name;
@@ -154,12 +145,6 @@ class OrderItem {
 
   /// Price of one, in ringgit.
   final double unitPrice;
-
-  /// True if the store could not supply it. It is then not charged.
-  final bool isOutOfStock;
-
-  /// Name of the product packed instead, if it was replaced.
-  final String? replacedWith;
 
   double get lineTotal => unitPrice * quantity;
 }

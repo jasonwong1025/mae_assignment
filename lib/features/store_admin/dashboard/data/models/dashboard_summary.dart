@@ -40,8 +40,7 @@ enum LiveOrderStatus {
   pending('Pending'),
   packing('Packing'),
   ready('Ready'),
-  outForDelivery('Out for delivery'),
-  missingItem('Missing item');
+  outForDelivery('Out for delivery');
 
   const LiveOrderStatus(this.label);
 
@@ -68,9 +67,6 @@ class LiveOrder {
 
   /// How long the order has been in its current status.
   final int minutesInStatus;
-
-  /// Orders with a problem are highlighted so the admin sees them first.
-  bool get needsAttention => status == LiveOrderStatus.missingItem;
 }
 
 /// One line of the activity list, e.g. "Amir marked #2286 delivered".

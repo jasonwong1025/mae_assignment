@@ -40,7 +40,7 @@ Future<void> _pumpOrders(WidgetTester tester, Size size) async {
   await tester.pumpAndSettle();
 }
 
-Order _order(int number, OrderStatus status, int minutesAgo, {String? issue}) {
+Order _order(int number, OrderStatus status, int minutesAgo) {
   return Order(
     number: number,
     customerName: 'Customer $number',
@@ -55,18 +55,12 @@ Order _order(int number, OrderStatus status, int minutesAgo, {String? issue}) {
     isDelivery: true,
     items: const [
       OrderItem(name: 'Milk', quantity: 2, unitPrice: 7.90),
-      OrderItem(
-        name: 'Oat milk',
-        quantity: 1,
-        unitPrice: 12,
-        isOutOfStock: true,
-      ),
+      OrderItem(name: 'Oat milk', quantity: 1, unitPrice: 12),
     ],
     deliveryFee: 5,
     paymentMethod: PaymentMethod.online,
     isPaid: true,
     timeline: const [],
-    attentionReason: issue,
   );
 }
 
@@ -75,12 +69,12 @@ void main() {
   const phone = Size(390, 844);
 
   group('Order', () {
-    test('counts quantities and does not charge out-of-stock items', () {
+    test('counts quantities and adds up the total', () {
       final order = _order(1, OrderStatus.pending, 0);
 
       expect(order.itemCount, 3);
-      expect(order.subtotal, closeTo(15.80, 0.001));
-      expect(order.total, closeTo(20.80, 0.001));
+      expect(order.subtotal, closeTo(27.80, 0.001));
+      expect(order.total, closeTo(32.80, 0.001));
     });
   });
 
@@ -101,17 +95,17 @@ void main() {
   });
 
   group('ordersWithStatus', () {
-    test('lists problems first, then the longest waiting', () {
+    test('lists the longest waiting first', () {
       final orders = [
         _order(1, OrderStatus.packing, 5),
         _order(2, OrderStatus.packing, 30),
-        _order(3, OrderStatus.packing, 10, issue: 'Missing item'),
+        _order(3, OrderStatus.packing, 10),
         _order(4, OrderStatus.ready, 60),
       ];
 
       final packing = ordersWithStatus(orders, OrderStatus.packing);
 
-      expect(packing.map((order) => order.number), [3, 2, 1]);
+      expect(packing.map((order) => order.number), [2, 3, 1]);
     });
 
     test('lists finished orders newest first', () {
@@ -166,8 +160,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Order #2288'), findsOneWidget);
-    expect(find.text('Out of stock'), findsOneWidget);
-    expect(find.text('Replaced with Strawberries'), findsOneWidget);
+    expect(find.text('Oat milk 1L'), findsOneWidget);
     expect(find.text('Handled by Hakim'), findsOneWidget);
     // The board is still there.
     expect(find.text('Farah Idris'), findsOneWidget);

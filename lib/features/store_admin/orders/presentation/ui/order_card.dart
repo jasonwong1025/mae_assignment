@@ -20,13 +20,6 @@ class OrderCard extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  /// Green when selected, yellow when there is a problem, else grey.
-  Color get _borderColor {
-    if (isSelected) return AppColors.darkGreen;
-    if (order.needsAttention) return AppColors.warning;
-    return AppColors.border;
-  }
-
   /// "1 item" or "4 items".
   String get _itemCountText {
     return order.itemCount == 1 ? '1 item' : '${order.itemCount} items';
@@ -38,17 +31,15 @@ class OrderCard extends StatelessWidget {
 
     return Card(
       elevation: 0,
-      color: order.needsAttention
-          ? Color.alphaBlend(
-              AppColors.yellow.withValues(alpha: 0.16),
-              AppColors.surface,
-            )
-          : AppColors.surface,
+      color: AppColors.surface,
       // Cuts the tap ripple to the rounded corners.
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: _borderColor, width: isSelected ? 2 : 1),
+        side: BorderSide(
+          color: isSelected ? AppColors.darkGreen : AppColors.border,
+          width: isSelected ? 2 : 1,
+        ),
       ),
       child: InkWell(
         onTap: onTap,
@@ -79,24 +70,10 @@ class OrderCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 2),
-              Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      order.customerName,
-                      style: textTheme.bodyLarge,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (order.needsAttention) ...[
-                    const SizedBox(width: 6),
-                    const Icon(
-                      Icons.error_outline_rounded,
-                      size: 18,
-                      color: AppColors.warning,
-                    ),
-                  ],
-                ],
+              Text(
+                order.customerName,
+                style: textTheme.bodyLarge,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 8),
               Text(

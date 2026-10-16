@@ -98,23 +98,10 @@ List<Order> _ss15Orders(DateTime now) {
       address: '8, Jalan USJ 2/5, Subang Jaya',
       location: const LatLng(3.0625, 101.5912),
       worker: 'Hakim',
-      attentionReason:
-          'Oat milk is out of stock. Waiting for the customer to accept '
-          'a replacement.',
       items: const [
-        OrderItem(
-          name: 'Oat milk 1L',
-          quantity: 2,
-          unitPrice: 12.90,
-          isOutOfStock: true,
-        ),
+        OrderItem(name: 'Oat milk 1L', quantity: 2, unitPrice: 12.90),
         OrderItem(name: 'Granola', quantity: 1, unitPrice: 15.90),
-        OrderItem(
-          name: 'Blueberries',
-          quantity: 1,
-          unitPrice: 13.50,
-          replacedWith: 'Strawberries',
-        ),
+        OrderItem(name: 'Blueberries', quantity: 1, unitPrice: 13.50),
       ],
     ),
     _order(
@@ -344,16 +331,8 @@ List<Order> _puchongOrders(DateTime now) {
       address: '9, Jalan Puteri 5/2, Bandar Puteri Puchong',
       location: const LatLng(3.0225, 101.6110),
       worker: 'Syafiq',
-      attentionReason:
-          'Brown rice is out of stock. Waiting for the customer to accept '
-          'a replacement.',
       items: const [
-        OrderItem(
-          name: 'Brown rice 2kg',
-          quantity: 1,
-          unitPrice: 16.90,
-          isOutOfStock: true,
-        ),
+        OrderItem(name: 'Brown rice 2kg', quantity: 1, unitPrice: 16.90),
         OrderItem(name: 'Canned tuna', quantity: 3, unitPrice: 6.20),
       ],
     ),
@@ -410,7 +389,6 @@ Order _order(
   PaymentMethod payment = PaymentMethod.online,
   String? worker,
   String? driverId,
-  String? attentionReason,
 }) {
   final placedAt = now.subtract(Duration(minutes: placedMinutesAgo));
   final statusSince = now.subtract(Duration(minutes: minutesInStatus));
@@ -432,7 +410,6 @@ Order _order(
     isPaid: payment == PaymentMethod.online || status == OrderStatus.completed,
     assignedWorker: worker,
     driverId: driverId,
-    attentionReason: attentionReason,
     timeline: _timeline(
       placedAt: placedAt,
       statusSince: statusSince,

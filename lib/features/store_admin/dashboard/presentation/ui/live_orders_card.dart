@@ -51,35 +51,14 @@ class _OrderRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    // Customer name, with a warning icon if the order has a problem.
-    final customer = Row(
-      children: [
-        Flexible(
-          child: Text(
-            order.customerName,
-            style: textTheme.bodyLarge,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        if (order.needsAttention) ...[
-          const SizedBox(width: 6),
-          const Icon(
-            Icons.error_outline_rounded,
-            size: 18,
-            color: AppColors.warning,
-          ),
-        ],
-      ],
+    final customer = Text(
+      order.customerName,
+      style: textTheme.bodyLarge,
+      overflow: TextOverflow.ellipsis,
     );
 
-    return Container(
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-      decoration: order.needsAttention
-          ? BoxDecoration(
-              color: AppColors.yellow.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(8),
-            )
-          : null,
       child: Row(
         children: [
           SizedBox(
@@ -140,8 +119,6 @@ class _StatusLabel extends StatelessWidget {
         return AppColors.success;
       case LiveOrderStatus.outForDelivery:
         return AppColors.darkGreen;
-      case LiveOrderStatus.missingItem:
-        return AppColors.warning;
     }
   }
 

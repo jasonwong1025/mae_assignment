@@ -43,7 +43,7 @@ void main() {
     await _pumpDashboard(tester, tablet);
 
     expect(find.text('SS15 Subang'), findsOneWidget);
-    expect(find.text('Refunds & alerts'), findsOneWidget);
+    expect(find.text('Sales & revenue'), findsOneWidget);
     expect(find.text('Jason Kok'), findsOneWidget);
     expect(find.textContaining(', Jason'), findsOneWidget);
 
@@ -87,13 +87,13 @@ void main() {
     await _pumpDashboard(tester, phone);
 
     // The sidebar is hidden, the dashboard is still there.
-    expect(find.text('Refunds & alerts'), findsNothing);
+    expect(find.text('Sales & revenue'), findsNothing);
     expect(find.text('47'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Open navigation menu'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Refunds & alerts'), findsOneWidget);
+    expect(find.text('Sales & revenue'), findsOneWidget);
     expect(find.text('SS15 Subang'), findsOneWidget);
   });
 }
