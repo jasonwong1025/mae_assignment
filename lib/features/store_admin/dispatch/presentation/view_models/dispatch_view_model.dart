@@ -1,33 +1,33 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../orders/data/models/order.dart';
-import '../../../shell/presentation/view_models/branch_view_model.dart';
-import '../../../staff/data/models/worker.dart';
-import '../../../staff/data/repositories/staff_repository.dart';
-import '../../data/models/driver_location.dart';
-import '../../data/repositories/dispatch_repository.dart';
-import 'dispatch_state.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver_location.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/data/repositories/dispatch_repository.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_state.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/repositories/staff_repository.dart';
 
 /// This branch's deliveries. Updates when an order changes.
-final _deliveriesProvider = StreamProvider.autoDispose<List<Order>>((
-  ref,
-) async* {
-  final branchState = await ref.watch(branchViewModelProvider.future);
-  final repository = ref.watch(dispatchRepositoryProvider);
-  yield* repository.watchDeliveries(branchState.selected.id);
-});
+final StreamProvider<List<Order>> _deliveriesProvider =
+    StreamProvider.autoDispose<List<Order>>((ref) async* {
+      final branchState = await ref.watch(branchViewModelProvider.future);
+      final repository = ref.watch(dispatchRepositoryProvider);
+      yield* repository.watchDeliveries(branchState.selected.id);
+    });
 
-final _driversProvider = FutureProvider.autoDispose<List<Worker>>((ref) {
-  return ref.watch(dispatchRepositoryProvider).getDrivers();
-});
+final FutureProvider<List<Worker>> _driversProvider =
+    FutureProvider.autoDispose<List<Worker>>((ref) {
+      return ref.watch(dispatchRepositoryProvider).getDrivers();
+    });
 
 /// Driver locations. Updates every time a driver moves.
-final _locationsProvider =
+final StreamProvider<Map<String, DriverLocation>> _locationsProvider =
     StreamProvider.autoDispose<Map<String, DriverLocation>>((ref) {
       return ref.watch(dispatchRepositoryProvider).watchLocations();
     });
 
-final dispatchViewModelProvider =
+final NotifierProvider<DispatchViewModel, AsyncValue<DispatchState>>
+dispatchViewModelProvider =
     NotifierProvider.autoDispose<DispatchViewModel, AsyncValue<DispatchState>>(
       DispatchViewModel.new,
     );

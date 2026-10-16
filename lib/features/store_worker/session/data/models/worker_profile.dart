@@ -1,4 +1,4 @@
-import '../../../../../shared/models/worker_role.dart';
+import 'package:mae_assignment/shared/models/worker_role.dart';
 
 /// The Store Worker using the app: who they are, their one role and their
 /// one branch.

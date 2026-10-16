@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../core/utilities/formatters.dart';
-import '../../data/models/sales_period.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_admin/sales/data/models/sales_period.dart';
 
 /// Chips for Today / Last 7 days / Last 30 days, and "Custom" which opens
 /// a date range picker.
 class PeriodPicker extends StatelessWidget {
   const PeriodPicker({
-    super.key,
     required this.period,
     required this.onPresetSelected,
     required this.onCustomSelected,
+    super.key,
   });
 
   final SalesPeriod period;

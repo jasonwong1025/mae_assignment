@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../../app/router/app_router.dart';
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../shared/models/app_user.dart';
-import '../../../../authentication/data/repositories/auth_repository.dart';
-import '../view_models/branch_view_model.dart';
-import 'branch_switcher.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/branch_switcher.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
+import 'package:mae_assignment/shared/models/app_user.dart';
 
 /// The pages in the store admin sidebar, in the order they are listed.
 enum AdminPage {
@@ -35,7 +34,7 @@ enum AdminPage {
 /// Sidebar for store admin pages: branch switcher on top, the menu in the
 /// middle, and the signed-in admin with a sign out button at the bottom.
 class AdminSidebar extends StatelessWidget {
-  const AdminSidebar({super.key, required this.currentPage});
+  const AdminSidebar({required this.currentPage, super.key});
 
   final AdminPage currentPage;
 

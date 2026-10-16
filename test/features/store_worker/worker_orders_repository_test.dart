@@ -13,12 +13,12 @@ WorkerProfile _worker(String name) {
   return mockWorkerProfiles.firstWhere((worker) => worker.name == name);
 }
 
-final _daniel = _worker('Daniel Lee');
-final _hakim = _worker('Hakim Roslan');
-final _amir = _worker('Amir Hamzah');
-final _nadia = _worker('Nadia Yusof');
-final _hafiz = _worker('Hafiz Zainal');
-final _weiJie = _worker('Tan Wei Jie');
+final WorkerProfile _daniel = _worker('Daniel Lee');
+final WorkerProfile _hakim = _worker('Hakim Roslan');
+final WorkerProfile _amir = _worker('Amir Hamzah');
+final WorkerProfile _nadia = _worker('Nadia Yusof');
+final WorkerProfile _hafiz = _worker('Hafiz Zainal');
+final WorkerProfile _weiJie = _worker('Tan Wei Jie');
 
 /// A repository with a fixed clock and no delay.
 WorkerOrdersRepository _repository({Duration delay = Duration.zero}) {
@@ -94,7 +94,7 @@ void main() {
       ]);
     });
 
-    test('roles get nothing from the other role\'s lists', () async {
+    test("roles get nothing from the other role's lists", () async {
       final repository = _repository();
 
       expect(await repository.watchMyPackingTasks(_amir).first, isEmpty);
@@ -109,7 +109,7 @@ void main() {
       expect(await repository.watchReadyForPickup(_nadia).first, isEmpty);
     });
 
-    test('watchOrder hides orders outside the worker\'s scope', () async {
+    test("watchOrder hides orders outside the worker's scope", () async {
       final repository = _repository();
 
       expect(await repository.watchOrder(_daniel, 'ord-2302').first, isNotNull);
@@ -245,7 +245,9 @@ void main() {
           'ord-2306',
           method: VerificationMethod.manual,
         ),
-        _throwsMessage('This order has already been handed over by Daniel Lee.'),
+        _throwsMessage(
+          'This order has already been handed over by Daniel Lee.',
+        ),
       );
     });
 
@@ -396,24 +398,29 @@ void main() {
   });
 
   group('shared state', () {
-    test('open lists update and late listeners start from the latest', () async {
-      final repository = _repository();
-      final danielTasks = await _record(repository.watchMyPackingTasks(_daniel));
+    test(
+      'open lists update and late listeners start from the latest',
+      () async {
+        final repository = _repository();
+        final danielTasks = await _record(
+          repository.watchMyPackingTasks(_daniel),
+        );
 
-      await repository.startPacking(_daniel, 'ord-2301');
-      await _settle();
+        await repository.startPacking(_daniel, 'ord-2301');
+        await _settle();
 
-      // Same order of ids (sorted by due time), but the list is resent
-      // because 2301 itself changed.
-      expect(danielTasks, [
-        ['ord-2301', 'ord-2303', 'ord-2302'],
-        ['ord-2301', 'ord-2303', 'ord-2302'],
-      ]);
+        // Same order of ids (sorted by due time), but the list is resent
+        // because 2301 itself changed.
+        expect(danielTasks, [
+          ['ord-2301', 'ord-2303', 'ord-2302'],
+          ['ord-2301', 'ord-2303', 'ord-2302'],
+        ]);
 
-      // A screen that opens now still sees 2301 as being packed.
-      final order = await repository.watchOrder(_amir, 'ord-2301').first;
-      expect(order!.status, OrderStatus.packing);
-    });
+        // A screen that opens now still sees 2301 as being packed.
+        final order = await repository.watchOrder(_amir, 'ord-2301').first;
+        expect(order!.status, OrderStatus.packing);
+      },
+    );
 
     test('a list does not resend when an unrelated order changes', () async {
       final repository = _repository();
@@ -432,6 +439,9 @@ void main() {
       final session = container.read(workerSessionProvider.notifier);
 
       // Daniel packs the last line of 2303.
+      // The two session.select calls are separate steps of the scenario,
+      // not a cascade.
+      // ignore: cascade_invocations
       session.select(_daniel);
       await repository.setItemPacked(
         container.read(workerSessionProvider)!,

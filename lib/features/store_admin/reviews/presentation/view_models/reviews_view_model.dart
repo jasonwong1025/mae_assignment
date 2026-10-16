@@ -1,13 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/features/store_admin/reviews/data/models/review.dart';
+import 'package:mae_assignment/features/store_admin/reviews/data/models/review_summary.dart';
+import 'package:mae_assignment/features/store_admin/reviews/data/repositories/reviews_repository.dart';
+import 'package:mae_assignment/features/store_admin/reviews/presentation/view_models/reviews_filter_view_model.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
+import 'package:mae_assignment/shared/models/page_result.dart';
 
-import '../../../../../shared/models/page_result.dart';
-import '../../../shell/presentation/view_models/branch_view_model.dart';
-import '../../data/models/review.dart';
-import '../../data/models/review_summary.dart';
-import '../../data/repositories/reviews_repository.dart';
-import 'reviews_filter_view_model.dart';
-
-final reviewsViewModelProvider =
+final AsyncNotifierProvider<ReviewsViewModel, ReviewsState>
+reviewsViewModelProvider =
     AsyncNotifierProvider.autoDispose<ReviewsViewModel, ReviewsState>(
       ReviewsViewModel.new,
     );

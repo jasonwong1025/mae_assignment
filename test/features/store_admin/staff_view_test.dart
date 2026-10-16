@@ -128,7 +128,7 @@ void main() {
 
     test('rightNow describes what the worker is doing', () {
       expect(packer.rightNow, 'Packing #2291');
-      expect(packer.withActive(false).rightNow, 'Deactivated');
+      expect(packer.withActive(active: false).rightNow, 'Deactivated');
     });
 
     test('becoming a driver removes the branch', () {

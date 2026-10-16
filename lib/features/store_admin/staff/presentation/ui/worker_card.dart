@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../data/models/worker.dart';
-import 'worker_labels.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
+import 'package:mae_assignment/features/store_admin/staff/presentation/ui/worker_labels.dart';
 
 /// One worker, for the phone layout.
 class WorkerCard extends StatelessWidget {
   const WorkerCard({
-    super.key,
     required this.worker,
     required this.branchName,
     required this.onTap,
+    super.key,
   });
 
   final Worker worker;

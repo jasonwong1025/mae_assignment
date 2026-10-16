@@ -75,9 +75,7 @@ void main() {
       expect(find.text('#1184'), findsNothing);
     });
 
-    testWidgets('another branch\'s driver sees only their own', (
-      tester,
-    ) async {
+    testWidgets("another branch's driver sees only their own", (tester) async {
       await pumpWorkerApp(
         tester,
         'Tan Wei Jie',
@@ -165,10 +163,7 @@ void main() {
 
       // Back on My Deliveries with a success message.
       expect(routerLocation(container), AppRoutes.workerDelivery);
-      expect(
-        find.text('Order #2308 delivered to David Wong.'),
-        findsOneWidget,
-      );
+      expect(find.text('Order #2308 delivered to David Wong.'), findsOneWidget);
       expect(find.text('READY TO COLLECT (1)'), findsNothing);
       await scrollIntoView(tester, find.text('COMPLETED TODAY (2)'));
     });
@@ -239,20 +234,18 @@ void main() {
       final repository = WorkerOrdersRepository(
         seed: (now) => [
           for (final order in seedWorkerOrders(now))
-            order.id == 'ord-2308'
-                ? order.copyWith(status: OrderStatus.cancelled)
-                : order,
+            if (order.id == 'ord-2308')
+              order.copyWith(status: OrderStatus.cancelled)
+            else
+              order,
         ],
       );
-      final (container, _, _) = await _pumpAmir(
-        tester,
-        repository: repository,
-      );
+      final (container, _, _) = await _pumpAmir(tester, repository: repository);
       expect(find.text('#2308'), findsNothing);
 
-      container.read(appRouterProvider).go(
-        AppRoutes.workerDeliveryOrder('ord-2308'),
-      );
+      container
+          .read(appRouterProvider)
+          .go(AppRoutes.workerDeliveryOrder('ord-2308'));
       await tester.pumpAndSettle();
       expect(
         find.text('This order was cancelled. Do not deliver it.'),
@@ -261,7 +254,7 @@ void main() {
       expect(find.text('Verify order'), findsNothing);
     });
 
-    testWidgets('someone else\'s delivery is not available', (tester) async {
+    testWidgets("someone else's delivery is not available", (tester) async {
       await _pumpAmir(
         tester,
         location: AppRoutes.workerDeliveryOrder('ord-1184'),
@@ -287,9 +280,9 @@ void main() {
       );
       expect(routerLocation(container), AppRoutes.workerPacking);
 
-      container.read(appRouterProvider).go(
-        AppRoutes.workerDeliveryOrder('ord-2308'),
-      );
+      container
+          .read(appRouterProvider)
+          .go(AppRoutes.workerDeliveryOrder('ord-2308'));
       await tester.pumpAndSettle();
       expect(routerLocation(container), AppRoutes.workerPacking);
     });
@@ -300,12 +293,14 @@ void main() {
       final repository = WorkerOrdersRepository();
       addTearDown(repository.dispose);
       final container = ProviderContainer(
-        overrides: [workerOrdersRepositoryProvider.overrideWithValue(repository)],
+        overrides: [
+          workerOrdersRepositoryProvider.overrideWithValue(repository),
+        ],
       );
       addTearDown(container.dispose);
-      container.read(workerSessionProvider.notifier).select(
-        mockWorker('Amir Hamzah'),
-      );
+      container
+          .read(workerSessionProvider.notifier)
+          .select(mockWorker('Amir Hamzah'));
 
       final provider = deliveryDetailViewModelProvider('ord-2308');
       container.listen(provider, (previous, next) {});

@@ -7,8 +7,6 @@ class PageResult<T> {
     this.pageSize = defaultPageSize,
   });
 
-  static const int defaultPageSize = 20;
-
   /// Cuts one page out of [all]. A page number that is too high or too
   /// low is moved to the nearest real page.
   factory PageResult.fromList(
@@ -27,6 +25,8 @@ class PageResult<T> {
       pageSize: pageSize,
     );
   }
+
+  static const int defaultPageSize = 20;
 
   /// Rows on this page.
   final List<T> items;

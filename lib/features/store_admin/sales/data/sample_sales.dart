@@ -1,12 +1,12 @@
 import 'dart:math' as math;
 
-import '../../inventory/data/models/inventory_item.dart';
-import '../../inventory/data/sample_inventory.dart';
-import 'models/sale.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/sample_inventory.dart';
+import 'package:mae_assignment/features/store_admin/sales/data/models/sale.dart';
 
 /// About a year of sample sales for one branch, oldest first, using the
 /// branch's sample products and prices. Nothing later than [now].
-/// TODO: delete once sales are read from paid orders in Firestore.
+// TODO(team): delete once sales are read from paid orders in Firestore.
 List<Sale> sampleSales(String branchId, DateTime now) {
   final setup = _setups[branchId];
   if (setup == null) return [];

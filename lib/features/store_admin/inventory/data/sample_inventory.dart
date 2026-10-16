@@ -1,8 +1,8 @@
-import 'models/inventory_item.dart';
-import 'models/product.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
 
 /// Sample categories until the backend is connected.
-/// TODO: delete once inventory comes from Firestore.
+// TODO(team): delete once inventory comes from Firestore.
 List<ProductCategory> sampleCategories() {
   return const [
     ProductCategory(id: 'fruits-vegetables', name: 'Fruits & Vegetables'),
@@ -213,7 +213,7 @@ List<InventoryItem> sampleInventory() {
       'Bakers Lane',
       'bakery',
       '4 pcs',
-      38.00,
+      38,
       stock: [0, 0, 0],
       description: 'Seasonal. Back for the Mid-Autumn Festival.',
       hidden: true,
@@ -370,7 +370,7 @@ List<InventoryItem> sampleInventory() {
       'Old Town',
       'pantry',
       '250g',
-      32.00,
+      32,
       stock: [9, 6, 4],
     ),
     ..._everywhere(

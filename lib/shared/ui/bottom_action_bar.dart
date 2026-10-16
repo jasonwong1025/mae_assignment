@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
 
 /// Bar pinned to the bottom of a page with a thin line on top.
 /// Holds the page's main actions so they stay visible while the page scrolls.
 class BottomActionBar extends StatelessWidget {
-  const BottomActionBar({super.key, required this.children});
+  const BottomActionBar({required this.children, super.key});
 
   final List<Widget> children;
 

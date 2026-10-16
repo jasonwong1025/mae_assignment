@@ -1,33 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../../app/router/app_router.dart';
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../app/theme/app_spacing.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../../../../shared/models/order_status.dart';
-import '../../../../../shared/ui/bottom_action_bar.dart';
-import '../../../../../shared/ui/button_loading_indicator.dart';
-import '../../../../../shared/ui/confirm_sheet.dart';
-import '../../../../../shared/ui/empty_state.dart';
-import '../../../../../shared/ui/order_status_label.dart';
-import '../../../orders/data/models/worker_order.dart';
-import '../../../packing/presentation/ui/packing_item_tile.dart';
-import '../../../packing/presentation/ui/packing_progress_bar.dart';
-import '../../../session/presentation/view_models/worker_session_view_model.dart';
-import '../../data/services/launcher_service.dart';
-import '../ui/delivery_order_card.dart';
-import '../ui/delivery_stepper.dart';
-import '../ui/verify_order_sheet.dart';
-import '../view_models/delivery_detail_view_model.dart';
-import '../../../shell/presentation/ui/worker_notice.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_worker/delivery/data/services/launcher_service.dart';
+import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/delivery_order_card.dart';
+import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/delivery_stepper.dart';
+import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/verify_order_sheet.dart';
+import 'package:mae_assignment/features/store_worker/delivery/presentation/view_models/delivery_detail_view_model.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_item_tile.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_progress_bar.dart';
+import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_notice.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
+import 'package:mae_assignment/shared/ui/bottom_action_bar.dart';
+import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
+import 'package:mae_assignment/shared/ui/confirm_sheet.dart';
+import 'package:mae_assignment/shared/ui/empty_state.dart';
+import 'package:mae_assignment/shared/ui/order_status_label.dart';
 
 /// Full-screen view of one delivery: progress, customer and address with
 /// Call and Navigate, the bag's contents (read-only), and the next step:
 /// Verify order, Start delivery or Mark as delivered.
 class DeliveryDetailView extends ConsumerStatefulWidget {
-  const DeliveryDetailView({super.key, required this.orderId});
+  const DeliveryDetailView({required this.orderId, super.key});
 
   final String orderId;
 
@@ -104,9 +103,9 @@ class _DeliveryDetailViewState extends ConsumerState<DeliveryDetailView> {
   }
 
   Future<void> _navigate(String address) async {
-    final opened = await ref.read(launcherServiceProvider).openDirections(
-      address,
-    );
+    final opened = await ref
+        .read(launcherServiceProvider)
+        .openDirections(address);
     if (!opened && mounted) {
       _showMessage('Google Maps could not be opened on this device.');
     }
@@ -550,17 +549,18 @@ class _ActionBar extends StatelessWidget {
         final verified = order.collectionVerifiedBy == workerId;
         return BottomActionBar(
           children: [
-            verified
-                ? _button(
-                    icon: Icons.local_shipping_outlined,
-                    label: 'Start delivery',
-                    onPressed: onStart,
-                  )
-                : _button(
-                    icon: Icons.fact_check_outlined,
-                    label: 'Verify order',
-                    onPressed: onVerify,
-                  ),
+            if (verified)
+              _button(
+                icon: Icons.local_shipping_outlined,
+                label: 'Start delivery',
+                onPressed: onStart,
+              )
+            else
+              _button(
+                icon: Icons.fact_check_outlined,
+                label: 'Verify order',
+                onPressed: onVerify,
+              ),
           ],
         );
       case OrderStatus.outForDelivery:

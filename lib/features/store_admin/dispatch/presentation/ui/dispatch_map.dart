@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-
-import '../../../../../app/theme/app_colors.dart';
-import '../../../orders/data/models/order.dart';
-import '../view_models/dispatch_state.dart';
-import 'dispatch_labels.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/dispatch_labels.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_state.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
 
 /// OpenStreetMap with the branch, delivery addresses, drivers and their
 /// routes. Routes are straight lines until a routing service is added.
 class DispatchMap extends StatefulWidget {
   const DispatchMap({
-    super.key,
     required this.state,
     required this.selectedOrderNumber,
     required this.selectedDriverId,
     required this.onOrderTap,
     required this.onDriverTap,
+    super.key,
   });
 
   final DispatchState state;

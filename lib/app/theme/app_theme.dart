@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
 
 /// App-wide "friendly & fresh" theme, shared by Customer, Store Admin and
 /// Store Worker screens so the whole app looks consistent.
 ///
-/// Screens should use these styles (e.g. Theme.of(context).textTheme.titleLarge)
-/// instead of hard-coding colours, fonts, or corner sizes.
+/// Screens should use these styles (e.g.
+/// Theme.of(context).textTheme.titleLarge) instead of hard-coding colours,
+/// fonts, or corner sizes.
 class AppTheme {
   AppTheme._();
 

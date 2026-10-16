@@ -1,21 +1,22 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../app/router/app_router.dart';
-import '../../../../app/theme/app_colors.dart';
-import '../../../../core/utilities/validators.dart';
-import '../../../../shared/ui/bottom_action_bar.dart';
-import '../../../../shared/ui/brand_header.dart';
-import '../../../../shared/ui/button_loading_indicator.dart';
-import '../../../../shared/ui/google_sign_in_button.dart';
-import '../../../../shared/ui/labeled_text_field.dart';
-import '../../../../shared/ui/or_divider.dart';
-import '../../../../shared/ui/password_field.dart';
-import '../../../../shared/models/app_user.dart';
-import '../../../store_worker/session/worker_preview.dart';
-import '../view_models/login_view_model.dart';
-import '../view_models/google_sign_in_view_model.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/core/utilities/validators.dart';
+import 'package:mae_assignment/features/authentication/presentation/view_models/google_sign_in_view_model.dart';
+import 'package:mae_assignment/features/authentication/presentation/view_models/login_view_model.dart';
+import 'package:mae_assignment/features/store_worker/session/worker_preview.dart';
+import 'package:mae_assignment/shared/models/app_user.dart';
+import 'package:mae_assignment/shared/ui/bottom_action_bar.dart';
+import 'package:mae_assignment/shared/ui/brand_header.dart';
+import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
+import 'package:mae_assignment/shared/ui/google_sign_in_button.dart';
+import 'package:mae_assignment/shared/ui/labeled_text_field.dart';
+import 'package:mae_assignment/shared/ui/or_divider.dart';
+import 'package:mae_assignment/shared/ui/password_field.dart';
 
 /// Sign-in page for every role. Uses email and password.
 class LoginView extends ConsumerStatefulWidget {
@@ -46,7 +47,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
     // email or password is needed.
     if (role == UserRole.storeWorker &&
         ref.read(workerPreviewEnabledProvider)) {
-      context.push(AppRoutes.workerDevSelect);
+      unawaited(context.push(AppRoutes.workerDevSelect));
       return;
     }
 
@@ -73,7 +74,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
   }
 
   void _onForgotPassword() {
-    // TODO: password reset page once the backend is connected.
+    // TODO(team): password reset page once the backend is connected.
     _showMessage('Password reset is not connected yet.');
   }
 

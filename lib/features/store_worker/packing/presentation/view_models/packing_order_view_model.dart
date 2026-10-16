@@ -1,10 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../orders/data/models/worker_order.dart';
-import '../../../orders/data/repositories/worker_orders_repository.dart';
-import '../../../orders/data/worker_order_policy.dart';
-import '../../../session/data/models/worker_profile.dart';
-import '../../../session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/worker_order_policy.dart';
+import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
+import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 
 /// One provider per order id.
 final packingOrderViewModelProvider = StreamNotifierProvider.autoDispose
@@ -67,7 +66,10 @@ class PackingOrderViewModel extends StreamNotifier<WorkerOrder?> {
   }
 
   Future<String?> _run(
-    Future<void> Function(WorkerOrdersRepository repository, WorkerProfile worker)
+    Future<void> Function(
+      WorkerOrdersRepository repository,
+      WorkerProfile worker,
+    )
     action,
   ) async {
     final worker = ref.read(workerSessionProvider);

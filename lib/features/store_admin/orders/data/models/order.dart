@@ -1,6 +1,6 @@
 import 'package:latlong2/latlong.dart';
 
-import '../../../../../shared/models/order_status.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 
 // OrderStatus (the columns of the orders board) now lives in shared/ so the
 // Store Worker app uses the same statuses. Re-exported so files that import
@@ -9,8 +9,8 @@ export '../../../../../shared/models/order_status.dart';
 
 /// Columns of the admin orders board. Orders are paid at checkout and
 /// cannot be cancelled, so there is no Cancelled column.
-/// TODO: OrderStatus.cancelled is still used by the Store Worker app.
-const adminBoardStatuses = [
+// TODO(team): OrderStatus.cancelled is still used by the Store Worker app.
+const List<OrderStatus> adminBoardStatuses = [
   OrderStatus.pending,
   OrderStatus.packing,
   OrderStatus.ready,

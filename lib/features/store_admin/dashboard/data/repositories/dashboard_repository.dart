@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/dashboard_summary.dart';
+import 'package:mae_assignment/features/store_admin/dashboard/data/models/dashboard_summary.dart';
 
 final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
   return DashboardRepository();

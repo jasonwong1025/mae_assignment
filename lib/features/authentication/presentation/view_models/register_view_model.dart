@@ -1,8 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/repositories/auth_repository.dart';
+import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 
-final registerViewModelProvider =
+final NotifierProvider<RegisterViewModel, AsyncValue<void>>
+registerViewModelProvider =
     NotifierProvider.autoDispose<RegisterViewModel, AsyncValue<void>>(
       RegisterViewModel.new,
     );

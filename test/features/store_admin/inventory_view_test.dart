@@ -6,11 +6,10 @@ import 'package:mae_assignment/features/authentication/data/repositories/auth_re
 import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/repositories/inventory_repository.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/services/image_picker_service.dart';
 import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/product_card.dart';
 import 'package:mae_assignment/features/store_admin/inventory/presentation/views/inventory_view.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
-
-import 'package:mae_assignment/features/store_admin/inventory/data/services/image_picker_service.dart';
 
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_image_picker_service.dart';
@@ -204,7 +203,7 @@ void main() {
     });
   });
 
-  testWidgets('Table shows the selected branch\'s price and stock', (
+  testWidgets("Table shows the selected branch's price and stock", (
     tester,
   ) async {
     await _pumpInventory(tester, desktop);

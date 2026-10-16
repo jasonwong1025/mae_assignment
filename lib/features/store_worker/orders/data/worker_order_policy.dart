@@ -1,6 +1,6 @@
-import '../../../../shared/models/order_status.dart';
-import '../../session/data/models/worker_profile.dart';
-import 'models/worker_order.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 
 /// The rules for what a Store Worker may see and do with an order.
 ///

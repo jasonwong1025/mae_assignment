@@ -1,4 +1,4 @@
-import '../../../../../shared/models/order_status.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 
 /// How a worker confirmed an order at handover or collection.
 /// Both only check that the right bag goes to the right order; neither
@@ -69,11 +69,11 @@ class WorkerOrder {
     required List<WorkerOrderItem> items,
     required this.status,
     required this.placedAt,
-    this.dueAt,
     required this.statusSince,
     required this.packerId,
     required this.packerName,
     required this.packerAssignedAt,
+    this.dueAt,
     Set<String> packedLineIds = const {},
     this.address,
     this.customerNote,

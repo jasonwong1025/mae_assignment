@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../data/models/order.dart';
-import '../view_models/orders_view_model.dart';
-import '../../../../../shared/ui/order_status_label.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/features/store_admin/orders/presentation/view_models/orders_view_model.dart';
+import 'package:mae_assignment/shared/ui/order_status_label.dart';
 
 /// Everything about one order: customer, delivery, items, payment and
 /// what has happened so far. Read only; the admin monitors orders here
@@ -15,9 +15,9 @@ import '../../../../../shared/ui/order_status_label.dart';
 /// details stay current while the panel is open.
 class OrderDetailPanel extends ConsumerWidget {
   const OrderDetailPanel({
-    super.key,
     required this.orderNumber,
     required this.onClose,
+    super.key,
   });
 
   final int orderNumber;
@@ -90,7 +90,8 @@ class _OrderDetails extends StatelessWidget {
             OrderStatusLabel(status: order.status),
             const SizedBox(width: 8),
             Text(
-              'for ${Formatters.minutes(order.minutesInStatus(DateTime.now()))}',
+              'for '
+              '${Formatters.minutes(order.minutesInStatus(DateTime.now()))}',
               style: textTheme.bodySmall,
             ),
           ],

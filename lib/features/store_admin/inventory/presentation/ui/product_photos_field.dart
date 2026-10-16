@@ -2,17 +2,17 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../data/models/product.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
 
 /// Photo tiles for the product form, with remove buttons and an
 /// "Add" tile until the limit is reached.
 class ProductPhotosField extends StatelessWidget {
   const ProductPhotosField({
-    super.key,
     required this.photos,
     required this.onAdd,
     required this.onRemove,
+    super.key,
   });
 
   static const double _tileSize = 72;

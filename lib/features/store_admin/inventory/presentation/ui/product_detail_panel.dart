@@ -1,24 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../../shell/presentation/ui/side_panel_frame.dart';
-import '../../../shell/presentation/view_models/branch_view_model.dart';
-import '../../data/models/inventory_item.dart';
-import '../view_models/inventory_view_model.dart';
-import 'product_form.dart';
-import 'product_labels.dart';
-import 'product_photo_carousel.dart';
-import 'stock_editor.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/product_form.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/product_labels.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/product_photo_carousel.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/stock_editor.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/view_models/inventory_view_model.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/side_panel_frame.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 
 /// Details of one product at the selected branch.
 /// Edit shows the form in the same panel.
 class ProductDetailPanel extends ConsumerStatefulWidget {
   const ProductDetailPanel({
-    super.key,
     required this.productId,
     required this.onClose,
+    super.key,
   });
 
   final String productId;

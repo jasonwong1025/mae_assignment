@@ -1,15 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../../app/router/app_router.dart';
-import '../../../../../app/theme/app_spacing.dart';
-import '../../../../../shared/ui/empty_state.dart';
-import '../../../orders/data/models/worker_order.dart';
-import '../../../shell/presentation/ui/worker_scaffold.dart';
-import '../../../shell/worker_routes.dart';
-import '../ui/delivery_order_card.dart';
-import '../view_models/delivery_tasks_view_model.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/delivery_order_card.dart';
+import 'package:mae_assignment/features/store_worker/delivery/presentation/view_models/delivery_tasks_view_model.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_scaffold.dart';
+import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
+import 'package:mae_assignment/shared/ui/empty_state.dart';
 
 /// Delivery Driver "My Deliveries" tab: the driver's deliveries at their
 /// branch, grouped by stage. Orders still being packed are listed so the
@@ -22,7 +23,7 @@ class DeliveryTasksView extends ConsumerWidget {
     final deliveries = ref.watch(deliveryTasksViewModelProvider);
 
     void openOrder(WorkerOrder order) {
-      context.push(AppRoutes.workerDeliveryOrder(order.id));
+      unawaited(context.push(AppRoutes.workerDeliveryOrder(order.id)));
     }
 
     return WorkerScaffold(

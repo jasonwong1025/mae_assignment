@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../app/theme/app_spacing.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../../../../shared/models/order_status.dart';
-import '../../../../../shared/ui/button_loading_indicator.dart';
-import '../../../../../shared/ui/fulfilment_tag.dart';
-import '../../../../../shared/ui/order_status_label.dart';
-import '../../../orders/data/models/worker_order.dart';
-import 'packing_progress_bar.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_progress_bar.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
+import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
+import 'package:mae_assignment/shared/ui/fulfilment_tag.dart';
+import 'package:mae_assignment/shared/ui/order_status_label.dart';
 
 /// Orders due within this many minutes are highlighted as urgent.
 const int _dueSoonMinutes = 15;
@@ -20,10 +19,10 @@ const int _dueSoonMinutes = 15;
 /// tapping an order already being packed opens it.
 class PackingTaskCard extends StatelessWidget {
   const PackingTaskCard({
-    super.key,
     required this.order,
     required this.isStarting,
     required this.onTap,
+    super.key,
   });
 
   final WorkerOrder order;

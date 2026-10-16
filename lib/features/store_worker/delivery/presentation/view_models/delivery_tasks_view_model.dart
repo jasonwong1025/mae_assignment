@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart' show DateUtils;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
+import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 
-import '../../../../../shared/models/order_status.dart';
-import '../../../orders/data/models/worker_order.dart';
-import '../../../orders/data/repositories/worker_orders_repository.dart';
-import '../../../session/presentation/view_models/worker_session_view_model.dart';
-
-final deliveryTasksViewModelProvider =
+final StreamNotifierProvider<DeliveryTasksViewModel, DeliveryGroups>
+deliveryTasksViewModelProvider =
     StreamNotifierProvider.autoDispose<DeliveryTasksViewModel, DeliveryGroups>(
       DeliveryTasksViewModel.new,
     );

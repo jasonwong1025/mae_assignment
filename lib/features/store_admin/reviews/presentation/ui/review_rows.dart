@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../../../../shared/ui/star_rating.dart';
-import '../../data/models/review.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_admin/reviews/data/models/review.dart';
+import 'package:mae_assignment/shared/ui/star_rating.dart';
 
 /// Table heading. Uses the same columns as [ReviewRow].
 class ReviewTableHeading extends StatelessWidget {
@@ -70,10 +69,10 @@ class _RowLayout extends StatelessWidget {
 /// One review in the table.
 class ReviewRow extends StatelessWidget {
   const ReviewRow({
-    super.key,
     required this.review,
     required this.isSelected,
     required this.onTap,
+    super.key,
   });
 
   final Review review;
@@ -128,7 +127,7 @@ class ReviewRow extends StatelessWidget {
 
 /// One review as a card, for phones.
 class ReviewCard extends StatelessWidget {
-  const ReviewCard({super.key, required this.review, required this.onTap});
+  const ReviewCard({required this.review, required this.onTap, super.key});
 
   final Review review;
   final VoidCallback onTap;

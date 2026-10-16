@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../data/models/sales_report.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_admin/sales/data/models/sales_report.dart';
 
 /// Revenue, item sales, delivery fees, orders and average order value,
 /// each compared with the period before.
 class SalesSummaryCards extends StatelessWidget {
-  const SalesSummaryCards({super.key, required this.report});
+  const SalesSummaryCards({required this.report, super.key});
 
   final SalesReport report;
 

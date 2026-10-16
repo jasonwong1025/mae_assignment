@@ -181,7 +181,7 @@ void main() {
     expect(find.text('Order #2288'), findsNothing);
   });
 
-  testWidgets('Switching branch shows that branch\'s orders', (tester) async {
+  testWidgets("Switching branch shows that branch's orders", (tester) async {
     await _pumpOrders(tester, desktop);
 
     await tester.tap(find.byTooltip('Switch branch'));

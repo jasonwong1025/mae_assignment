@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../app/theme/app_theme.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_theme.dart';
 
 /// One choice in a [FilterMenuButton].
 class FilterOption<T> {
@@ -15,12 +15,12 @@ class FilterOption<T> {
 /// The first item is "all", which means no filter.
 class FilterMenuButton<T> extends StatelessWidget {
   const FilterMenuButton({
-    super.key,
     required this.name,
     required this.allLabel,
     required this.options,
     required this.selected,
     required this.onSelected,
+    super.key,
   });
 
   /// Button text when nothing is chosen, e.g. "Category".

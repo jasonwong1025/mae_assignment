@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../shell/presentation/ui/admin_scaffold.dart';
-import '../../../shell/presentation/ui/admin_sidebar.dart';
-import '../../../shell/presentation/ui/filter_menu_button.dart';
-import '../../../shell/presentation/ui/pagination_bar.dart';
-import '../../../shell/presentation/ui/side_panel_frame.dart';
-import '../../../shell/presentation/view_models/branch_view_model.dart';
-import '../../data/models/inventory_item.dart';
-import '../../data/models/product.dart';
-import '../ui/inventory_table.dart';
-import '../ui/product_card.dart';
-import '../ui/product_detail_panel.dart';
-import '../ui/product_form.dart';
-import '../view_models/inventory_filter_view_model.dart';
-import '../view_models/inventory_view_model.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/inventory_table.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/product_card.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/product_detail_panel.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/product_form.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/view_models/inventory_filter_view_model.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/view_models/inventory_view_model.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_scaffold.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_sidebar.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/filter_menu_button.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/pagination_bar.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/side_panel_frame.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 
 /// Inventory tab: products with the selected branch's price and stock.
 /// The admin can add, edit and hide products and change stock.

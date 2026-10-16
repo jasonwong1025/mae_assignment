@@ -1,10 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../orders/data/models/worker_order.dart';
-import '../../../orders/data/repositories/worker_orders_repository.dart';
-import '../../../session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
+import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 
-final pickupQueueViewModelProvider =
+final StreamNotifierProvider<PickupQueueViewModel, List<WorkerOrder>>
+pickupQueueViewModelProvider =
     StreamNotifierProvider.autoDispose<PickupQueueViewModel, List<WorkerOrder>>(
       PickupQueueViewModel.new,
     );
@@ -22,11 +23,17 @@ class PickupQueueViewModel extends StreamNotifier<List<WorkerOrder>> {
       yield const [];
       return;
     }
-    yield* ref.watch(workerOrdersRepositoryProvider).watchReadyForPickup(worker);
+    yield* ref
+        .watch(workerOrdersRepositoryProvider)
+        .watchReadyForPickup(worker);
   }
 }
 
-final pickupWaitingForDriversViewModelProvider =
+final StreamNotifierProvider<
+  PickupWaitingForDriversViewModel,
+  List<WorkerOrder>
+>
+pickupWaitingForDriversViewModelProvider =
     StreamNotifierProvider.autoDispose<
       PickupWaitingForDriversViewModel,
       List<WorkerOrder>

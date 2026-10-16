@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 /// White card used for each block of the dashboard.
 /// [title] is an optional small heading, e.g. "RIGHT NOW".
 class DashboardCard extends StatelessWidget {
-  const DashboardCard({super.key, this.title, required this.child});
+  const DashboardCard({required this.child, super.key, this.title});
 
   final String? title;
   final Widget child;

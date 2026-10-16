@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
-
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../../../../shared/ui/star_rating.dart';
-import '../../../shell/presentation/ui/side_panel_frame.dart';
-import '../../data/models/review.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_admin/reviews/data/models/review.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/side_panel_frame.dart';
+import 'package:mae_assignment/shared/ui/star_rating.dart';
 
 /// Read-only details of one review: every score and the full comment.
 class ReviewDetailPanel extends StatelessWidget {
   const ReviewDetailPanel({
-    super.key,
     required this.review,
     required this.onClose,
+    super.key,
   });
 
   final Review review;

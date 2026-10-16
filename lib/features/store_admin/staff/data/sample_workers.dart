@@ -1,7 +1,7 @@
-import 'models/worker.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
 
 /// Sample workers until the backend is connected.
-/// TODO: delete once workers come from Firestore.
+// TODO(team): delete once workers come from Firestore.
 List<Worker> sampleWorkers() {
   return [
     // SS15 Subang packers.

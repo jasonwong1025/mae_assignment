@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -141,7 +143,7 @@ void main() {
     expect(updates.length, greaterThanOrEqualTo(2));
     expect(updates.last, isNot(updates.first));
 
-    subscription.cancel();
+    unawaited(subscription.cancel());
     service.dispose();
   });
 

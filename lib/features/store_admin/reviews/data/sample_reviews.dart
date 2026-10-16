@@ -1,8 +1,8 @@
-import 'models/review.dart';
+import 'package:mae_assignment/features/store_admin/reviews/data/models/review.dart';
 
 /// Sample reviews for every branch, newest first.
 /// Dates are worked out from [now], so they always look recent.
-/// TODO: delete once reviews come from Firestore.
+// TODO(team): delete once reviews come from Firestore.
 List<Review> sampleReviews(DateTime now) {
   return [
     ..._branchReviews(

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-
-import '../../../app/router/app_router.dart';
-import '../../../shared/models/worker_role.dart';
-import '../session/data/models/worker_profile.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
+import 'package:mae_assignment/shared/models/worker_role.dart';
 
 /// The tabs in the Store Worker bottom navigation.
 enum WorkerTab {

@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../shared/models/app_user.dart';
+import 'package:mae_assignment/shared/models/app_user.dart';
 
 final userServiceProvider = Provider<UserService>((ref) {
   return UserService(FirebaseFirestore.instance);

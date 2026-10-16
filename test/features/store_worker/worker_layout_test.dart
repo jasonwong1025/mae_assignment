@@ -84,7 +84,11 @@ void main() {
           'L4',
           packed: true,
         );
-        await _show(tester, container, AppRoutes.workerPackingOrder('ord-2303'));
+        await _show(
+          tester,
+          container,
+          AppRoutes.workerPackingOrder('ord-2303'),
+        );
         await _tap(tester, 'Review & mark ready');
         await _tap(tester, 'Mark as ready');
         expect(find.text('Order #2303 is ready'), findsOneWidget);
@@ -114,10 +118,18 @@ void main() {
         await _show(tester, container, AppRoutes.workerAccount);
 
         // Being packed.
-        await _show(tester, container, AppRoutes.workerDeliveryOrder('ord-2303'));
+        await _show(
+          tester,
+          container,
+          AppRoutes.workerDeliveryOrder('ord-2303'),
+        );
 
         // Ready, with the verify sheet showing an error.
-        await _show(tester, container, AppRoutes.workerDeliveryOrder('ord-2308'));
+        await _show(
+          tester,
+          container,
+          AppRoutes.workerDeliveryOrder('ord-2308'),
+        );
         await _tap(tester, 'Verify order');
         await tester.enterText(find.byType(TextField), '1');
         await _tap(tester, 'Verify');
@@ -125,13 +137,21 @@ void main() {
         await _tap(tester, 'Cancel');
 
         // On the way, items opened, with the confirmation sheet.
-        await _show(tester, container, AppRoutes.workerDeliveryOrder('ord-2309'));
+        await _show(
+          tester,
+          container,
+          AppRoutes.workerDeliveryOrder('ord-2309'),
+        );
         await _tap(tester, 'Order items (2 products · 3 items)');
         await _tap(tester, 'Mark as delivered');
         await _tap(tester, 'Cancel');
 
         // Delivered.
-        await _show(tester, container, AppRoutes.workerDeliveryOrder('ord-2310'));
+        await _show(
+          tester,
+          container,
+          AppRoutes.workerDeliveryOrder('ord-2310'),
+        );
       });
     }
   }

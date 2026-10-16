@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../app/theme/app_spacing.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../../orders/data/models/worker_order.dart';
-import 'packing_item_tile.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_item_tile.dart';
 
 /// Shows one product's details in a sheet: a large photo, name,
 /// description, brand, category, pack size, price and (highlighted) the
@@ -94,23 +94,24 @@ Future<void> showProductDetailsSheet(
                   ),
                   if (onChanged != null) ...[
                     const SizedBox(height: AppSpacing.xl),
-                    isPacked
-                        ? OutlinedButton.icon(
-                            onPressed: () {
-                              onChanged(false);
-                              Navigator.of(sheetContext).pop();
-                            },
-                            icon: const Icon(Icons.undo_rounded),
-                            label: const Text('Mark as not packed'),
-                          )
-                        : FilledButton.icon(
-                            onPressed: () {
-                              onChanged(true);
-                              Navigator.of(sheetContext).pop();
-                            },
-                            icon: const Icon(Icons.check_rounded),
-                            label: const Text('Mark as packed'),
-                          ),
+                    if (isPacked)
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          onChanged(false);
+                          Navigator.of(sheetContext).pop();
+                        },
+                        icon: const Icon(Icons.undo_rounded),
+                        label: const Text('Mark as not packed'),
+                      )
+                    else
+                      FilledButton.icon(
+                        onPressed: () {
+                          onChanged(true);
+                          Navigator.of(sheetContext).pop();
+                        },
+                        icon: const Icon(Icons.check_rounded),
+                        label: const Text('Mark as packed'),
+                      ),
                   ],
                 ],
               ),

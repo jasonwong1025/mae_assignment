@@ -2,8 +2,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../data/models/inventory_item.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
 
 /// Icon for a category. New categories get a general one.
 IconData categoryIcon(String categoryId) {
@@ -36,8 +36,8 @@ IconData categoryIcon(String categoryId) {
 /// Cover photo, or the category icon if there is none.
 class ProductThumbnail extends StatelessWidget {
   const ProductThumbnail({
-    super.key,
     required this.categoryId,
+    super.key,
     this.photo,
     this.size = 40,
   });
@@ -81,7 +81,7 @@ class ProductThumbnail extends StatelessWidget {
 
 /// Small "In stock", "Low" or "Out of stock" tag.
 class StockStatusChip extends StatelessWidget {
-  const StockStatusChip({super.key, required this.status});
+  const StockStatusChip({required this.status, super.key});
 
   final StockStatus status;
 

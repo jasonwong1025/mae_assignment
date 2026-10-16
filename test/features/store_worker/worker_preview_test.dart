@@ -13,9 +13,15 @@ import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
 
 import '../../helpers/fake_auth_repository.dart';
 
-final _daniel = mockWorkerProfiles.firstWhere((w) => w.name == 'Daniel Lee');
-final _amir = mockWorkerProfiles.firstWhere((w) => w.name == 'Amir Hamzah');
-final _nadia = mockWorkerProfiles.firstWhere((w) => w.name == 'Nadia Yusof');
+final WorkerProfile _daniel = mockWorkerProfiles.firstWhere(
+  (w) => w.name == 'Daniel Lee',
+);
+final WorkerProfile _amir = mockWorkerProfiles.firstWhere(
+  (w) => w.name == 'Amir Hamzah',
+);
+final WorkerProfile _nadia = mockWorkerProfiles.firstWhere(
+  (w) => w.name == 'Nadia Yusof',
+);
 
 /// The whole app on a phone-sized screen, signed out of Firebase.
 Future<ProviderContainer> _pumpApp(
@@ -258,9 +264,7 @@ void main() {
       expect(find.text('Grocerly · Bukit Jalil'), findsOneWidget);
     });
 
-    testWidgets('an inactive worker is rejected with a reason', (
-      tester,
-    ) async {
+    testWidgets('an inactive worker is rejected with a reason', (tester) async {
       final container = await _pumpApp(tester);
       await _chooseWorker(tester, container, 'Nadia Yusof');
 
@@ -312,9 +316,7 @@ void main() {
       expect(_location(container), AppRoutes.workerDevSelect);
     });
 
-    testWidgets('a preview session does not open admin pages', (
-      tester,
-    ) async {
+    testWidgets('a preview session does not open admin pages', (tester) async {
       final container = await _pumpApp(tester);
       await _chooseWorker(tester, container, 'Daniel Lee');
 

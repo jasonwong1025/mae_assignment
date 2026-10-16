@@ -1,25 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/utilities/validators.dart';
-import '../../../../../shared/ui/button_loading_indicator.dart';
-import '../../../../../shared/ui/labeled_text_field.dart';
-import '../../../../../shared/ui/password_field.dart';
-import '../../../shell/data/models/branch.dart';
-import '../../../shell/presentation/view_models/branch_view_model.dart';
-import '../../data/models/worker.dart';
-import '../view_models/staff_view_model.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/core/utilities/validators.dart';
+import 'package:mae_assignment/features/store_admin/shell/data/models/branch.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
+import 'package:mae_assignment/features/store_admin/staff/presentation/view_models/staff_view_model.dart';
+import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
+import 'package:mae_assignment/shared/ui/labeled_text_field.dart';
+import 'package:mae_assignment/shared/ui/password_field.dart';
 
 /// Form to add or edit a worker.
 /// - [worker] is null: add (also asks for a temporary password)
 /// - [worker] is given: edit that worker
 class WorkerForm extends ConsumerStatefulWidget {
   const WorkerForm({
-    super.key,
-    this.worker,
     required this.onCancel,
     required this.onSaved,
+    super.key,
+    this.worker,
   });
 
   final Worker? worker;

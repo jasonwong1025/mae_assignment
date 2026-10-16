@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 /// Stock number with - and + buttons.
 /// "Save stock" shows when the number differs from [stock].
 class StockEditor extends StatefulWidget {
-  const StockEditor({super.key, required this.stock, required this.onSave});
+  const StockEditor({required this.stock, required this.onSave, super.key});
 
   /// Saved stock.
   final int stock;

@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/features/store_admin/reviews/data/models/review.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 
-import '../../../shell/presentation/view_models/branch_view_model.dart';
-import '../../data/models/review.dart';
-
-final reviewsFilterViewModelProvider =
+final NotifierProvider<ReviewsFilterViewModel, ReviewsFilter>
+reviewsFilterViewModelProvider =
     NotifierProvider.autoDispose<ReviewsFilterViewModel, ReviewsFilter>(
       ReviewsFilterViewModel.new,
     );
@@ -97,7 +97,7 @@ class ReviewsFilterViewModel extends Notifier<ReviewsFilter> {
     );
   }
 
-  void setCommentsOnly(bool commentsOnly) {
+  void setCommentsOnly({required bool commentsOnly}) {
     state = ReviewsFilter(
       searchText: state.searchText,
       stars: state.stars,

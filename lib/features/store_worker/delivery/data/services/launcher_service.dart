@@ -26,14 +26,14 @@ class LauncherService {
   /// Opens the phone's dialer with [phone] filled in. Spaces and dashes
   /// are removed, e.g. "012-345 6789" becomes "0123456789".
   Future<bool> call(String phone) {
-    final digits = phone.replaceAll(RegExp(r'[^0-9+]'), '');
+    final digits = phone.replaceAll(RegExp('[^0-9+]'), '');
     return _open(Uri(scheme: 'tel', path: digits));
   }
 
   Future<bool> _open(Uri uri) async {
     try {
       return await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (error) {
+    } on Object catch (error) {
       // Show the real error in the debug console.
       debugPrint('Opening $uri failed: $error');
       return false;

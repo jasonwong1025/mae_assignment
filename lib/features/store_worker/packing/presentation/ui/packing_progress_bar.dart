@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_spacing.dart';
-import '../../../orders/data/models/worker_order.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 
 /// "3 of 5 packed" with a progress bar under it. Worked out from the
 /// order's checklist, so it is always up to date.
 class PackingProgressBar extends StatelessWidget {
-  const PackingProgressBar({super.key, required this.order, this.large = false});
+  const PackingProgressBar({
+    required this.order,
+    super.key,
+    this.large = false,
+  });
 
   final WorkerOrder order;
 

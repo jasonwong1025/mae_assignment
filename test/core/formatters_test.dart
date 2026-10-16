@@ -30,7 +30,7 @@ void main() {
 
   test('date is day, short month, year', () {
     expect(Formatters.date(DateTime(2025, 3, 12)), '12 Mar 2025');
-    expect(Formatters.date(DateTime(2026, 12, 1)), '1 Dec 2026');
+    expect(Formatters.date(DateTime(2026, 12)), '1 Dec 2026');
   });
 
   test('minutes switches to hours after 59', () {

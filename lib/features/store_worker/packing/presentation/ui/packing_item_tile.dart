@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../app/theme/app_spacing.dart';
-import '../../../orders/data/models/worker_order.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 
 /// One product on the packing checklist: photo, name, brand and pack size,
 /// a large quantity, and a checkbox. Tapping the row opens the product's
 /// details ([onTap]); the checkbox ticks it.
 class PackingItemTile extends StatelessWidget {
   const PackingItemTile({
-    super.key,
     required this.item,
     required this.isPacked,
     required this.onChanged,
+    super.key,
     this.onTap,
   });
 
@@ -36,9 +36,7 @@ class PackingItemTile extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isPacked ? AppColors.green : AppColors.border,
-        ),
+        side: BorderSide(color: isPacked ? AppColors.green : AppColors.border),
       ),
       child: InkWell(
         onTap: onTap,
@@ -84,7 +82,7 @@ class PackingItemTile extends StatelessWidget {
 
 /// Product photo, or a basket icon when there is none (or it fails).
 class ProductImage extends StatelessWidget {
-  const ProductImage({super.key, required this.imageUrl, this.size = 64});
+  const ProductImage({required this.imageUrl, super.key, this.size = 64});
 
   final String? imageUrl;
 

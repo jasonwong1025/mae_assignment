@@ -272,10 +272,7 @@ void main() {
         'Hakim Roslan',
         location: AppRoutes.workerPackingOrder('ord-2308'),
       );
-      expect(
-        find.text('Packed and waiting for Amir Hamzah.'),
-        findsOneWidget,
-      );
+      expect(find.text('Packed and waiting for Amir Hamzah.'), findsOneWidget);
 
       await repository.verifyCollection(
         mockWorker('Amir Hamzah'),
@@ -285,7 +282,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Collected by Amir Hamzah at'), findsOneWidget);
+      expect(
+        find.textContaining('Collected by Amir Hamzah at'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a ready order is read-only', (tester) async {
@@ -302,7 +302,7 @@ void main() {
       expect(find.text('Review & mark ready'), findsNothing);
     });
 
-    testWidgets('another packer\'s order is not available', (tester) async {
+    testWidgets("another packer's order is not available", (tester) async {
       await _pumpAs(
         tester,
         'Daniel Lee',
@@ -312,7 +312,7 @@ void main() {
       expect(find.text('Order not available'), findsOneWidget);
     });
 
-    testWidgets('a colleague\'s ready pickup is not shown as a packing '
+    testWidgets("a colleague's ready pickup is not shown as a packing "
         'task', (tester) async {
       // Daniel can see 2306 in Ready for Pickup, but Hakim packed it, so it
       // must not open on Daniel's packing screen.
@@ -341,12 +341,14 @@ void main() {
       final repository = WorkerOrdersRepository();
       addTearDown(repository.dispose);
       final container = ProviderContainer(
-        overrides: [workerOrdersRepositoryProvider.overrideWithValue(repository)],
+        overrides: [
+          workerOrdersRepositoryProvider.overrideWithValue(repository),
+        ],
       );
       addTearDown(container.dispose);
-      container.read(workerSessionProvider.notifier).select(
-        mockWorker('Daniel Lee'),
-      );
+      container
+          .read(workerSessionProvider.notifier)
+          .select(mockWorker('Daniel Lee'));
 
       final provider = packingOrderViewModelProvider('ord-2302');
       container.listen(provider, (previous, next) {});

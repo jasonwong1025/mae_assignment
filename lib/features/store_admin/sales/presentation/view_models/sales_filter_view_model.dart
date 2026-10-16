@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/features/store_admin/sales/data/models/sales_period.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 
-import '../../../shell/presentation/view_models/branch_view_model.dart';
-import '../../data/models/sales_period.dart';
-
-final salesFilterViewModelProvider =
+final NotifierProvider<SalesFilterViewModel, SalesFilter>
+salesFilterViewModelProvider =
     NotifierProvider.autoDispose<SalesFilterViewModel, SalesFilter>(
       SalesFilterViewModel.new,
     );

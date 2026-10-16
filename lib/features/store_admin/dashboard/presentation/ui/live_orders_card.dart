@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../data/models/dashboard_summary.dart';
-import 'dashboard_card.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_admin/dashboard/data/models/dashboard_summary.dart';
+import 'package:mae_assignment/features/store_admin/dashboard/presentation/ui/dashboard_card.dart';
 
 /// "Right now" card: every order that is not finished yet.
 /// Orders with a problem are highlighted.
 class LiveOrdersCard extends StatelessWidget {
-  const LiveOrdersCard({super.key, required this.orders});
+  const LiveOrdersCard({required this.orders, super.key});
 
   final List<LiveOrder> orders;
 

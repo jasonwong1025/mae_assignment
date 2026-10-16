@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../app/theme/app_spacing.dart';
-import '../../../orders/data/models/worker_order.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 
 /// Final check before an order is marked ready: every product and
 /// quantity, then Mark as ready. The X in the top-right corner closes the

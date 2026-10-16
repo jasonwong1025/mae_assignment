@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'router/app_router.dart';
-import 'theme/app_theme.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/app/theme/app_theme.dart';
 
 class GrocerlyApp extends ConsumerWidget {
   const GrocerlyApp({super.key});

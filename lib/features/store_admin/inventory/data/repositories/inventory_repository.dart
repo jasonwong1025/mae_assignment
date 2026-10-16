@@ -1,11 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../../shared/models/page_result.dart';
-import '../models/inventory_item.dart';
-import '../models/product.dart';
-import '../sample_inventory.dart';
-import '../services/image_picker_service.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/sample_inventory.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/services/image_picker_service.dart';
+import 'package:mae_assignment/shared/models/page_result.dart';
 
 final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
   return InventoryRepository(ref.watch(imagePickerServiceProvider));
@@ -42,7 +41,7 @@ class InventoryRepository {
   Future<List<Uint8List>> pickPhotos(int limit) async {
     try {
       return await _imagePicker.pickPhotos(limit);
-    } catch (error) {
+    } on Object catch (error) {
       // Show the real error in the debug console.
       debugPrint('Picking photos failed: $error');
       throw const InventoryException('Could not open your photos.');
@@ -75,24 +74,27 @@ class InventoryRepository {
   }) async {
     final search = searchText.trim().toLowerCase();
 
-    final matching = _items.where((item) {
-      final product = item.product;
-      if (item.branchId != branchId) return false;
-      if (categoryId != null && product.categoryId != categoryId) return false;
-      if (stockStatus != null && item.stockStatus != stockStatus) return false;
-      if (isHidden != null && item.isHidden != isHidden) return false;
+    final matching =
+        _items.where((item) {
+          final product = item.product;
+          if (item.branchId != branchId) return false;
+          if (categoryId != null && product.categoryId != categoryId) {
+            return false;
+          }
+          if (stockStatus != null && item.stockStatus != stockStatus) {
+            return false;
+          }
+          if (isHidden != null && item.isHidden != isHidden) return false;
 
-      // Search by product name or brand.
-      return search.isEmpty ||
-          product.name.toLowerCase().contains(search) ||
-          product.brand.toLowerCase().contains(search);
-    }).toList();
-
-    matching.sort((a, b) {
-      return a.product.name.toLowerCase().compareTo(
-        b.product.name.toLowerCase(),
-      );
-    });
+          // Search by product name or brand.
+          return search.isEmpty ||
+              product.name.toLowerCase().contains(search) ||
+              product.brand.toLowerCase().contains(search);
+        }).toList()..sort((a, b) {
+          return a.product.name.toLowerCase().compareTo(
+            b.product.name.toLowerCase(),
+          );
+        });
 
     return PageResult.fromList(matching, page: page);
   }

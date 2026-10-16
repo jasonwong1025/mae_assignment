@@ -1,17 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../../app/router/app_router.dart';
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../app/theme/app_spacing.dart';
-import '../../../../../shared/ui/empty_state.dart';
-import '../../../orders/data/models/worker_order.dart';
-import '../../../session/presentation/view_models/worker_session_view_model.dart';
-import '../../../shell/presentation/ui/worker_scaffold.dart';
-import '../../../shell/worker_routes.dart';
-import '../ui/pickup_order_card.dart';
-import '../view_models/pickup_queue_view_model.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/features/store_worker/pickup/presentation/ui/pickup_order_card.dart';
+import 'package:mae_assignment/features/store_worker/pickup/presentation/view_models/pickup_queue_view_model.dart';
+import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_scaffold.dart';
+import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
+import 'package:mae_assignment/shared/ui/empty_state.dart';
 
 /// Packing Staff "Ready for Pickup" tab: every ready self-pickup order at
 /// the packer's branch, whoever packed it, with search and the pickups
@@ -48,7 +49,7 @@ class _PickupQueueViewState extends ConsumerState<PickupQueueView> {
   }
 
   void _openOrder(WorkerOrder order) {
-    context.push(AppRoutes.workerPickupOrder(order.id));
+    unawaited(context.push(AppRoutes.workerPickupOrder(order.id)));
   }
 
   /// True if [order] matches the search box: by order number (a leading
@@ -92,17 +93,18 @@ class _PickupQueueViewState extends ConsumerState<PickupQueueView> {
             )
           : null,
       actions: [
-        _isSearching
-            ? IconButton(
-                tooltip: 'Close search',
-                icon: const Icon(Icons.close_rounded),
-                onPressed: _closeSearch,
-              )
-            : IconButton(
-                tooltip: 'Search',
-                icon: const Icon(Icons.search_rounded),
-                onPressed: _openSearch,
-              ),
+        if (_isSearching)
+          IconButton(
+            tooltip: 'Close search',
+            icon: const Icon(Icons.close_rounded),
+            onPressed: _closeSearch,
+          )
+        else
+          IconButton(
+            tooltip: 'Search',
+            icon: const Icon(Icons.search_rounded),
+            onPressed: _openSearch,
+          ),
       ],
       child: queue.when(
         skipLoadingOnReload: true,
@@ -168,7 +170,6 @@ class _PickupQueueViewState extends ConsumerState<PickupQueueView> {
                     ),
                   ),
               ],
-
             ],
           );
         },
@@ -228,9 +229,17 @@ class _InlineEmpty extends StatelessWidget {
             child: Icon(icon, size: 28),
           ),
           const SizedBox(height: AppSpacing.m),
-          Text(title, style: textTheme.titleMedium, textAlign: TextAlign.center),
+          Text(
+            title,
+            style: textTheme.titleMedium,
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: AppSpacing.xs),
-          Text(message, style: textTheme.bodyMedium, textAlign: TextAlign.center),
+          Text(
+            message,
+            style: textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );

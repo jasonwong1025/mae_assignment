@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../app/theme/app_theme.dart';
-import '../../../shell/presentation/ui/admin_scaffold.dart';
-import '../../../shell/presentation/ui/admin_sidebar.dart';
-import '../../../shell/presentation/ui/filter_menu_button.dart';
-import '../../../shell/presentation/ui/pagination_bar.dart';
-import '../../../shell/presentation/view_models/branch_view_model.dart';
-import '../../data/models/review.dart';
-import '../../data/models/review_summary.dart';
-import '../ui/review_detail_panel.dart';
-import '../ui/review_rows.dart';
-import '../ui/review_summary_section.dart';
-import '../view_models/reviews_filter_view_model.dart';
-import '../view_models/reviews_view_model.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_theme.dart';
+import 'package:mae_assignment/features/store_admin/reviews/data/models/review.dart';
+import 'package:mae_assignment/features/store_admin/reviews/data/models/review_summary.dart';
+import 'package:mae_assignment/features/store_admin/reviews/presentation/ui/review_detail_panel.dart';
+import 'package:mae_assignment/features/store_admin/reviews/presentation/ui/review_rows.dart';
+import 'package:mae_assignment/features/store_admin/reviews/presentation/ui/review_summary_section.dart';
+import 'package:mae_assignment/features/store_admin/reviews/presentation/view_models/reviews_filter_view_model.dart';
+import 'package:mae_assignment/features/store_admin/reviews/presentation/view_models/reviews_view_model.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_scaffold.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_sidebar.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/filter_menu_button.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/pagination_bar.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 
 /// Reviews tab: what customers said about the selected branch and its
 /// drivers. Read only.
@@ -33,7 +32,7 @@ class _ReviewsViewState extends ConsumerState<ReviewsView> {
   final _searchController = TextEditingController();
 
   /// Marks the top of the list, to scroll there on a new page.
-  final _listKey = GlobalKey();
+  final GlobalKey<State<StatefulWidget>> _listKey = GlobalKey();
 
   /// Review open in the side panel.
   Review? _selected;
@@ -251,11 +250,11 @@ class _ReviewsViewState extends ConsumerState<ReviewsView> {
 /// Search box and filter buttons above the list.
 class _Filters extends ConsumerWidget {
   const _Filters({
-    super.key,
     required this.isWide,
     required this.searchController,
     required this.filter,
     required this.drivers,
+    super.key,
   });
 
   final bool isWide;
@@ -320,7 +319,8 @@ class _Filters extends ConsumerWidget {
         allLabel: 'With or without comment',
         options: const [FilterOption(value: true, label: 'With comment')],
         selected: filter.commentsOnly ? true : null,
-        onSelected: (value) => viewModel.setCommentsOnly(value ?? false),
+        onSelected: (value) =>
+            viewModel.setCommentsOnly(commentsOnly: value ?? false),
       ),
     ];
 

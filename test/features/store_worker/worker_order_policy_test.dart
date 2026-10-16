@@ -10,14 +10,14 @@ WorkerProfile _worker(String name) {
   return mockWorkerProfiles.firstWhere((worker) => worker.name == name);
 }
 
-final _daniel = _worker('Daniel Lee');
-final _hakim = _worker('Hakim Roslan');
-final _amir = _worker('Amir Hamzah');
-final _nadia = _worker('Nadia Yusof');
-final _hafiz = _worker('Hafiz Zainal');
-final _weiJie = _worker('Tan Wei Jie');
+final WorkerProfile _daniel = _worker('Daniel Lee');
+final WorkerProfile _hakim = _worker('Hakim Roslan');
+final WorkerProfile _amir = _worker('Amir Hamzah');
+final WorkerProfile _nadia = _worker('Nadia Yusof');
+final WorkerProfile _hafiz = _worker('Hafiz Zainal');
+final WorkerProfile _weiJie = _worker('Tan Wei Jie');
 
-final _orders = seedWorkerOrders(DateTime(2026, 10, 15, 12));
+final List<WorkerOrder> _orders = seedWorkerOrders(DateTime(2026, 10, 15, 12));
 
 WorkerOrder _order(String id) {
   return _orders.firstWhere((order) => order.id == id);
@@ -137,7 +137,7 @@ void main() {
     test('lists cannot be changed from outside', () {
       final order = _order('ord-2302');
       expect(() => order.packedLineIds.add('L3'), throwsUnsupportedError);
-      expect(() => order.items.clear(), throwsUnsupportedError);
+      expect(order.items.clear, throwsUnsupportedError);
     });
   });
 
@@ -341,7 +341,10 @@ void main() {
       final order = _order('ord-2308');
       const manual = VerificationMethod.manual;
       const qr = VerificationMethod.qr;
-      expect(WorkerOrderPolicy.checkCollectionCode(order, manual, '2308'), isNull);
+      expect(
+        WorkerOrderPolicy.checkCollectionCode(order, manual, '2308'),
+        isNull,
+      );
       expect(
         WorkerOrderPolicy.checkCollectionCode(order, manual, ' #2308 '),
         isNull,

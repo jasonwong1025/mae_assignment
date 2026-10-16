@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../models/order_status.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 
 /// Colour that stands for each order status, used wherever a status is
 /// shown (admin board and Store Worker app) so the same status always has
@@ -26,7 +26,7 @@ Color orderStatusColor(OrderStatus status) {
 /// Coloured dot followed by the status name in small capital letters,
 /// e.g. "● PACKING". Used as the column heading and in the detail panel.
 class OrderStatusLabel extends StatelessWidget {
-  const OrderStatusLabel({super.key, required this.status});
+  const OrderStatusLabel({required this.status, super.key});
 
   final OrderStatus status;
 
@@ -62,7 +62,7 @@ class OrderStatusLabel extends StatelessWidget {
 /// Status as a small rounded tag in the status colour, e.g. "Packing".
 /// Sized for mobile cards and headers.
 class OrderStatusBadge extends StatelessWidget {
-  const OrderStatusBadge({super.key, required this.status, this.label});
+  const OrderStatusBadge({required this.status, super.key, this.label});
 
   final OrderStatus status;
 

@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../shell/data/models/branch.dart';
-import '../../../shell/presentation/ui/admin_scaffold.dart';
-import '../../../shell/presentation/ui/admin_sidebar.dart';
-import '../../../shell/presentation/ui/pagination_bar.dart';
-import '../../../shell/presentation/view_models/branch_view_model.dart';
-import '../../data/models/worker.dart';
-import '../../../shell/presentation/ui/side_panel_frame.dart';
-import '../ui/staff_table.dart';
-import '../ui/worker_card.dart';
-import '../ui/worker_detail_panel.dart';
-import '../ui/worker_form.dart';
-import '../ui/worker_labels.dart';
-import '../view_models/staff_filter_view_model.dart';
-import '../view_models/staff_view_model.dart';
+import 'package:mae_assignment/features/store_admin/shell/data/models/branch.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_scaffold.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_sidebar.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/pagination_bar.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/side_panel_frame.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
+import 'package:mae_assignment/features/store_admin/staff/presentation/ui/staff_table.dart';
+import 'package:mae_assignment/features/store_admin/staff/presentation/ui/worker_card.dart';
+import 'package:mae_assignment/features/store_admin/staff/presentation/ui/worker_detail_panel.dart';
+import 'package:mae_assignment/features/store_admin/staff/presentation/ui/worker_form.dart';
+import 'package:mae_assignment/features/store_admin/staff/presentation/ui/worker_labels.dart';
+import 'package:mae_assignment/features/store_admin/staff/presentation/view_models/staff_filter_view_model.dart';
+import 'package:mae_assignment/features/store_admin/staff/presentation/view_models/staff_view_model.dart';
 
 /// Staff tab: packers of the selected branch and all drivers.
 /// The admin can add, edit and deactivate workers.

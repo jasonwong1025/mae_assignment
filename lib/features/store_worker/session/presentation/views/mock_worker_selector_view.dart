@@ -1,17 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../../app/router/app_router.dart';
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../app/theme/app_spacing.dart';
-import '../../../../../shared/ui/bottom_action_bar.dart';
-import '../../../../../shared/ui/worker_badges.dart';
-import '../../../orders/data/repositories/worker_orders_repository.dart';
-import '../../../shell/worker_routes.dart';
-import '../../data/mock_workers.dart';
-import '../../data/models/worker_profile.dart';
-import '../view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
+import 'package:mae_assignment/features/store_worker/session/data/mock_workers.dart';
+import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
+import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
+import 'package:mae_assignment/shared/ui/bottom_action_bar.dart';
+import 'package:mae_assignment/shared/ui/worker_badges.dart';
 
 /// Development-only page for previewing the Store Worker app without a
 /// Firebase account: pick a mock worker and the app opens as them.
@@ -23,17 +24,19 @@ class MockWorkerSelectorView extends ConsumerWidget {
   void _onWorkerTap(BuildContext context, WidgetRef ref, WorkerProfile worker) {
     final error = ref.read(workerSessionProvider.notifier).select(worker);
     if (error != null) {
-      showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Cannot start preview'),
-          content: Text(error),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('OK'),
-            ),
-          ],
+      unawaited(
+        showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Cannot start preview'),
+            content: Text(error),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
         ),
       );
       return;

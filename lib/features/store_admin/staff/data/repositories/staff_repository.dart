@@ -1,8 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../../shared/models/page_result.dart';
-import '../models/worker.dart';
-import '../sample_workers.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/sample_workers.dart';
+import 'package:mae_assignment/shared/models/page_result.dart';
 
 final staffRepositoryProvider = Provider<StaffRepository>((ref) {
   return StaffRepository();
@@ -31,15 +30,14 @@ class StaffRepository {
     String searchText = '',
     int page = 1,
   }) async {
-    final matching = _workers.where((worker) {
-      final isListed = worker.isDriver || worker.branchId == branchId;
-      return isListed && worker.matchesSearch(searchText);
-    }).toList();
-
-    matching.sort((a, b) {
-      if (a.role != b.role) return a.role.index.compareTo(b.role.index);
-      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-    });
+    final matching =
+        _workers.where((worker) {
+          final isListed = worker.isDriver || worker.branchId == branchId;
+          return isListed && worker.matchesSearch(searchText);
+        }).toList()..sort((a, b) {
+          if (a.role != b.role) return a.role.index.compareTo(b.role.index);
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        });
 
     return PageResult.fromList(matching, page: page);
   }
@@ -62,7 +60,7 @@ class StaffRepository {
   }) async {
     _checkEmailIsFree(email);
 
-    // TODO: create the Firebase account. The password is not saved yet.
+    // TODO(team): create the Firebase account. The password is not saved yet.
     final worker = Worker(
       id: 'w${_nextId++}',
       name: name,

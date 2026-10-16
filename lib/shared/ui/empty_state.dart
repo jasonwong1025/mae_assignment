@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_spacing.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
 
 /// Centred icon, title and message for a list with nothing in it, with an
 /// optional button below.
 class EmptyState extends StatelessWidget {
   const EmptyState({
-    super.key,
     required this.icon,
     required this.title,
     required this.message,
+    super.key,
     this.action,
   });
 
@@ -38,7 +38,11 @@ class EmptyState extends StatelessWidget {
               child: Icon(icon, size: 32),
             ),
             const SizedBox(height: AppSpacing.l),
-            Text(title, style: textTheme.titleLarge, textAlign: TextAlign.center),
+            Text(
+              title,
+              style: textTheme.titleLarge,
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: AppSpacing.s),
             Text(
               message,
@@ -59,11 +63,7 @@ class EmptyState extends StatelessWidget {
 /// EmptyState for something that failed to load, with a "Try again"
 /// button.
 class ErrorState extends StatelessWidget {
-  const ErrorState({
-    super.key,
-    required this.message,
-    required this.onRetry,
-  });
+  const ErrorState({required this.message, required this.onRetry, super.key});
 
   final String message;
   final VoidCallback onRetry;

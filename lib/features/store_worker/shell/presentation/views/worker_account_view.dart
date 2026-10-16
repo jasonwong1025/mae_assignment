@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../../app/router/app_router.dart';
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../app/theme/app_spacing.dart';
-import '../../../../../shared/ui/worker_badges.dart';
-import '../../../session/data/models/worker_profile.dart';
-import '../../../session/presentation/view_models/worker_session_view_model.dart';
-import '../../worker_routes.dart';
-import '../ui/worker_scaffold.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
+import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_scaffold.dart';
+import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
+import 'package:mae_assignment/shared/ui/worker_badges.dart';
 
 /// Account tab for both worker roles: who is signed in, their role and
 /// branch, and the way out of the preview. Read-only.

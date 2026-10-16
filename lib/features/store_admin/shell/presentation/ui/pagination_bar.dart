@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../shared/models/page_result.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/shared/models/page_result.dart';
 
 /// Footer under a table: "1-20 of 86 products" and the page buttons.
 /// On narrow screens the page numbers become "2 / 5".
 class PaginationBar extends StatelessWidget {
   const PaginationBar({
-    super.key,
     required this.result,
     required this.itemName,
     required this.onPageChanged,
+    super.key,
   });
 
   /// The page being shown.

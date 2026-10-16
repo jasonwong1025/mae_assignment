@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../core/utilities/formatters.dart';
-import '../../data/models/sales_report.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_admin/sales/data/models/sales_report.dart';
 
 /// Table heading. Uses the same columns as [TopProductRow].
 class TopProductsHeading extends StatelessWidget {
@@ -63,7 +63,7 @@ class _RowLayout extends StatelessWidget {
 
 /// One product in the table. [rank] counts from 1 over all pages.
 class TopProductRow extends StatelessWidget {
-  const TopProductRow({super.key, required this.rank, required this.product});
+  const TopProductRow({required this.rank, required this.product, super.key});
 
   final int rank;
   final ProductSales product;
@@ -103,7 +103,7 @@ class TopProductRow extends StatelessWidget {
 
 /// One product as a list tile, for phones.
 class TopProductTile extends StatelessWidget {
-  const TopProductTile({super.key, required this.rank, required this.product});
+  const TopProductTile({required this.rank, required this.product, super.key});
 
   final int rank;
   final ProductSales product;

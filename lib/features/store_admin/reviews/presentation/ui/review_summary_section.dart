@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
-
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../shared/ui/star_rating.dart';
-import '../../data/models/review_summary.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/features/store_admin/reviews/data/models/review_summary.dart';
+import 'package:mae_assignment/shared/ui/star_rating.dart';
 
 /// Top of the Reviews tab: the 3 average scores, the star breakdown and
 /// the driver ranking.
 class ReviewSummarySection extends StatelessWidget {
   const ReviewSummarySection({
-    super.key,
     required this.summary,
     required this.isWide,
     required this.onDriverTap,
+    super.key,
   });
 
   final ReviewSummary summary;

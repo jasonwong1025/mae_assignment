@@ -11,7 +11,7 @@ class OnboardingSlideData {
 /// Title + description, centred. Used inside the PageView.
 /// The logo is not part of the slide. It stays fixed above the slides.
 class OnboardingSlide extends StatelessWidget {
-  const OnboardingSlide({super.key, required this.data});
+  const OnboardingSlide({required this.data, super.key});
 
   final OnboardingSlideData data;
 

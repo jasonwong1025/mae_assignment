@@ -1,11 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../../shared/models/page_result.dart';
-import '../../../inventory/data/repositories/inventory_repository.dart';
-import '../models/sale.dart';
-import '../models/sales_period.dart';
-import '../models/sales_report.dart';
-import '../sample_sales.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/repositories/inventory_repository.dart';
+import 'package:mae_assignment/features/store_admin/sales/data/models/sale.dart';
+import 'package:mae_assignment/features/store_admin/sales/data/models/sales_period.dart';
+import 'package:mae_assignment/features/store_admin/sales/data/models/sales_report.dart';
+import 'package:mae_assignment/features/store_admin/sales/data/sample_sales.dart';
+import 'package:mae_assignment/shared/models/page_result.dart';
 
 final salesRepositoryProvider = Provider<SalesRepository>((ref) {
   return SalesRepository(ref.watch(inventoryRepositoryProvider));
@@ -133,7 +132,7 @@ class SalesRepository {
     }
 
     // Add each sale to the last bar that starts before it.
-    final revenue = List.filled(starts.length, 0.0);
+    final revenue = List<double>.filled(starts.length, 0);
     for (final sale in sales) {
       var index = starts.length - 1;
       while (index > 0 && starts[index].isAfter(sale.paidAt)) {

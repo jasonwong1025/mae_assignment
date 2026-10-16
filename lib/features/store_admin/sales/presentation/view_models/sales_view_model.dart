@@ -1,12 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/features/store_admin/sales/data/models/sales_report.dart';
+import 'package:mae_assignment/features/store_admin/sales/data/repositories/sales_repository.dart';
+import 'package:mae_assignment/features/store_admin/sales/presentation/view_models/sales_filter_view_model.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
+import 'package:mae_assignment/shared/models/page_result.dart';
 
-import '../../../../../shared/models/page_result.dart';
-import '../../../shell/presentation/view_models/branch_view_model.dart';
-import '../../data/models/sales_report.dart';
-import '../../data/repositories/sales_repository.dart';
-import 'sales_filter_view_model.dart';
-
-final salesViewModelProvider =
+final AsyncNotifierProvider<SalesViewModel, SalesState> salesViewModelProvider =
     AsyncNotifierProvider.autoDispose<SalesViewModel, SalesState>(
       SalesViewModel.new,
     );

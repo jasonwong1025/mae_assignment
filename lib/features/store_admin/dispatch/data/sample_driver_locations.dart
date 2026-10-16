@@ -1,10 +1,10 @@
 import 'package:latlong2/latlong.dart';
 
-import 'models/driver_location.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver_location.dart';
 
 /// Sample positions of the on-duty drivers, by worker id.
 /// Off-duty drivers share no location.
-/// TODO: delete once drivers send their GPS position.
+// TODO(team): delete once drivers send their GPS position.
 Map<String, DriverLocation> sampleDriverLocations() {
   return {
     // Heading to #2290 (SS19).

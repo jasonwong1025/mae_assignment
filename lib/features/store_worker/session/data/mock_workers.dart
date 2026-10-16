@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../shared/models/worker_role.dart';
-import 'models/worker_profile.dart';
+import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
+import 'package:mae_assignment/shared/models/worker_role.dart';
 
 /// Workers offered by the Mock Worker Selector.
 /// A provider, so tests can swap in their own list.
@@ -11,7 +10,7 @@ final mockWorkerProfilesProvider = Provider<List<WorkerProfile>>((ref) {
 
 /// Sample Store Workers for the preview. Branch ids match the store admin's
 /// sample branches.
-/// TODO: delete once worker profiles come from the backend.
+// TODO(team): delete once worker profiles come from the backend.
 const mockWorkerProfiles = [
   // Branch A: SS15 Subang.
   WorkerProfile(

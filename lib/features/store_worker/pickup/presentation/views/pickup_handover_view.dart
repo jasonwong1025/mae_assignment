@@ -1,36 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../../app/router/app_router.dart';
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../app/theme/app_spacing.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../../../../shared/models/order_status.dart';
-import '../../../../../shared/ui/bottom_action_bar.dart';
-import '../../../../../shared/ui/button_loading_indicator.dart';
-import '../../../../../shared/ui/confirm_sheet.dart';
-import '../../../../../shared/ui/empty_state.dart';
-import '../../../../../shared/ui/order_status_label.dart';
-import '../../../orders/data/models/worker_order.dart';
-import '../../../packing/presentation/ui/packing_item_tile.dart';
-import '../../../session/presentation/view_models/worker_session_view_model.dart';
-import '../ui/pickup_order_card.dart';
-import '../view_models/pickup_handover_view_model.dart';
-import '../../../shell/presentation/ui/worker_notice.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_item_tile.dart';
+import 'package:mae_assignment/features/store_worker/pickup/presentation/ui/pickup_order_card.dart';
+import 'package:mae_assignment/features/store_worker/pickup/presentation/view_models/pickup_handover_view_model.dart';
+import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_notice.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
+import 'package:mae_assignment/shared/ui/bottom_action_bar.dart';
+import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
+import 'package:mae_assignment/shared/ui/confirm_sheet.dart';
+import 'package:mae_assignment/shared/ui/empty_state.dart';
+import 'package:mae_assignment/shared/ui/order_status_label.dart';
 
 /// Handover screen for one self-pickup order: who it is for, what is in
 /// the bag (read-only), the manual check, and Complete pickup.
 /// Any packer at the branch can hand the order over, not only the one who
 /// packed it. Orders that can no longer be handed over are read-only.
 class PickupHandoverView extends ConsumerStatefulWidget {
-  const PickupHandoverView({super.key, required this.orderId});
+  const PickupHandoverView({required this.orderId, super.key});
 
   final String orderId;
 
   @override
-  ConsumerState<PickupHandoverView> createState() =>
-      _PickupHandoverViewState();
+  ConsumerState<PickupHandoverView> createState() => _PickupHandoverViewState();
 }
 
 class _PickupHandoverViewState extends ConsumerState<PickupHandoverView> {

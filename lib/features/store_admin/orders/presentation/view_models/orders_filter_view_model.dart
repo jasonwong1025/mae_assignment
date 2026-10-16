@@ -1,8 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/models/order.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
 
-final ordersFilterViewModelProvider =
+final NotifierProvider<OrdersFilterViewModel, OrdersFilter>
+ordersFilterViewModelProvider =
     NotifierProvider.autoDispose<OrdersFilterViewModel, OrdersFilter>(
       OrdersFilterViewModel.new,
     );

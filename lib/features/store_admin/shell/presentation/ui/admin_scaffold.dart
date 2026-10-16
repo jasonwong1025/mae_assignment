@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 
-import 'admin_sidebar.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_sidebar.dart';
 
 /// Page frame shared by every store admin page: sidebar plus the page.
 /// - Tablet and web: the sidebar is always visible on the left.
 /// - Phone: the sidebar is hidden in a drawer, opened by the menu button.
 class AdminScaffold extends StatelessWidget {
   const AdminScaffold({
-    super.key,
     required this.currentPage,
     required this.child,
+    super.key,
   });
 
   /// Screens at least this wide show the sidebar all the time.

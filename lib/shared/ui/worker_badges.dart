@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
 
 /// Small "Active" or "Deactivated" tag.
 /// Used by the admin Staff tab and the Store Worker preview.
 class WorkerStatusChip extends StatelessWidget {
-  const WorkerStatusChip({super.key, required this.isActive});
+  const WorkerStatusChip({required this.isActive, super.key});
 
   final bool isActive;
 
@@ -33,7 +33,7 @@ class WorkerStatusChip extends StatelessWidget {
 
 /// Circle with the first letter of the name.
 class WorkerAvatar extends StatelessWidget {
-  const WorkerAvatar({super.key, required this.name, this.radius = 16});
+  const WorkerAvatar({required this.name, super.key, this.radius = 16});
 
   final String name;
   final double radius;

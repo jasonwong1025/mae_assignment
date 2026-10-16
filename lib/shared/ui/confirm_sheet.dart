@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_spacing.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
 
 /// Asks the user to confirm an action that cannot be undone, in a sheet
 /// that slides up from the bottom (easier to reach on a phone than a
@@ -38,7 +38,11 @@ Future<bool> showConfirmSheet(
               child: Icon(icon, size: 28),
             ),
             const SizedBox(height: AppSpacing.l),
-            Text(title, style: textTheme.titleLarge, textAlign: TextAlign.center),
+            Text(
+              title,
+              style: textTheme.titleLarge,
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: AppSpacing.s),
             Text(
               message,

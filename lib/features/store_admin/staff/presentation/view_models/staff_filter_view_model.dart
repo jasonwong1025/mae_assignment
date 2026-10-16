@@ -1,8 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../shell/presentation/view_models/branch_view_model.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 
-final staffFilterViewModelProvider =
+final NotifierProvider<StaffFilterViewModel, StaffFilter>
+staffFilterViewModelProvider =
     NotifierProvider.autoDispose<StaffFilterViewModel, StaffFilter>(
       StaffFilterViewModel.new,
     );

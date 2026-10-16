@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../app/theme/app_spacing.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../../orders/data/models/worker_order.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 
 /// Orders due within this many minutes are highlighted in amber.
 const int _dueSoonMinutes = 15;
@@ -27,11 +27,11 @@ int minutesReady(WorkerOrder order) {
 /// line, and a time on the right.
 class PickupOrderCard extends StatelessWidget {
   const PickupOrderCard({
-    super.key,
     required this.order,
     required this.detail,
     required this.timeLabel,
     required this.time,
+    super.key,
     this.highlightTime = false,
     this.onTap,
   });

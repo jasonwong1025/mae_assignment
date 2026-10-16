@@ -1,6 +1,8 @@
-import '../../../../shared/models/order_status.dart';
-import '../../../store_admin/inventory/data/sample_inventory.dart';
-import 'models/worker_order.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/sample_inventory.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 
 /// Sample orders for the Store Worker preview, used while the backend is
 /// not connected. Times are worked out from [now], so the lists always
@@ -10,7 +12,7 @@ import 'models/worker_order.dart';
 /// - SS15 Subang: Daniel and Hakim (packers), Amir (driver)
 /// - Bukit Jalil: Hafiz (packer), Wei Jie (driver)
 ///
-/// TODO: delete once orders come from the backend.
+// TODO(team): delete once orders come from the backend.
 List<WorkerOrder> seedWorkerOrders(DateTime now) {
   DateTime ago(int minutes) => now.subtract(Duration(minutes: minutes));
 
@@ -125,10 +127,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerName: 'Nur Aisyah',
       customerPhone: '013-778 9021',
       isDelivery: false,
-      items: [
-        _item(_ss15, 'L1', 'p33', 2),
-        _item(_ss15, 'L2', 'p38', 1),
-      ],
+      items: [_item(_ss15, 'L1', 'p33', 2), _item(_ss15, 'L2', 'p38', 1)],
       status: OrderStatus.pending,
       placedAt: ago(6),
       dueAt: fromNow(50),
@@ -147,10 +146,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerName: 'Siti Aminah',
       customerPhone: '019-332 7781',
       isDelivery: false,
-      items: [
-        _item(_ss15, 'L1', 'p45', 1),
-        _item(_ss15, 'L2', 'p18', 1),
-      ],
+      items: [_item(_ss15, 'L1', 'p45', 1), _item(_ss15, 'L2', 'p18', 1)],
       packedLineIds: const {'L1', 'L2'},
       status: OrderStatus.ready,
       placedAt: ago(55),
@@ -200,10 +196,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerName: 'Raj Kumar',
       customerPhone: '014-662 0937',
       isDelivery: false,
-      items: [
-        _item(_ss15, 'L1', 'p35', 2),
-        _item(_ss15, 'L2', 'p29', 1),
-      ],
+      items: [_item(_ss15, 'L1', 'p35', 2), _item(_ss15, 'L2', 'p29', 1)],
       packedLineIds: const {'L1', 'L2'},
       status: OrderStatus.completed,
       placedAt: ago(120),
@@ -232,10 +225,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       isDelivery: true,
       address: 'B-10-3, Subang Avenue, Jalan SS16/1, 47500 Subang Jaya',
       customerNote: 'Leave with the guard if I do not answer.',
-      items: [
-        _item(_ss15, 'L1', 'p15', 2),
-        _item(_ss15, 'L2', 'p12', 1),
-      ],
+      items: [_item(_ss15, 'L1', 'p15', 2), _item(_ss15, 'L2', 'p12', 1)],
       packedLineIds: const {'L1', 'L2'},
       status: OrderStatus.ready,
       placedAt: ago(60),
@@ -262,10 +252,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerPhone: '011-2345 6780',
       isDelivery: true,
       address: '8, Jalan SS15/2A, 47500 Subang Jaya',
-      items: [
-        _item(_ss15, 'L1', 'p9', 1),
-        _item(_ss15, 'L2', 'p16', 2),
-      ],
+      items: [_item(_ss15, 'L1', 'p9', 1), _item(_ss15, 'L2', 'p16', 2)],
       packedLineIds: const {'L1', 'L2'},
       status: OrderStatus.outForDelivery,
       placedAt: ago(70),
@@ -296,9 +283,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerPhone: '013-410 2209',
       isDelivery: true,
       address: '21, Jalan SS14/1, 47500 Subang Jaya',
-      items: [
-        _item(_ss15, 'L1', 'p19', 1),
-      ],
+      items: [_item(_ss15, 'L1', 'p19', 1)],
       packedLineIds: const {'L1'},
       status: OrderStatus.completed,
       placedAt: ago(180),
@@ -331,9 +316,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerName: 'Jun Hao Lee',
       customerPhone: '016-905 1180',
       isDelivery: false,
-      items: [
-        _item(_ss15, 'L1', 'p41', 3),
-      ],
+      items: [_item(_ss15, 'L1', 'p41', 3)],
       status: OrderStatus.cancelled,
       placedAt: ago(40),
       dueAt: fromNow(30),
@@ -406,9 +389,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerName: 'Arif Hassan',
       customerPhone: '019-887 6610',
       isDelivery: false,
-      items: [
-        _item(_bukitJalil, 'L1', 'p13', 1),
-      ],
+      items: [_item(_bukitJalil, 'L1', 'p13', 1)],
       packedLineIds: const {'L1'},
       status: OrderStatus.ready,
       placedAt: ago(42),
@@ -462,9 +443,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       customerPhone: '012-668 1023',
       isDelivery: true,
       address: '17, Jalan Bukit Jalil Indah 2, 57000 Bukit Jalil',
-      items: [
-        _item(_bukitJalil, 'L1', 'p10', 1),
-      ],
+      items: [_item(_bukitJalil, 'L1', 'p10', 1)],
       packedLineIds: const {'L1'},
       status: OrderStatus.outForDelivery,
       placedAt: ago(75),
@@ -505,16 +484,17 @@ const _weiJieName = 'Tan Wei Jie';
 
 /// The admin's sample products, by id, so order lines show the same names,
 /// brands, sizes, categories and descriptions as the Inventory tab.
-final _inventory = sampleInventory();
-final _catalogue = {
+final List<InventoryItem> _inventory = sampleInventory();
+final Map<String, Product> _catalogue = {
   for (final item in _inventory) item.product.id: item.product,
 };
 
 /// Each product's price at each branch, keyed "branchId/productId".
-final _prices = {
-  for (final item in _inventory) '${item.branchId}/${item.product.id}': item.price,
+final Map<String, double> _prices = {
+  for (final item in _inventory)
+    '${item.branchId}/${item.product.id}': item.price,
 };
-final _categoryNames = {
+final Map<String, String> _categoryNames = {
   for (final category in sampleCategories()) category.id: category.name,
 };
 

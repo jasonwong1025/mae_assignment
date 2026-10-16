@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../app/theme/app_spacing.dart';
-import '../../../session/presentation/view_models/worker_session_view_model.dart';
-import '../../worker_routes.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
 
 /// Mobile page frame shared by every Store Worker tab: a compact app bar
 /// with the page title and branch, the page, and the role's bottom
@@ -16,9 +16,9 @@ import '../../worker_routes.dart';
 /// The store admin's desktop AdminScaffold is deliberately not used here.
 class WorkerScaffold extends ConsumerWidget {
   const WorkerScaffold({
-    super.key,
     required this.currentTab,
     required this.child,
+    super.key,
     this.titleOverride,
     this.actions = const [],
   });
@@ -117,9 +117,9 @@ class WorkerScaffold extends ConsumerWidget {
 /// Logo, page title, and "Grocerly · branch name" under it.
 class _AppBarTitle extends StatelessWidget {
   const _AppBarTitle({
-    super.key,
     required this.title,
     required this.branchName,
+    super.key,
   });
 
   final String title;

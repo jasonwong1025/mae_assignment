@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:latlong2/latlong.dart';
 
-import '../models/driver_location.dart';
-import '../sample_driver_locations.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver_location.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/data/sample_driver_locations.dart';
 
 /// Live driver positions.
 /// No GPS yet: every 2 seconds each driver moves a little toward their
 /// next stop, so the map looks live.
-/// TODO: read the positions the driver app writes to Firestore.
+// TODO(team): read the positions the driver app writes to Firestore.
 class DriverLocationService {
   DriverLocationService() {
     // Only move drivers while someone is watching.
@@ -33,7 +33,8 @@ class DriverLocationService {
   }
 
   /// Gives a driver new stops. An empty list ends their trip.
-  /// TODO: ask a routing service (e.g. OpenRouteService) for the road route.
+  // TODO(team): ask a routing service (e.g. OpenRouteService) for the road
+  // route.
   void setStops(String driverId, List<LatLng> stops) {
     final location = _locations[driverId];
     if (location == null) return;
@@ -88,6 +89,6 @@ class DriverLocationService {
 
   void dispose() {
     _stop();
-    _changes.close();
+    unawaited(_changes.close());
   }
 }

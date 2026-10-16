@@ -1,15 +1,15 @@
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/repositories/inventory_repository.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/view_models/inventory_filter_view_model.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
+import 'package:mae_assignment/shared/models/page_result.dart';
 
-import '../../../../../shared/models/page_result.dart';
-import '../../../shell/presentation/view_models/branch_view_model.dart';
-import '../../data/models/inventory_item.dart';
-import '../../data/models/product.dart';
-import '../../data/repositories/inventory_repository.dart';
-import 'inventory_filter_view_model.dart';
-
-final inventoryViewModelProvider =
+final AsyncNotifierProvider<InventoryViewModel, InventoryState>
+inventoryViewModelProvider =
     AsyncNotifierProvider.autoDispose<InventoryViewModel, InventoryState>(
       InventoryViewModel.new,
     );

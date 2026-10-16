@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
-
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../../../../shared/ui/button_loading_indicator.dart';
-import '../../../orders/data/models/order.dart';
-import '../view_models/dispatch_state.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_state.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
 
 /// "ASSIGN #2292" box: pick a free driver and press "Assign driver".
 /// The nearest free driver is picked first.
 class AssignDriverBox extends StatefulWidget {
   const AssignDriverBox({
-    super.key,
     required this.state,
     required this.order,
     required this.onAssign,
+    super.key,
     this.preselectedDriverId,
   });
 

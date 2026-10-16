@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-
-import '../../../../../app/theme/app_colors.dart';
-import '../../../orders/data/models/order.dart';
-import '../view_models/dispatch_state.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_state.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
 
 /// Free drivers are green, busy blue, offline grey.
 Color driverColor(DispatchDriver driver) {
@@ -27,7 +26,7 @@ String deliveryStatusText(Order order, DispatchDriver? driver) {
 
 /// Small coloured dot.
 class StatusDot extends StatelessWidget {
-  const StatusDot({super.key, required this.color});
+  const StatusDot({required this.color, super.key});
 
   final Color color;
 

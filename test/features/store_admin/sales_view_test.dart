@@ -63,7 +63,7 @@ void main() {
 
     test('long custom periods group by week', () {
       final period = SalesPeriod.custom(
-        DateTime(2026, 7, 1),
+        DateTime(2026, 7),
         DateTime(2026, 9, 30),
       );
 
@@ -91,7 +91,10 @@ void main() {
       expect(report.points.length, 30);
 
       // The chart adds up to the same revenue.
-      final chartTotal = report.points.fold(0.0, (sum, p) => sum + p.revenue);
+      final chartTotal = report.points.fold<double>(
+        0,
+        (sum, p) => sum + p.revenue,
+      );
       expect(chartTotal, closeTo(totals.revenue, 0.01));
     });
 

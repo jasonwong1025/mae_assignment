@@ -2,9 +2,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'app/app.dart';
-import 'core/firebase/firebase_emulators.dart';
-import 'firebase_options.dart';
+import 'package:mae_assignment/app/app.dart';
+import 'package:mae_assignment/core/firebase/firebase_emulators.dart';
+import 'package:mae_assignment/firebase_options.dart';
 
 Future<void> main() async {
   // Needed before calling Firebase, which uses platform code.

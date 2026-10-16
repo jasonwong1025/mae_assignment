@@ -54,7 +54,7 @@ void main() {
     expect(find.text('Amir marked #2286 delivered'), findsOneWidget);
   });
 
-  testWidgets('Switching branch shows that branch\'s numbers', (tester) async {
+  testWidgets("Switching branch shows that branch's numbers", (tester) async {
     await _pumpDashboard(tester, tablet);
 
     await tester.tap(find.byTooltip('Switch branch'));

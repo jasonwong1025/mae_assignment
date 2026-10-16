@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../app/theme/app_spacing.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../../../../shared/models/order_status.dart';
-import '../../../../../shared/ui/order_status_label.dart';
-import '../../../orders/data/models/worker_order.dart';
-import '../../../packing/presentation/ui/packing_progress_bar.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_progress_bar.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
+import 'package:mae_assignment/shared/ui/order_status_label.dart';
 
 /// Status in the driver's words, e.g. "Ready to collect".
 String deliveryStatusLabel(WorkerOrder order) {
@@ -30,9 +29,9 @@ String deliveryStatusLabel(WorkerOrder order) {
 /// they cannot be collected yet.
 class DeliveryOrderCard extends StatelessWidget {
   const DeliveryOrderCard({
-    super.key,
     required this.order,
     required this.onTap,
+    super.key,
   });
 
   final WorkerOrder order;

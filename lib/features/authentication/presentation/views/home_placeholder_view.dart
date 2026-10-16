@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../app/router/app_router.dart';
-import '../../../../shared/ui/bottom_action_bar.dart';
-import '../../../../shared/ui/brand_header.dart';
-import '../../data/repositories/auth_repository.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
+import 'package:mae_assignment/shared/ui/bottom_action_bar.dart';
+import 'package:mae_assignment/shared/ui/brand_header.dart';
 
 /// Temporary page shown after signing in, so sign-in can be tested.
 /// Will be replaced by the real Customer / Store Admin / Store Worker homes.

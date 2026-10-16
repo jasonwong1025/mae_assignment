@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -30,7 +31,8 @@ class FirebaseEmulators {
   static String get host {
     const override = String.fromEnvironment('FIREBASE_EMULATOR_HOST');
     if (override.isNotEmpty) return override;
-    final isAndroid = !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+    final isAndroid =
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
     // Platform.isAndroid guards against desktop/test runs where the method
     // channel is unavailable; the kIsWeb check keeps web off this path.
     if (isAndroid && !kIsWeb && Platform.isAndroid) return '10.0.2.2';
@@ -44,8 +46,13 @@ class FirebaseEmulators {
     if (!enabled) return;
 
     final emulatorHost = host;
-    FirebaseFirestore.instance.useFirestoreEmulator(emulatorHost, _firestorePort);
-    FirebaseAuth.instance.useAuthEmulator(emulatorHost, _authPort);
+    FirebaseFirestore.instance.useFirestoreEmulator(
+      emulatorHost,
+      _firestorePort,
+    );
+    // useAuthEmulator returns a Future we intentionally do not await here;
+    // connect() is a one-shot setup call made before any auth use.
+    unawaited(FirebaseAuth.instance.useAuthEmulator(emulatorHost, _authPort));
 
     debugPrint(
       'Firebase emulators: Auth $emulatorHost:$_authPort, '

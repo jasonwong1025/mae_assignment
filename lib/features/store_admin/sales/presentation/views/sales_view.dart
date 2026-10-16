@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../app/theme/app_theme.dart';
-import '../../../shell/presentation/ui/admin_scaffold.dart';
-import '../../../shell/presentation/ui/admin_sidebar.dart';
-import '../../../shell/presentation/ui/pagination_bar.dart';
-import '../../../shell/presentation/view_models/branch_view_model.dart';
-import '../ui/category_sales_card.dart';
-import '../ui/period_picker.dart';
-import '../ui/revenue_chart.dart';
-import '../ui/sales_summary_cards.dart';
-import '../ui/top_products_rows.dart';
-import '../view_models/sales_filter_view_model.dart';
-import '../view_models/sales_view_model.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_theme.dart';
+import 'package:mae_assignment/features/store_admin/sales/presentation/ui/category_sales_card.dart';
+import 'package:mae_assignment/features/store_admin/sales/presentation/ui/period_picker.dart';
+import 'package:mae_assignment/features/store_admin/sales/presentation/ui/revenue_chart.dart';
+import 'package:mae_assignment/features/store_admin/sales/presentation/ui/sales_summary_cards.dart';
+import 'package:mae_assignment/features/store_admin/sales/presentation/ui/top_products_rows.dart';
+import 'package:mae_assignment/features/store_admin/sales/presentation/view_models/sales_filter_view_model.dart';
+import 'package:mae_assignment/features/store_admin/sales/presentation/view_models/sales_view_model.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_scaffold.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_sidebar.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/pagination_bar.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 
 /// Sales & revenue tab: what the selected branch earned in a period.
 /// Every order is paid from the wallet at checkout. Read only.
@@ -30,7 +29,7 @@ class _SalesViewState extends ConsumerState<SalesView> {
   static const double _chartBesideCategoriesWidth = 1000;
 
   /// Marks the top of the products table, to scroll there on a new page.
-  final _tableKey = GlobalKey();
+  final GlobalKey<State<StatefulWidget>> _tableKey = GlobalKey();
 
   void _goToPage(int page) {
     ref.read(salesFilterViewModelProvider.notifier).setPage(page);

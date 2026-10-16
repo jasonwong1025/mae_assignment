@@ -42,6 +42,9 @@ class _UserService extends Fake implements UserService {
 
   @override
   Future<AppUser> getOrCreateCustomer(AppUser customer) async {
+    // The test injects an arbitrary failure object to simulate a backend
+    // error; rethrowing it as-is is the point.
+    // ignore: only_throw_errors
     if (failure != null) throw failure!;
     if (stored != null) return stored!;
     writes++;

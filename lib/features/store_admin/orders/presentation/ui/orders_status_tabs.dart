@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../../data/models/order.dart';
-import 'order_card.dart';
-import 'orders_board.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/features/store_admin/orders/presentation/ui/order_card.dart';
+import 'package:mae_assignment/features/store_admin/orders/presentation/ui/orders_board.dart';
 
 /// The board for phones: six columns do not fit, so the statuses become
 /// a row of tabs and only the chosen status is listed.
 class OrdersStatusTabs extends StatelessWidget {
   const OrdersStatusTabs({
-    super.key,
     required this.orders,
     required this.selectedStatus,
     required this.onStatusSelected,
     required this.onOrderTap,
+    super.key,
   });
 
   final List<Order> orders;

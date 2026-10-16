@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'app_back_button.dart';
+import 'package:mae_assignment/shared/ui/app_back_button.dart';
 
 /// Logo with the app name and tagline next to it, optionally with the
 /// back button on the left in the same row.

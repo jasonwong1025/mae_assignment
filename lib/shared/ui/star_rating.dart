@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
 
 /// Five stars showing a score out of 5. Halves are shown as half stars.
 /// Display only.
 class StarRating extends StatelessWidget {
-  const StarRating({super.key, required this.score, this.size = 16});
+  const StarRating({required this.score, super.key, this.size = 16});
 
   final double score;
   final double size;

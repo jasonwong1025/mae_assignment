@@ -1,4 +1,4 @@
-import 'sales_period.dart';
+import 'package:mae_assignment/features/store_admin/sales/data/models/sales_period.dart';
 
 /// Totals for one period.
 class SalesTotals {

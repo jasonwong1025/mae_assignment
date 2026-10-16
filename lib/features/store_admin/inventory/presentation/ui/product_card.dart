@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../data/models/inventory_item.dart';
-import 'product_labels.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/product_labels.dart';
 
 /// One product, for the phone layout.
 class ProductCard extends StatelessWidget {
-  const ProductCard({super.key, required this.item, required this.onTap});
+  const ProductCard({required this.item, required this.onTap, super.key});
 
   final InventoryItem item;
   final VoidCallback onTap;
@@ -53,7 +53,8 @@ class ProductCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${Formatters.money(item.price)} · ${item.stock} in stock',
+                      '${Formatters.money(item.price)} · '
+                      '${item.stock} in stock',
                       style: textTheme.bodySmall,
                     ),
                   ],

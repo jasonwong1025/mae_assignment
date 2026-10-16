@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
 
 /// Outlined "Continue with Google" button, shared by sign-up and login.
 class GoogleSignInButton extends StatelessWidget {
   const GoogleSignInButton({
-    super.key,
     required this.onPressed,
+    super.key,
     this.isLoading = false,
   });
 

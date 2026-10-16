@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../../app/router/app_router.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../../../authentication/data/repositories/auth_repository.dart';
-import '../../../shell/data/models/branch.dart';
-import '../../../shell/presentation/ui/admin_scaffold.dart';
-import '../../../shell/presentation/ui/admin_sidebar.dart';
-import '../../../shell/presentation/view_models/branch_view_model.dart';
-import '../../data/models/dashboard_summary.dart';
-import '../ui/activity_card.dart';
-import '../ui/live_orders_card.dart';
-import '../ui/orders_today_card.dart';
-import '../view_models/dashboard_view_model.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
+import 'package:mae_assignment/features/store_admin/dashboard/data/models/dashboard_summary.dart';
+import 'package:mae_assignment/features/store_admin/dashboard/presentation/ui/activity_card.dart';
+import 'package:mae_assignment/features/store_admin/dashboard/presentation/ui/live_orders_card.dart';
+import 'package:mae_assignment/features/store_admin/dashboard/presentation/ui/orders_today_card.dart';
+import 'package:mae_assignment/features/store_admin/dashboard/presentation/view_models/dashboard_view_model.dart';
+import 'package:mae_assignment/features/store_admin/shell/data/models/branch.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_scaffold.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_sidebar.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 
 /// Store admin home page: today's numbers for the selected branch.
 class DashboardView extends ConsumerWidget {

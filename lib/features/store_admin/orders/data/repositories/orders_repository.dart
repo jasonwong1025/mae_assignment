@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/order.dart';
-import '../sample_orders.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/sample_orders.dart';
 
 final ordersRepositoryProvider = Provider<OrdersRepository>((ref) {
   final repository = OrdersRepository();

@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
-
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../../orders/data/models/order.dart';
-import '../view_models/dispatch_state.dart';
-import 'dispatch_labels.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/dispatch_labels.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_state.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
 
 /// One driver in the drivers list, e.g. "● Amir Hamzah · Delivering #2290".
 class DriverTile extends StatelessWidget {
   const DriverTile({
-    super.key,
     required this.driver,
     required this.state,
     required this.isSelected,
     required this.onTap,
+    super.key,
   });
 
   final DispatchDriver driver;
@@ -74,11 +73,11 @@ class DriverTile extends StatelessWidget {
 /// One delivery order, e.g. "#2292 · Ooi Hui Min" with its status.
 class DeliveryTile extends StatelessWidget {
   const DeliveryTile({
-    super.key,
     required this.order,
     required this.driver,
     required this.isSelected,
     required this.onTap,
+    super.key,
   });
 
   final Order order;

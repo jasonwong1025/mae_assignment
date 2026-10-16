@@ -1,4 +1,4 @@
-import '../../../../../shared/models/worker_role.dart';
+import 'package:mae_assignment/shared/models/worker_role.dart';
 
 // WorkerRole now lives in shared/ so the Store Worker app can use it too.
 // Re-exported so files that import this one keep working.
@@ -119,7 +119,7 @@ class Worker {
   }
 
   /// Copy that is active or not. Deactivating also clears duty and order.
-  Worker withActive(bool active) {
+  Worker withActive({required bool active}) {
     return Worker(
       id: id,
       name: name,
@@ -128,7 +128,7 @@ class Worker {
       role: role,
       branchId: branchId,
       isActive: active,
-      isOnDuty: active ? isOnDuty : false,
+      isOnDuty: active && isOnDuty,
       currentOrderNumber: active ? currentOrderNumber : null,
       minutesOnCurrentOrder: active ? minutesOnCurrentOrder : null,
       ordersToday: ordersToday,

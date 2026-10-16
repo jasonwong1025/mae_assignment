@@ -2,30 +2,30 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/authentication/data/repositories/auth_repository.dart';
-import '../../features/authentication/presentation/views/home_placeholder_view.dart';
-import '../../features/authentication/presentation/views/login_view.dart';
-import '../../features/authentication/presentation/views/onboarding_view.dart';
-import '../../features/authentication/presentation/views/register_view.dart';
-import '../../features/store_admin/dashboard/presentation/views/dashboard_view.dart';
-import '../../features/store_admin/dispatch/presentation/views/dispatch_view.dart';
-import '../../features/store_admin/inventory/presentation/views/inventory_view.dart';
-import '../../features/store_admin/orders/presentation/views/orders_view.dart';
-import '../../features/store_admin/reviews/presentation/views/reviews_view.dart';
-import '../../features/store_admin/sales/presentation/views/sales_view.dart';
-import '../../features/store_admin/staff/presentation/views/staff_view.dart';
-import '../../features/store_worker/delivery/presentation/views/delivery_detail_view.dart';
-import '../../features/store_worker/delivery/presentation/views/delivery_tasks_view.dart';
-import '../../features/store_worker/packing/presentation/views/packing_order_view.dart';
-import '../../features/store_worker/packing/presentation/views/packing_tasks_view.dart';
-import '../../features/store_worker/pickup/presentation/views/pickup_handover_view.dart';
-import '../../features/store_worker/pickup/presentation/views/pickup_queue_view.dart';
-import '../../features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
-import '../../features/store_worker/session/presentation/views/mock_worker_selector_view.dart';
-import '../../features/store_worker/session/worker_preview.dart';
-import '../../features/store_worker/shell/presentation/views/worker_account_view.dart';
-import '../../features/store_worker/shell/worker_routes.dart';
-import '../../shared/models/app_user.dart';
+import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
+import 'package:mae_assignment/features/authentication/presentation/views/home_placeholder_view.dart';
+import 'package:mae_assignment/features/authentication/presentation/views/login_view.dart';
+import 'package:mae_assignment/features/authentication/presentation/views/onboarding_view.dart';
+import 'package:mae_assignment/features/authentication/presentation/views/register_view.dart';
+import 'package:mae_assignment/features/store_admin/dashboard/presentation/views/dashboard_view.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/views/dispatch_view.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/views/inventory_view.dart';
+import 'package:mae_assignment/features/store_admin/orders/presentation/views/orders_view.dart';
+import 'package:mae_assignment/features/store_admin/reviews/presentation/views/reviews_view.dart';
+import 'package:mae_assignment/features/store_admin/sales/presentation/views/sales_view.dart';
+import 'package:mae_assignment/features/store_admin/staff/presentation/views/staff_view.dart';
+import 'package:mae_assignment/features/store_worker/delivery/presentation/views/delivery_detail_view.dart';
+import 'package:mae_assignment/features/store_worker/delivery/presentation/views/delivery_tasks_view.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/views/packing_order_view.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/views/packing_tasks_view.dart';
+import 'package:mae_assignment/features/store_worker/pickup/presentation/views/pickup_handover_view.dart';
+import 'package:mae_assignment/features/store_worker/pickup/presentation/views/pickup_queue_view.dart';
+import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/features/store_worker/session/presentation/views/mock_worker_selector_view.dart';
+import 'package:mae_assignment/features/store_worker/session/worker_preview.dart';
+import 'package:mae_assignment/features/store_worker/shell/presentation/views/worker_account_view.dart';
+import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
+import 'package:mae_assignment/shared/models/app_user.dart';
 
 /// Route paths are kept in one place so we don't mistype them in screens.
 class AppRoutes {
@@ -68,7 +68,7 @@ Future<String?> _adminRedirect(AuthRepository authRepository) async {
   try {
     final user = await authRepository.getCurrentUser();
     return user?.role == UserRole.storeAdmin ? null : AppRoutes.home;
-  } catch (_) {
+  } on Object catch (_) {
     return AppRoutes.home;
   }
 }
@@ -81,14 +81,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   // leaving a worker immediately applies the new role's pages.
   // listen (not watch), so the router is not rebuilt and history is kept.
   final workerSessionChanges = ValueNotifier<int>(0);
-  ref.listen(workerSessionProvider, (previous, next) {
-    workerSessionChanges.value++;
-  });
-  ref.onDispose(workerSessionChanges.dispose);
+  ref
+    ..listen(workerSessionProvider, (previous, next) {
+      workerSessionChanges.value++;
+    })
+    ..onDispose(workerSessionChanges.dispose);
 
   return GoRouter(
-    initialLocation: AppRoutes
-        .onboarding, //the initial page that will be shown when the app is opened
+    // The first page shown when the app opens.
+    initialLocation: AppRoutes.onboarding,
     refreshListenable: workerSessionChanges,
     // Runs before every navigation:
     // - Store Worker pages: preview and role checks (workerRouteRedirect)
@@ -115,9 +116,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         state.matchedLocation,
       );
 
-      // if the user is signed in and on a signed out page, redirect to the home page
+      // Signed in but on a signed-out page: go home.
       if (isSignedIn && onSignedOutPage) return AppRoutes.home;
-      // if the user is not signed in and not on a signed out page, redirect to the onboarding page
+      // Signed out but on any other page: go to onboarding.
       if (!isSignedIn && !onSignedOutPage) return AppRoutes.onboarding;
 
       if (state.matchedLocation.startsWith('/admin/')) {

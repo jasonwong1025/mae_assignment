@@ -202,9 +202,9 @@ void main() {
       expect(find.text('Kelvin Lim'), findsNothing);
 
       // The record shows who handed it over and how it was checked.
-      container.read(appRouterProvider).go(
-        AppRoutes.workerPickupOrder('ord-2306'),
-      );
+      container
+          .read(appRouterProvider)
+          .go(AppRoutes.workerPickupOrder('ord-2306'));
       await tester.pumpAndSettle();
       expect(find.textContaining('Handed over by you at'), findsOneWidget);
       expect(find.textContaining('(manual check)'), findsOneWidget);
@@ -294,7 +294,7 @@ void main() {
       expect(find.text('Complete pickup'), findsNothing);
     });
 
-    testWidgets('another branch\'s pickup is not available', (tester) async {
+    testWidgets("another branch's pickup is not available", (tester) async {
       await pumpWorkerApp(
         tester,
         'Hafiz Zainal',
@@ -327,9 +327,9 @@ void main() {
       );
       expect(routerLocation(container), AppRoutes.workerDelivery);
 
-      container.read(appRouterProvider).go(
-        AppRoutes.workerPickupOrder('ord-2306'),
-      );
+      container
+          .read(appRouterProvider)
+          .go(AppRoutes.workerPickupOrder('ord-2306'));
       await tester.pumpAndSettle();
       expect(routerLocation(container), AppRoutes.workerDelivery);
     });
@@ -340,12 +340,14 @@ void main() {
       final repository = WorkerOrdersRepository();
       addTearDown(repository.dispose);
       final container = ProviderContainer(
-        overrides: [workerOrdersRepositoryProvider.overrideWithValue(repository)],
+        overrides: [
+          workerOrdersRepositoryProvider.overrideWithValue(repository),
+        ],
       );
       addTearDown(container.dispose);
-      container.read(workerSessionProvider.notifier).select(
-        mockWorker('Hakim Roslan'),
-      );
+      container
+          .read(workerSessionProvider.notifier)
+          .select(mockWorker('Hakim Roslan'));
 
       await repository.completePickup(
         mockWorker('Daniel Lee'),

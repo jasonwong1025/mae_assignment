@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
 
 /// A text field with a small uppercase label above it
 /// (e.g. "FULL NAME" then the input box). Used by all forms in the app.
 class LabeledTextField extends StatelessWidget {
   const LabeledTextField({
-    super.key,
     required this.label,
+    super.key,
     this.labelTrailing,
     this.controller,
     this.hint,

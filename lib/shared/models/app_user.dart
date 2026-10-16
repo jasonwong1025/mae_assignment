@@ -34,16 +34,6 @@ class AppUser {
     this.createdAt,
   });
 
-  /// Same id as the Firebase Authentication account.
-  final String uid;
-  final String name;
-  final String email;
-  final String phone;
-  final UserRole role;
-
-  /// Null until Firestore has saved the server time.
-  final DateTime? createdAt;
-
   factory AppUser.fromMap(String uid, Map<String, dynamic> map) {
     final createdAt = map['createdAt'];
 
@@ -56,6 +46,16 @@ class AppUser {
       createdAt: createdAt is Timestamp ? createdAt.toDate() : null,
     );
   }
+
+  /// Same id as the Firebase Authentication account.
+  final String uid;
+  final String name;
+  final String email;
+  final String phone;
+  final UserRole role;
+
+  /// Null until Firestore has saved the server time.
+  final DateTime? createdAt;
 
   /// Data for a new users/{uid} document. The uid is the document id,
   /// so it is not saved as a field.

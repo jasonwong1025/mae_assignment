@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 
-import '../../../shell/presentation/view_models/branch_view_model.dart';
-import '../../data/models/inventory_item.dart';
-
-final inventoryFilterViewModelProvider =
+final NotifierProvider<InventoryFilterViewModel, InventoryFilter>
+inventoryFilterViewModelProvider =
     NotifierProvider.autoDispose<InventoryFilterViewModel, InventoryFilter>(
       InventoryFilterViewModel.new,
     );

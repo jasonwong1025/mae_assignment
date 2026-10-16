@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/models/worker_profile.dart';
-import '../../worker_preview.dart';
+import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
+import 'package:mae_assignment/features/store_worker/session/worker_preview.dart';
 
 /// Not autoDispose on purpose: the chosen worker should stay the same while
 /// they move between tabs.

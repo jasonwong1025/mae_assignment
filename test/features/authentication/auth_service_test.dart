@@ -24,17 +24,20 @@ void main() {
       expect(service.isSignedIn, isTrue);
     });
 
-    test('signIn returns the account and marks the session signed in', () async {
-      final service = AuthService(MockFirebaseAuth());
+    test(
+      'signIn returns the account and marks the session signed in',
+      () async {
+        final service = AuthService(MockFirebaseAuth());
 
-      final user = await service.signIn(
-        email: 'may@example.com',
-        password: 'password123',
-      );
+        final user = await service.signIn(
+          email: 'may@example.com',
+          password: 'password123',
+        );
 
-      expect(user, isNotNull);
-      expect(service.isSignedIn, isTrue);
-    });
+        expect(user, isNotNull);
+        expect(service.isSignedIn, isTrue);
+      },
+    );
 
     test('signOut clears the session', () async {
       final service = AuthService(MockFirebaseAuth(signedIn: true));

@@ -2,11 +2,11 @@ import 'dart:math' as math;
 
 import 'package:latlong2/latlong.dart';
 
-import 'models/order.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
 
 /// Sample orders for one branch, used while the backend is not connected.
 /// Times are worked out from [now], so the board always looks like "today".
-/// TODO: delete this file once orders come from Firestore.
+// TODO(team): delete this file once orders come from Firestore.
 List<Order> sampleOrdersFor(String branchId, DateTime now) {
   switch (branchId) {
     case 'ss15':
@@ -211,7 +211,7 @@ List<Order> _ss15Orders(DateTime now) {
       isDelivery: false,
       worker: 'Firdaus',
       items: const [
-        OrderItem(name: 'Coffee beans 250g', quantity: 1, unitPrice: 32.00),
+        OrderItem(name: 'Coffee beans 250g', quantity: 1, unitPrice: 32),
       ],
     ),
   ];

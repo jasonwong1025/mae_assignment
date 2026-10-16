@@ -2,17 +2,17 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../data/models/dashboard_summary.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_admin/dashboard/data/models/dashboard_summary.dart';
 
 /// Top card of the dashboard: today's order count, the orders-by-hour
 /// chart, and a one-line revenue and driver summary.
 class OrdersTodayCard extends StatelessWidget {
   const OrdersTodayCard({
-    super.key,
     required this.summary,
     required this.openingHour,
+    super.key,
   });
 
   final DashboardSummary summary;

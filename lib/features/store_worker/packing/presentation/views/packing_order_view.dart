@@ -1,32 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../../app/router/app_router.dart';
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../app/theme/app_spacing.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../../../../shared/models/order_status.dart';
-import '../../../../../shared/ui/bottom_action_bar.dart';
-import '../../../../../shared/ui/button_loading_indicator.dart';
-import '../../../../../shared/ui/empty_state.dart';
-import '../../../../../shared/ui/fulfilment_tag.dart';
-import '../../../../../shared/ui/order_status_label.dart';
-import '../../../orders/data/models/worker_order.dart';
-import '../../../orders/data/worker_order_policy.dart';
-import '../../../session/presentation/view_models/worker_session_view_model.dart';
-import '../ui/packing_item_tile.dart';
-import '../ui/packing_review_sheet.dart';
-import '../ui/product_details_sheet.dart';
-import '../view_models/packing_order_view_model.dart';
-import '../../../shell/presentation/ui/worker_notice.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/worker_order_policy.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_item_tile.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_review_sheet.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/ui/product_details_sheet.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/view_models/packing_order_view_model.dart';
+import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_notice.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
+import 'package:mae_assignment/shared/ui/bottom_action_bar.dart';
+import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
+import 'package:mae_assignment/shared/ui/empty_state.dart';
+import 'package:mae_assignment/shared/ui/fulfilment_tag.dart';
+import 'package:mae_assignment/shared/ui/order_status_label.dart';
 
 /// Full-screen packing view for one order: details, the checklist with
 /// live progress, and the Start packing / Review & mark ready actions.
 /// Orders that cannot be packed any more (cancelled, ready, delivered)
 /// are shown read-only.
 class PackingOrderView extends ConsumerStatefulWidget {
-  const PackingOrderView({super.key, required this.orderId});
+  const PackingOrderView({required this.orderId, super.key});
 
   final String orderId;
 
@@ -206,6 +205,9 @@ class _PackingContent extends StatelessWidget {
 
   /// True while a tick is still being saved.
   final bool isSaving;
+  // Callback signature: a positional (lineId, packed) pair reads naturally
+  // for a checklist toggle.
+  // ignore: avoid_positional_boolean_parameters
   final void Function(String lineId, bool packed) onSetPacked;
   final VoidCallback onStart;
   final VoidCallback onReview;
@@ -256,10 +258,7 @@ class _PackingContent extends StatelessWidget {
               ],
               // Something left to pack: TO PACK carries the counter.
               if (toPack.isNotEmpty) ...[
-                _SectionTitle(
-                  'To pack (${toPack.length})',
-                  trailing: counter,
-                ),
+                _SectionTitle('To pack (${toPack.length})', trailing: counter),
                 for (final item in toPack) tile(item),
               ],
               if (packed.isNotEmpty) ...[
@@ -447,10 +446,7 @@ class _SectionTitle extends StatelessWidget {
         children: [
           Expanded(child: Text(text.toUpperCase(), style: style)),
           if (trailing != null)
-            Text(
-              trailing!,
-              style: style?.copyWith(color: AppColors.darkGreen),
-            ),
+            Text(trailing!, style: style?.copyWith(color: AppColors.darkGreen)),
         ],
       ),
     );

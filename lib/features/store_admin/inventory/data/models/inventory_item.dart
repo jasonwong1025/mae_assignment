@@ -1,4 +1,4 @@
-import 'product.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
 
 enum StockStatus {
   inStock('In stock'),

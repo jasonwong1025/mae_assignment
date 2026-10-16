@@ -1,8 +1,8 @@
-import '../../../shared/models/app_user.dart';
+import 'package:mae_assignment/shared/models/app_user.dart';
 
 /// Temporary admin login while the admin screens are built UI-first.
 /// It skips Firebase completely, so it works without a real account.
-/// TODO: delete this file once admin accounts come from the backend.
+// TODO(team): delete this file once admin accounts come from the backend.
 class HardcodedAdmin {
   HardcodedAdmin._();
 

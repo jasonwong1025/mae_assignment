@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../data/models/dashboard_summary.dart';
-import 'dashboard_card.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_admin/dashboard/data/models/dashboard_summary.dart';
+import 'package:mae_assignment/features/store_admin/dashboard/presentation/ui/dashboard_card.dart';
 
 /// "Activity" card: the latest staff actions, newest first.
 class ActivityCard extends StatelessWidget {
-  const ActivityCard({super.key, required this.activity});
+  const ActivityCard({required this.activity, super.key});
 
   final List<ActivityEntry> activity;
 

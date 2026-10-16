@@ -1,4 +1,4 @@
-import 'review.dart';
+import 'package:mae_assignment/features/store_admin/reviews/data/models/review.dart';
 
 /// Averages and counts over all of a branch's reviews.
 class ReviewSummary {

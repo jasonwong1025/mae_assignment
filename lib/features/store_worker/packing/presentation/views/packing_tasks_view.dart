@@ -1,16 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../../../../app/router/app_router.dart';
-import '../../../../../app/theme/app_spacing.dart';
-import '../../../../../shared/models/order_status.dart';
-import '../../../../../shared/ui/empty_state.dart';
-import '../../../orders/data/models/worker_order.dart';
-import '../../../shell/presentation/ui/worker_scaffold.dart';
-import '../../../shell/worker_routes.dart';
-import '../ui/packing_task_card.dart';
-import '../view_models/packing_tasks_view_model.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_task_card.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/view_models/packing_tasks_view_model.dart';
+import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_scaffold.dart';
+import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
+import 'package:mae_assignment/shared/ui/empty_state.dart';
 
 /// Packing Staff "My Tasks" tab: orders assigned to the signed-in packer
 /// at their branch, with the next one to pack at the top.
@@ -26,7 +27,7 @@ class _PackingTasksViewState extends ConsumerState<PackingTasksView> {
   String? _startingOrderId;
 
   void _openOrder(WorkerOrder order) {
-    context.push(AppRoutes.workerPackingOrder(order.id));
+    unawaited(context.push(AppRoutes.workerPackingOrder(order.id)));
   }
 
   Future<void> _startPacking(WorkerOrder order) async {

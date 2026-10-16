@@ -1,12 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../../shared/models/order_status.dart';
-import '../../../session/data/models/worker_profile.dart';
-import '../mock_worker_orders.dart';
-import '../models/worker_order.dart';
-import '../worker_order_policy.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/mock_worker_orders.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/worker_order_policy.dart';
+import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 
 /// Not autoDispose on purpose: there must be one order store for the whole
 /// app, kept while workers switch and screens open and close.
@@ -78,16 +77,16 @@ class WorkerOrdersRepository {
   /// due soonest first.
   Stream<List<WorkerOrder>> watchMyPackingTasks(WorkerProfile worker) {
     return _watchList((orders) {
-      final tasks = orders.where((order) {
-        return WorkerOrderPolicy.canViewPackingTask(worker, order) &&
-            (order.status == OrderStatus.pending ||
-                order.status == OrderStatus.packing);
-      }).toList();
-      tasks.sort((a, b) {
-        final byDue = _compareDates(a.dueAt, b.dueAt);
-        if (byDue != 0) return byDue;
-        return a.packerAssignedAt.compareTo(b.packerAssignedAt);
-      });
+      final tasks =
+          orders.where((order) {
+            return WorkerOrderPolicy.canViewPackingTask(worker, order) &&
+                (order.status == OrderStatus.pending ||
+                    order.status == OrderStatus.packing);
+          }).toList()..sort((a, b) {
+            final byDue = _compareDates(a.dueAt, b.dueAt);
+            if (byDue != 0) return byDue;
+            return a.packerAssignedAt.compareTo(b.packerAssignedAt);
+          });
       return tasks;
     });
   }
@@ -98,8 +97,7 @@ class WorkerOrdersRepository {
     return _watchList((orders) {
       final ready = orders.where((order) {
         return WorkerOrderPolicy.canViewPickupOrder(worker, order);
-      }).toList();
-      ready.sort(_byDueThenReady);
+      }).toList()..sort(_byDueThenReady);
       return ready;
     });
   }
@@ -110,8 +108,7 @@ class WorkerOrdersRepository {
     return _watchList((orders) {
       final waiting = orders.where((order) {
         return WorkerOrderPolicy.canViewWaitingForDriver(worker, order);
-      }).toList();
-      waiting.sort(_byDueThenReady);
+      }).toList()..sort(_byDueThenReady);
       return waiting;
     });
   }
@@ -121,14 +118,14 @@ class WorkerOrdersRepository {
   /// when it was assigned.
   Stream<List<WorkerOrder>> watchMyDeliveries(WorkerProfile worker) {
     return _watchList((orders) {
-      final deliveries = orders.where((order) {
-        return WorkerOrderPolicy.canViewDelivery(worker, order);
-      }).toList();
-      deliveries.sort((a, b) {
-        final byStage = _deliveryStage(a).compareTo(_deliveryStage(b));
-        if (byStage != 0) return byStage;
-        return _compareDates(a.driverAssignedAt, b.driverAssignedAt);
-      });
+      final deliveries =
+          orders.where((order) {
+            return WorkerOrderPolicy.canViewDelivery(worker, order);
+          }).toList()..sort((a, b) {
+            final byStage = _deliveryStage(a).compareTo(_deliveryStage(b));
+            if (byStage != 0) return byStage;
+            return _compareDates(a.driverAssignedAt, b.driverAssignedAt);
+          });
       return deliveries;
     });
   }
@@ -298,7 +295,7 @@ class WorkerOrdersRepository {
     final updated = change(order);
     _orders = [
       for (final existing in _orders)
-        existing.id == orderId ? updated : existing,
+        if (existing.id == orderId) updated else existing,
     ];
     _changes.add(_orders);
   }
@@ -331,15 +328,12 @@ class WorkerOrdersRepository {
       onListen: () {
         last = select(_orders);
         controller.add(last);
-        subscription = _changes.stream.listen(
-          (orders) {
-            final next = select(orders);
-            if (isSame(last, next)) return;
-            last = next;
-            controller.add(next);
-          },
-          onDone: controller.close,
-        );
+        subscription = _changes.stream.listen((orders) {
+          final next = select(orders);
+          if (isSame(last, next)) return;
+          last = next;
+          controller.add(next);
+        }, onDone: controller.close);
       },
       onCancel: () => subscription?.cancel(),
     );

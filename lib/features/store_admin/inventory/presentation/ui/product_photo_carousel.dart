@@ -1,18 +1,17 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../shared/ui/page_indicator.dart';
-import 'product_labels.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/product_labels.dart';
+import 'package:mae_assignment/shared/ui/page_indicator.dart';
 
 /// Product photos, one at a time. Swipe or use the arrows.
 /// Shows the category icon if there are none.
 class ProductPhotoCarousel extends StatefulWidget {
   const ProductPhotoCarousel({
-    super.key,
     required this.photos,
     required this.categoryId,
+    super.key,
   });
 
   final List<Uint8List> photos;

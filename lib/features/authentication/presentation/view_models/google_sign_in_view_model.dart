@@ -1,8 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/repositories/auth_repository.dart';
+import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 
-final googleSignInViewModelProvider =
+final NotifierProvider<GoogleSignInViewModel, AsyncValue<void>>
+googleSignInViewModelProvider =
     NotifierProvider.autoDispose<GoogleSignInViewModel, AsyncValue<void>>(
       GoogleSignInViewModel.new,
     );

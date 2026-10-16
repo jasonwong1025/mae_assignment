@@ -1,21 +1,20 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../data/models/inventory_item.dart';
-import '../view_models/inventory_view_model.dart';
-import 'product_labels.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/product_labels.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/view_models/inventory_view_model.dart';
 
 /// Product table for tablet and web. Scrolls sideways if too narrow.
 class InventoryTable extends StatelessWidget {
   const InventoryTable({
-    super.key,
     required this.items,
     required this.inventory,
     required this.selectedProductId,
     required this.onItemTap,
+    super.key,
   });
 
   /// Narrowest the table can be.

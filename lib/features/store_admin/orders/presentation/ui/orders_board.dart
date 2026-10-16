@@ -2,10 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../data/models/order.dart';
-import 'order_card.dart';
-import '../../../../../shared/ui/order_status_label.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/features/store_admin/orders/presentation/ui/order_card.dart';
+import 'package:mae_assignment/shared/ui/order_status_label.dart';
 
 /// Orders of one status, in the order they should be listed:
 /// - still in progress: the longest waiting first
@@ -27,10 +27,10 @@ List<Order> ordersWithStatus(List<Order> orders, OrderStatus status) {
 /// scrolls sideways when the columns do not all fit.
 class OrdersBoard extends StatelessWidget {
   const OrdersBoard({
-    super.key,
     required this.orders,
     required this.selectedOrderNumber,
     required this.onOrderTap,
+    super.key,
   });
 
   static const double _minColumnWidth = 200;

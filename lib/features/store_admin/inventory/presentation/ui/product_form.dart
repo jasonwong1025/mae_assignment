@@ -2,26 +2,25 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/utilities/validators.dart';
-import '../../../../../shared/ui/button_loading_indicator.dart';
-import '../../../../../shared/ui/labeled_text_field.dart';
-import '../../data/models/inventory_item.dart';
-import '../../data/models/product.dart';
-import '../view_models/inventory_view_model.dart';
-import 'product_photos_field.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/core/utilities/validators.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/product_photos_field.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/view_models/inventory_view_model.dart';
+import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
+import 'package:mae_assignment/shared/ui/labeled_text_field.dart';
 
 /// Form to add or edit a product.
 /// - [item] is null: add (also asks for the starting stock)
 /// - [item] is given: edit that product
 class ProductForm extends ConsumerStatefulWidget {
   const ProductForm({
-    super.key,
-    this.item,
     required this.branchName,
     required this.onCancel,
     required this.onSaved,
+    super.key,
+    this.item,
   });
 
   final InventoryItem? item;

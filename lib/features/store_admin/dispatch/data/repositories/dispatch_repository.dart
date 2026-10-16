@@ -1,12 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../orders/data/models/order.dart';
-import '../../../orders/data/repositories/orders_repository.dart';
-import '../../../shell/data/models/branch.dart';
-import '../../../staff/data/models/worker.dart';
-import '../../../staff/data/repositories/staff_repository.dart';
-import '../models/driver_location.dart';
-import '../services/driver_location_service.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver_location.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/data/services/driver_location_service.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/repositories/orders_repository.dart';
+import 'package:mae_assignment/features/store_admin/shell/data/models/branch.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/repositories/staff_repository.dart';
 
 final driverLocationServiceProvider = Provider<DriverLocationService>((ref) {
   final service = DriverLocationService();

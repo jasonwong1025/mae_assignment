@@ -1,13 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../orders/data/models/worker_order.dart';
-import '../../../orders/data/repositories/worker_orders_repository.dart';
-import '../../../session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
+import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 
-final packingTasksViewModelProvider =
-    StreamNotifierProvider.autoDispose<PackingTasksViewModel, List<WorkerOrder>>(
-      PackingTasksViewModel.new,
-    );
+final StreamNotifierProvider<PackingTasksViewModel, List<WorkerOrder>>
+packingTasksViewModelProvider =
+    StreamNotifierProvider.autoDispose<
+      PackingTasksViewModel,
+      List<WorkerOrder>
+    >(PackingTasksViewModel.new);
 
 /// State for My Tasks: the orders the signed-in packer has to pack.
 /// - AsyncLoading: waiting for the first list
@@ -22,7 +24,9 @@ class PackingTasksViewModel extends StreamNotifier<List<WorkerOrder>> {
       yield const [];
       return;
     }
-    yield* ref.watch(workerOrdersRepositoryProvider).watchMyPackingTasks(worker);
+    yield* ref
+        .watch(workerOrdersRepositoryProvider)
+        .watchMyPackingTasks(worker);
   }
 
   /// Starts packing [orderId]. Returns an error message, or null if it
@@ -31,7 +35,9 @@ class PackingTasksViewModel extends StreamNotifier<List<WorkerOrder>> {
     final worker = ref.read(workerSessionProvider);
     if (worker == null) return 'Choose a worker first.';
     try {
-      await ref.read(workerOrdersRepositoryProvider).startPacking(worker, orderId);
+      await ref
+          .read(workerOrdersRepositoryProvider)
+          .startPacking(worker, orderId);
       return null;
     } on WorkerOrderException catch (e) {
       return e.message;

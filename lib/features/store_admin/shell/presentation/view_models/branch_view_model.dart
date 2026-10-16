@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/models/branch.dart';
-import '../../data/repositories/branch_repository.dart';
+import 'package:mae_assignment/features/store_admin/shell/data/models/branch.dart';
+import 'package:mae_assignment/features/store_admin/shell/data/repositories/branch_repository.dart';
 
 /// Not autoDispose on purpose: the chosen branch should stay the same
 /// while the admin moves between pages.

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'labeled_text_field.dart';
+import 'package:mae_assignment/shared/ui/labeled_text_field.dart';
 
 /// LabeledTextField for passwords, with an eye icon to show or hide the text.
 class PasswordField extends StatefulWidget {
@@ -41,9 +41,10 @@ class _PasswordFieldState extends State<PasswordField> {
       obscureText: _hidden,
       textInputAction: TextInputAction.done,
       autofillHints: [
-        widget.isNewPassword
-            ? AutofillHints.newPassword
-            : AutofillHints.password,
+        if (widget.isNewPassword)
+          AutofillHints.newPassword
+        else
+          AutofillHints.password,
       ],
       suffixIcon: IconButton(
         onPressed: () => setState(() => _hidden = !_hidden),

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
 
 /// Small "Delivery" or "Pickup" tag.
 /// Used by the admin order cards and the Store Worker app.
 class FulfilmentTag extends StatelessWidget {
-  const FulfilmentTag({super.key, required this.isDelivery});
+  const FulfilmentTag({required this.isDelivery, super.key});
 
   final bool isDelivery;
 

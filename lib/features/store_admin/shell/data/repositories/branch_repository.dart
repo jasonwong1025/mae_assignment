@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../models/branch.dart';
+import 'package:mae_assignment/features/store_admin/shell/data/models/branch.dart';
 
 final branchRepositoryProvider = Provider<BranchRepository>((ref) {
   return BranchRepository();

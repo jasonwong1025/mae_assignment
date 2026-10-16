@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_spacing.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
 
 /// Tinted box with an icon and one or two lines telling the worker what to
 /// do next, or why an order is read-only. Shared by the packing, pickup
 /// and delivery screens so the notices look the same everywhere.
 class WorkerNotice extends StatelessWidget {
   const WorkerNotice({
-    super.key,
     required this.icon,
     required this.color,
     required this.text,
+    super.key,
   });
 
   final IconData icon;

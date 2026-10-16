@@ -1,9 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../../shared/models/page_result.dart';
-import '../models/review.dart';
-import '../models/review_summary.dart';
-import '../sample_reviews.dart';
+import 'package:mae_assignment/features/store_admin/reviews/data/models/review.dart';
+import 'package:mae_assignment/features/store_admin/reviews/data/models/review_summary.dart';
+import 'package:mae_assignment/features/store_admin/reviews/data/sample_reviews.dart';
+import 'package:mae_assignment/shared/models/page_result.dart';
 
 final reviewsRepositoryProvider = Provider<ReviewsRepository>((ref) {
   return ReviewsRepository();
@@ -45,9 +44,7 @@ class ReviewsRepository {
       if (from != null && review.createdAt.isBefore(from)) return false;
       if (commentsOnly && review.comment == null) return false;
       return review.matchesSearch(searchText);
-    }).toList();
-
-    matching.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    }).toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return PageResult.fromList(matching, page: page);
   }

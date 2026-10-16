@@ -1,19 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../../../../../shared/models/page_result.dart';
-import '../../../orders/data/models/order.dart';
-import '../../../shell/presentation/ui/admin_scaffold.dart';
-import '../../../shell/presentation/ui/admin_sidebar.dart';
-import '../../../shell/presentation/ui/pagination_bar.dart';
-import '../../../shell/presentation/view_models/branch_view_model.dart';
-import '../ui/assign_driver_box.dart';
-import '../ui/deliveries_table.dart';
-import '../ui/dispatch_labels.dart';
-import '../ui/dispatch_map.dart';
-import '../ui/dispatch_tiles.dart';
-import '../view_models/dispatch_state.dart';
-import '../view_models/dispatch_view_model.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/assign_driver_box.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/deliveries_table.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/dispatch_labels.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/dispatch_map.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/dispatch_tiles.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_state.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_view_model.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_scaffold.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_sidebar.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/ui/pagination_bar.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
+import 'package:mae_assignment/shared/models/page_result.dart';
 
 /// Tabs on phones.
 enum _PhoneTab { map, list, drivers }
@@ -82,39 +83,41 @@ class _DispatchViewState extends ConsumerState<DispatchView> {
 
   /// Phones: the assign box in a bottom sheet.
   void _openAssignSheet(int orderNumber) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        return Consumer(
-          builder: (context, ref, child) {
-            final state = ref.watch(dispatchViewModelProvider).value;
-            final order = state?.orderByNumber(orderNumber);
-            if (state == null || order == null) {
-              return const Padding(
-                padding: EdgeInsets.all(24),
-                child: Text('This order is no longer waiting for a driver.'),
-              );
-            }
+    unawaited(
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (sheetContext) {
+          return Consumer(
+            builder: (context, ref, child) {
+              final state = ref.watch(dispatchViewModelProvider).value;
+              final order = state?.orderByNumber(orderNumber);
+              if (state == null || order == null) {
+                return const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text('This order is no longer waiting for a driver.'),
+                );
+              }
 
-            return SafeArea(
-              child: AssignDriverBox(
-                key: ValueKey(orderNumber),
-                state: state,
-                order: order,
-                onAssign: (driver) async {
-                  final error = await _assign(order, driver);
-                  if (error == null && sheetContext.mounted) {
-                    Navigator.of(sheetContext).pop();
-                  }
-                  return error;
-                },
-              ),
-            );
-          },
-        );
-      },
+              return SafeArea(
+                child: AssignDriverBox(
+                  key: ValueKey(orderNumber),
+                  state: state,
+                  order: order,
+                  onAssign: (driver) async {
+                    final error = await _assign(order, driver);
+                    if (error == null && sheetContext.mounted) {
+                      Navigator.of(sheetContext).pop();
+                    }
+                    return error;
+                  },
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 

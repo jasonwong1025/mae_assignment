@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../app/router/app_router.dart';
-import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_theme.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/app/theme/app_theme.dart';
 
 /// Square back button with a thin border (the "<" box in the wireframes).
 /// Use this at the top of full-screen pages instead of an AppBar back arrow

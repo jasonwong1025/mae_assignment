@@ -1,10 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/models/dashboard_summary.dart';
-import '../../data/repositories/dashboard_repository.dart';
-import '../../../shell/presentation/view_models/branch_view_model.dart';
+import 'package:mae_assignment/features/store_admin/dashboard/data/models/dashboard_summary.dart';
+import 'package:mae_assignment/features/store_admin/dashboard/data/repositories/dashboard_repository.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 
-final dashboardViewModelProvider =
+final AsyncNotifierProvider<DashboardViewModel, DashboardSummary>
+dashboardViewModelProvider =
     AsyncNotifierProvider.autoDispose<DashboardViewModel, DashboardSummary>(
       DashboardViewModel.new,
     );
@@ -20,6 +21,6 @@ class DashboardViewModel extends AsyncNotifier<DashboardSummary> {
     // every time the admin switches.
     final branchState = await ref.watch(branchViewModelProvider.future);
     final repository = ref.watch(dashboardRepositoryProvider);
-    return repository.getSummary(branchState.selected.id);
+    return await repository.getSummary(branchState.selected.id);
   }
 }

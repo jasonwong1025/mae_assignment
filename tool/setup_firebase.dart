@@ -26,11 +26,11 @@ Future<void> main(List<String> arguments) async {
   }
 
   final projectRoot = File.fromUri(Platform.script).parent.parent.path;
-  final projectId =
-      (jsonDecode(
-            File('$projectRoot/.firebaserc').readAsStringSync(),
-          )['projects']['default']
-          as String);
+  final firebaseRc =
+      jsonDecode(File('$projectRoot/.firebaserc').readAsStringSync())
+          as Map<String, dynamic>;
+  final projects = firebaseRc['projects'] as Map<String, dynamic>;
+  final projectId = projects['default'] as String;
 
   try {
     await run('flutter', ['pub', 'get', '--enforce-lockfile'], projectRoot);
@@ -78,11 +78,13 @@ Future<void> main(List<String> arguments) async {
       projectId,
     ], projectRoot);
     stdout.writeln(
-      'Shared Firebase project is ready. Commit any updated app configuration files.',
+      'Shared Firebase project is ready. Commit any updated app '
+      'configuration files.',
     );
   } on ProcessException catch (error) {
     stderr.writeln(
-      'Could not run ${error.executable}. Check that it is installed and on PATH.',
+      'Could not run ${error.executable}. Check that it is installed and '
+      'on PATH.',
     );
     exit(1);
   }

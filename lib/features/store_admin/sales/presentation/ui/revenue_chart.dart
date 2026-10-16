@@ -2,17 +2,17 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../data/models/sales_period.dart';
-import '../../data/models/sales_report.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_admin/sales/data/models/sales_period.dart';
+import 'package:mae_assignment/features/store_admin/sales/data/models/sales_report.dart';
 
 /// Bar chart of revenue over the period. Hover or long-press a bar to
 /// see its amount.
 class RevenueChart extends StatelessWidget {
   const RevenueChart({
-    super.key,
     required this.report,
+    super.key,
     this.fillHeight = false,
   });
 
@@ -52,11 +52,12 @@ class RevenueChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final points = report.points;
-    // At least 1 so we never divide by zero.
-    final highest = math.max(
-      1.0,
-      points.fold(0.0, (max, point) => math.max(max, point.revenue)),
+    // Highest revenue across the bars, at least 1 so we never divide by zero.
+    final maxRevenue = points.fold<double>(
+      0,
+      (max, point) => math.max(max, point.revenue),
     );
+    final highest = math.max<double>(1, maxRevenue);
 
     final bars = Row(
       crossAxisAlignment: CrossAxisAlignment.end,

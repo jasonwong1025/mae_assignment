@@ -3,12 +3,11 @@ import 'dart:developer' as developer;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-
-import '../../../../shared/models/app_user.dart';
-import '../services/user_service.dart';
-import '../hardcoded_admin.dart';
-import '../services/auth_service.dart';
-import '../services/google_sign_in_service.dart';
+import 'package:mae_assignment/features/authentication/data/hardcoded_admin.dart';
+import 'package:mae_assignment/features/authentication/data/services/auth_service.dart';
+import 'package:mae_assignment/features/authentication/data/services/google_sign_in_service.dart';
+import 'package:mae_assignment/features/authentication/data/services/user_service.dart';
+import 'package:mae_assignment/shared/models/app_user.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(
@@ -19,9 +18,10 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 });
 
 /// Profile of the signed-in user, or null if nobody is signed in.
-final currentUserProvider = FutureProvider.autoDispose<AppUser?>((ref) {
-  return ref.watch(authRepositoryProvider).getCurrentUser();
-});
+final FutureProvider<AppUser?> currentUserProvider =
+    FutureProvider.autoDispose<AppUser?>((ref) {
+      return ref.watch(authRepositoryProvider).getCurrentUser();
+    });
 
 /// Error with a message that is safe to show on screen.
 class AuthException implements Exception {
@@ -85,7 +85,7 @@ class AuthRepository {
 
     try {
       await _userService.createUser(user).timeout(_firestoreTimeout);
-    } catch (_) {
+    } on Object catch (_) {
       // Without a profile the account is unusable, so remove it and let
       // the user try again with the same email.
       await _authService.deleteCurrentUser();
@@ -119,7 +119,7 @@ class AuthRepository {
     final AppUser? user;
     try {
       user = await _userService.getUser(account.uid).timeout(_firestoreTimeout);
-    } catch (_) {
+    } on Object catch (_) {
       await _authService.signOut();
       throw const AuthException(
         'Could not load your account. Please check your connection '
@@ -194,10 +194,11 @@ class AuthRepository {
       profile = await _userService
           .getOrCreateCustomer(proposedCustomer)
           .timeout(_firestoreTimeout);
-    } catch (_) {
+    } on Object catch (_) {
       await signOut();
       throw const AuthException(
-        'Could not load your account. Please check your connection and try again.',
+        'Could not load your account. Please check your connection '
+        'and try again.',
       );
     }
 
@@ -233,7 +234,7 @@ class AuthRepository {
 
     final account = _authService.currentUser;
     if (account == null) return null;
-    return _userService.getUser(account.uid).timeout(_firestoreTimeout);
+    return await _userService.getUser(account.uid).timeout(_firestoreTimeout);
   }
 
   /// Firebase error codes: https://firebase.google.com/docs/auth/admin/errors

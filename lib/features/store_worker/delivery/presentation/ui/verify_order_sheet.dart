@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import '../../../../../app/theme/app_spacing.dart';
-import '../../../../../shared/ui/button_loading_indicator.dart';
-import '../../../orders/data/models/worker_order.dart';
+import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
 
 /// Sheet where the driver types the order number printed on the bag, to
 /// confirm they are collecting the right order. [onVerify] checks it and
@@ -94,7 +93,9 @@ class _VerifyOrderSheetState extends State<_VerifyOrderSheet> {
             controller: _controller,
             autofocus: true,
             keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9#]'))],
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp('[0-9#]')),
+            ],
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _verify(),
             decoration: InputDecoration(

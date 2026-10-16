@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/repositories/staff_repository.dart';
+import 'package:mae_assignment/features/store_admin/staff/presentation/view_models/staff_filter_view_model.dart';
+import 'package:mae_assignment/shared/models/page_result.dart';
 
-import '../../../../../shared/models/page_result.dart';
-import '../../../shell/presentation/view_models/branch_view_model.dart';
-import '../../data/models/worker.dart';
-import '../../data/repositories/staff_repository.dart';
-import 'staff_filter_view_model.dart';
-
-final staffViewModelProvider =
+final AsyncNotifierProvider<StaffViewModel, PageResult<Worker>>
+staffViewModelProvider =
     AsyncNotifierProvider.autoDispose<StaffViewModel, PageResult<Worker>>(
       StaffViewModel.new,
     );
@@ -23,7 +23,7 @@ class StaffViewModel extends AsyncNotifier<PageResult<Worker>> {
     final branchState = await ref.watch(branchViewModelProvider.future);
     final repository = ref.watch(staffRepositoryProvider);
 
-    return repository.getWorkers(
+    return await repository.getWorkers(
       branchState.selected.id,
       searchText: filter.searchText,
       page: filter.page,
@@ -78,7 +78,7 @@ class StaffViewModel extends AsyncNotifier<PageResult<Worker>> {
 
   /// Deactivates or reactivates a worker.
   Future<String?> setActive(Worker worker, {required bool active}) {
-    return _save(worker.withActive(active));
+    return _save(worker.withActive(active: active));
   }
 
   Future<String?> _save(Worker worker) async {

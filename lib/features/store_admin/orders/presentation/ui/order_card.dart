@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
-
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../core/utilities/formatters.dart';
-import '../../../../../shared/ui/fulfilment_tag.dart';
-import '../../data/models/order.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/shared/ui/fulfilment_tag.dart';
 
 /// One order on the board. Tapping it opens the order's details.
 class OrderCard extends StatelessWidget {
   const OrderCard({
-    super.key,
     required this.order,
     required this.isSelected,
     required this.onTap,
+    super.key,
   });
 
   final Order order;

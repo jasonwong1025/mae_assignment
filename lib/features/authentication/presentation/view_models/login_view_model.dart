@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
+import 'package:mae_assignment/shared/models/app_user.dart';
 
-import '../../../../shared/models/app_user.dart';
-import '../../data/repositories/auth_repository.dart';
-
-final loginViewModelProvider =
+final NotifierProvider<LoginViewModel, AsyncValue<void>>
+loginViewModelProvider =
     NotifierProvider.autoDispose<LoginViewModel, AsyncValue<void>>(
       LoginViewModel.new,
     );

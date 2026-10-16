@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-
-import '../../../../../app/theme/app_colors.dart';
-import '../../../../../shared/models/order_status.dart';
-import '../../../orders/data/models/worker_order.dart';
+import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 
 /// The stages of a delivery, in order.
 const _steps = ['Packing', 'Ready', 'Verified', 'On the way', 'Delivered'];
@@ -28,9 +27,9 @@ int deliveryStepsDone(WorkerOrder order, String workerId) {
 /// outlined. Labels wrap under each dot, so it fits narrow phones.
 class DeliveryStepper extends StatelessWidget {
   const DeliveryStepper({
-    super.key,
     required this.order,
     required this.workerId,
+    super.key,
   });
 
   final WorkerOrder order;
@@ -42,7 +41,8 @@ class DeliveryStepper extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Semantics(
-      label: 'Delivery progress: ${done == 0 ? 'not started' : _steps[done - 1]}',
+      label:
+          'Delivery progress: ${done == 0 ? 'not started' : _steps[done - 1]}',
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
