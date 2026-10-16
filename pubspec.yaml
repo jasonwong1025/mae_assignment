@@ -40,6 +40,9 @@ dependencies:
   firebase_core: ^4.15.0
   flutter_map: ^8.3.2
   flutter_riverpod: ^3.4.3
+  # Annotations for Freezed-generated models and sealed states. The code
+  # generator itself (freezed) is a dev dependency.
+  freezed_annotation: ^3.1.0
   go_router: ^18.0.1
   google_sign_in: ^7.2.0
   image_picker: ^1.2.4
@@ -50,6 +53,12 @@ dev_dependencies:
     sdk: flutter
   integration_test:
     sdk: flutter
+
+  # Code generator for Freezed models/states. Run with:
+  #   fvm dart run build_runner build --delete-conflicting-outputs
+  # Pinned below 2.17 so its `build` constraint stays compatible with
+  # freezed 4.x.
+  build_runner: ^2.16.2
 
   # In-memory fakes for Firebase Auth and Firestore, so backend logic
   # (AuthRepository, UserService) is unit-tested in the Dart VM with no
@@ -63,6 +72,13 @@ dev_dependencies:
   # `analysis_options.yaml`, which layers very_good_analysis on top.
   flutter_lints: ^6.0.0
   flutter_native_splash: ^2.4.8
+
+  # Generates immutable models and sealed states (see freezed_annotation).
+  freezed: ^4.0.2
+
+  # Stubbing/verification for ViewModel and repository unit tests without a
+  # real Firebase or emulator.
+  mocktail: ^1.0.5
   very_good_analysis: ^11.0.0
 
 # For information on the generic Dart part of this file, see the

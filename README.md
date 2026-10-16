@@ -57,12 +57,12 @@ fvm flutter test
 ```
 
 Run in the Dart VM: no device, emulator or network. They cover view models,
-repositories, policies, validators, and widgets. Backend logic that uses
-Firebase (`AuthService`, `UserService`, `AuthRepository`) is tested with the
-in-memory fakes `firebase_auth_mocks` and `fake_cloud_firestore`, so these
-checks stay fast and portable. Change `.fvmrc`, the Flutter constraint in
-`pubspec.yaml`, and `pubspec.lock` together when the team intentionally
-upgrades Flutter.
+repositories, policies, validators, and widgets. Two styles of test double are
+used: `mocktail` to stub and verify collaborators (view-model and repository
+tests), and the in-memory fakes `firebase_auth_mocks` and `fake_cloud_firestore`
+for backend logic that uses Firebase (`AuthService`, `UserService`,
+`AuthRepository`). Change `.fvmrc`, the Flutter constraint in `pubspec.yaml`,
+and `pubspec.lock` together when the team intentionally upgrades Flutter.
 
 ### 2. Firestore Security Rules tests (Firebase Emulator Suite)
 
@@ -90,3 +90,25 @@ use the real backend. An Android emulator image reaches the host emulators on
 address via `--dart-define=FIREBASE_EMULATOR_HOST=<host-ip>`.
 
 (Patrol setup is added when the first E2E flow is written.)
+
+## Code generation
+
+New immutable models and sealed view-model states use
+[Freezed](https://pub.dev/packages/freezed). Annotated files have a
+`part '<name>.freezed.dart';` line; the generator fills it in. See
+`lib/core/reference/freezed_example.dart` for the two patterns (data class and
+sealed union) to copy. Existing hand-written models are left as they are; we do
+not retrofit them.
+
+After editing an annotated file, regenerate:
+
+```bash
+fvm dart run build_runner build        # one-off
+fvm dart run build_runner watch        # while developing
+```
+
+Generated `*.freezed.dart` (and later `*.g.dart`) files are committed, so the
+app builds straight after a checkout without anyone needing to run the
+generator first. Regenerate and commit the result whenever you change an
+annotated file. The analyzer ignores generated files (see
+`analysis_options.yaml`).
