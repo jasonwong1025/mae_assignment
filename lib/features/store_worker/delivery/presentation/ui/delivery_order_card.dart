@@ -3,9 +3,11 @@ import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
-import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_progress_bar.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/ui/order_status_label.dart';
+
+/// Minutes before the due time when it turns amber.
+const int _dueSoonMinutes = 15;
 
 /// Status in the driver's words, e.g. "Ready to collect".
 String deliveryStatusLabel(WorkerOrder order) {
@@ -24,9 +26,15 @@ String deliveryStatusLabel(WorkerOrder order) {
   }
 }
 
+/// Status the badge is coloured by. Pending and packing both read
+/// "Being packed" to the driver, so both use the packing colour.
+OrderStatus deliveryBadgeStatus(WorkerOrder order) {
+  return order.status == OrderStatus.pending
+      ? OrderStatus.packing
+      : order.status;
+}
+
 /// One delivery on My Deliveries: number, status, customer and address.
-/// Orders still being packed show their packing progress and a note that
-/// they cannot be collected yet.
 class DeliveryOrderCard extends StatelessWidget {
   const DeliveryOrderCard({
     required this.order,
@@ -36,10 +44,6 @@ class DeliveryOrderCard extends StatelessWidget {
 
   final WorkerOrder order;
   final VoidCallback onTap;
-
-  bool get _isBeingPacked =>
-      order.status == OrderStatus.pending ||
-      order.status == OrderStatus.packing;
 
   @override
   Widget build(BuildContext context) {
@@ -64,16 +68,26 @@ class DeliveryOrderCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Wrap(
-                spacing: AppSpacing.s,
-                runSpacing: AppSpacing.xs,
-                crossAxisAlignment: WrapCrossAlignment.center,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('#${order.number}', style: textTheme.titleMedium),
-                  OrderStatusBadge(
-                    status: order.status,
-                    label: deliveryStatusLabel(order),
+                  Expanded(
+                    child: Wrap(
+                      spacing: AppSpacing.s,
+                      runSpacing: AppSpacing.xs,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text('#${order.number}', style: textTheme.titleMedium),
+                        OrderStatusBadge(
+                          status: deliveryBadgeStatus(order),
+                          label: deliveryStatusLabel(order),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: AppSpacing.s),
+                  // Drivers deliver for any branch: where to collect it.
+                  _BranchTag(branchName: order.branchName),
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),
@@ -105,14 +119,13 @@ class DeliveryOrderCard extends StatelessWidget {
                   ),
                 ],
               ),
-              if (_isBeingPacked) ...[
-                const SizedBox(height: AppSpacing.m),
-                PackingProgressBar(order: order),
+              // When it is due, so the driver can plan the run. Not shown
+              // once delivered (the delivered time replaces it).
+              if (order.dueAt != null &&
+                  order.status != OrderStatus.completed &&
+                  order.status != OrderStatus.cancelled) ...[
                 const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'You can collect it once it is ready.',
-                  style: textTheme.bodySmall,
-                ),
+                _DueTime(dueAt: order.dueAt!),
               ],
               if (order.status == OrderStatus.completed &&
                   completedAt != null) ...[
@@ -125,6 +138,76 @@ class DeliveryOrderCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// "Deliver by 1:30pm", amber when due soon, red when overdue.
+class _DueTime extends StatelessWidget {
+  const _DueTime({required this.dueAt});
+
+  final DateTime dueAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final minutesLeft = dueAt.difference(DateTime.now()).inMinutes;
+    final color = minutesLeft < 0
+        ? AppColors.error
+        : (minutesLeft <= _dueSoonMinutes
+              ? AppColors.warning
+              : AppColors.textSecondary);
+
+    return Row(
+      children: [
+        Icon(Icons.schedule_rounded, size: 16, color: color),
+        const SizedBox(width: AppSpacing.xs),
+        Expanded(
+          child: Text(
+            'Deliver by ${Formatters.time(dueAt)}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Small tag with the branch the bag is collected from.
+class _BranchTag extends StatelessWidget {
+  const _BranchTag({required this.branchName});
+
+  final String branchName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.storefront_outlined,
+            size: 14,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            branchName,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ],
       ),
     );
   }

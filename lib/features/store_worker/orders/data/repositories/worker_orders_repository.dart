@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/mock_worker_orders.dart';
@@ -110,6 +111,35 @@ class WorkerOrdersRepository {
         return WorkerOrderPolicy.canViewWaitingForDriver(worker, order);
       }).toList()..sort(_byDueThenReady);
       return waiting;
+    });
+  }
+
+  /// My history, newest first:
+  /// - Packing Staff: orders they packed (ready, collected or completed),
+  ///   by when they marked them ready.
+  /// - Delivery Drivers: deliveries they completed, by when.
+  Stream<List<WorkerOrder>> watchMyHistory(WorkerProfile worker) {
+    return _watchList((orders) {
+      final List<WorkerOrder> history;
+      if (worker.isPackingStaff) {
+        history = orders.where((order) {
+          return WorkerOrderPolicy.canViewPackingTask(worker, order) &&
+              order.readyAt != null &&
+              const [
+                OrderStatus.ready,
+                OrderStatus.outForDelivery,
+                OrderStatus.completed,
+              ].contains(order.status);
+        }).toList()..sort((a, b) => _compareDates(b.readyAt, a.readyAt));
+      } else {
+        history = orders.where(
+          (order) {
+            return WorkerOrderPolicy.canViewDelivery(worker, order) &&
+                order.status == OrderStatus.completed;
+          },
+        ).toList()..sort((a, b) => _compareDates(b.completedAt, a.completedAt));
+      }
+      return history;
     });
   }
 
@@ -249,15 +279,22 @@ class WorkerOrdersRepository {
     });
   }
 
-  Future<void> completeDelivery(WorkerProfile worker, String orderId) {
+  /// Needs a proof of delivery photo.
+  Future<void> completeDelivery(
+    WorkerProfile worker,
+    String orderId, {
+    required Uint8List photo,
+  }) {
     return _act(orderId, (order) {
       _allow(WorkerOrderPolicy.checkCompleteDelivery(worker, order));
+      _allow(photo.isEmpty ? 'Take a photo of the delivery first.' : null);
       final now = _clock();
       return order.copyWith(
         status: OrderStatus.completed,
         statusSince: now,
         deliveredBy: worker.id,
         deliveredByName: worker.name,
+        proofPhoto: photo,
         completedAt: now,
       );
     });

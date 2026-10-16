@@ -7,6 +7,9 @@ import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/worker_order_policy.dart';
+import 'package:mae_assignment/features/store_worker/packing/data/services/label_print_service.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/ui/bag_label_card.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/ui/bag_label_screen.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_item_tile.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_review_sheet.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/product_details_sheet.dart';
@@ -121,6 +124,19 @@ class _PackingOrderViewState extends ConsumerState<PackingOrderView> {
           onPressed: _goBack,
         ),
         title: Text(order == null ? 'Order' : 'Order #${order.number}'),
+        // Reprint the bag label while the order waits to be collected.
+        // Not on the ready screen, which has its own Print label button.
+        actions: [
+          if (order != null &&
+              order.status == OrderStatus.ready &&
+              !_justMarkedReady)
+            IconButton(
+              tooltip: 'Print label',
+              icon: const Icon(Icons.print_outlined),
+              onPressed: () => showBagLabelScreen(context, order),
+            ),
+          const SizedBox(width: 4),
+        ],
         shape: const Border(bottom: BorderSide(color: AppColors.border)),
       ),
       body: SafeArea(
@@ -169,7 +185,9 @@ class _PackingOrderViewState extends ConsumerState<PackingOrderView> {
                   onSetPacked: _setPacked,
                   onStart: _startPacking,
                   onReview: () => _reviewAndMarkReady(shown),
-                  onBack: () => context.go(AppRoutes.workerPacking),
+                  // Back to wherever the order was opened from (My Tasks
+                  // or My history).
+                  onBack: _goBack,
                 );
               },
             ),
@@ -233,6 +251,11 @@ class _PackingContent extends StatelessWidget {
           item: item,
           isPacked: order.isPacked(item.lineId),
           onChanged: onChanged(item),
+          // Only while the order can still be packed; packed, finished and
+          // cancelled orders (e.g. from My history) show no checkboxes.
+          showCheckbox:
+              order.status == OrderStatus.pending ||
+              order.status == OrderStatus.packing,
           onTap: () => showProductDetailsSheet(
             context,
             item: item,
@@ -305,10 +328,13 @@ class _OrderHeader extends StatelessWidget {
           children: [
             FulfilmentTag(isDelivery: order.isDelivery),
             OrderStatusBadge(status: order.status),
-            Text(
-              'Assigned ${Formatters.minutes(minutes)} ago',
-              style: textTheme.bodySmall,
-            ),
+            // Only while still to pack; once packed, the packed date and
+            // time below matters more.
+            if (order.readyAt == null)
+              Text(
+                'Assigned ${Formatters.minutes(minutes)} ago',
+                style: textTheme.bodySmall,
+              ),
           ],
         ),
         if (order.isDelivery && order.driverName != null) ...[
@@ -324,6 +350,26 @@ class _OrderHeader extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Driver: ${order.driverName}',
+                  style: textTheme.bodyMedium,
+                ),
+              ),
+            ],
+          ),
+        ],
+        if (order.readyAt != null) ...[
+          const SizedBox(height: AppSpacing.s),
+          Row(
+            children: [
+              const Icon(
+                Icons.check_circle_outline_rounded,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: AppSpacing.s),
+              Expanded(
+                child: Text(
+                  'Packed on ${Formatters.date(order.readyAt!)} at '
+                  '${Formatters.time(order.readyAt!)}',
                   style: textTheme.bodyMedium,
                 ),
               ),
@@ -386,22 +432,19 @@ class _StatusBanner extends StatelessWidget {
         Icons.check_circle_outline_rounded,
         AppColors.success,
         !order.isDelivery
-            ? 'Packed and waiting on the pickup shelf.'
-            : _collectedText() ??
-                  'Packed and waiting for ${order.driverName ?? 'the driver'}.',
+            ? 'Waiting on the pickup shelf for the customer.'
+            : _collectedText() ?? 'Waiting for the driver to collect.',
       ),
       OrderStatus.outForDelivery => (
         Icons.local_shipping_outlined,
         AppColors.darkGreen,
-        '${_collectedText() ?? 'Packed.'} '
-            '${order.driverName ?? 'The driver'} is delivering it.',
+        '${_collectedText() ?? 'Collected.'} On the way to the customer.',
       ),
       OrderStatus.completed => (
         Icons.task_alt_rounded,
         AppColors.success,
-        order.isDelivery
-            ? 'Delivered to the customer.'
-            : 'Handed over to the customer.',
+        '${order.isDelivery ? 'Delivered' : 'Handed over'} to the customer'
+            '${_completedOnText()}.',
       ),
       OrderStatus.cancelled => (
         Icons.block_rounded,
@@ -413,15 +456,22 @@ class _StatusBanner extends StatelessWidget {
     return WorkerNotice(icon: icon, color: color, text: text);
   }
 
-  /// "Collected by Amir Hamzah at 3:42pm." once the assigned driver has
+  /// " on 15 Oct 2026 at 5:16am", matching the "Packed on…" line, or
+  /// nothing if the completion time is unknown.
+  String _completedOnText() {
+    final at = order.completedAt;
+    if (at == null) return '';
+    return ' on ${Formatters.date(at)} at ${Formatters.time(at)}';
+  }
+
+  /// "Collected on 16 Oct 2026 at 3:42pm." once the assigned driver has
   /// verified the bag; null before that.
   String? _collectedText() {
     final at = order.collectionVerifiedAt;
     if (at == null || order.collectionVerifiedBy != order.driverId) {
       return null;
     }
-    return 'Collected by ${order.driverName ?? 'the driver'} at '
-        '${Formatters.time(at)}.';
+    return 'Collected on ${Formatters.date(at)} at ${Formatters.time(at)}.';
   }
 }
 
@@ -507,31 +557,49 @@ class _ActionBar extends StatelessWidget {
 
     // Read-only: nothing left for the packer to do here.
     return BottomActionBar(
-      children: [
-        OutlinedButton(
-          onPressed: onBack,
-          child: const Text('Back to My Tasks'),
-        ),
-      ],
+      children: [OutlinedButton(onPressed: onBack, child: const Text('Back'))],
     );
   }
 }
 
-/// Shown right after the packer marks the order ready.
-class _ReadySuccess extends StatelessWidget {
+/// Shown right after the packer marks the order ready: the bag label to
+/// print and stick on the bag.
+class _ReadySuccess extends ConsumerStatefulWidget {
   const _ReadySuccess({required this.order});
 
   final WorkerOrder order;
 
   @override
+  ConsumerState<_ReadySuccess> createState() => _ReadySuccessState();
+}
+
+class _ReadySuccessState extends ConsumerState<_ReadySuccess> {
+  bool _isPrinting = false;
+
+  Future<void> _printLabel() async {
+    setState(() => _isPrinting = true);
+    try {
+      await ref.read(labelPrintServiceProvider).printLabel(widget.order);
+    } on Object catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'The label could not be printed. Write the order number on '
+              'the bag instead.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isPrinting = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final order = widget.order;
     final textTheme = Theme.of(context).textTheme;
-    final nextStep = order.isDelivery
-        ? 'Label the bag and keep it for '
-              '${order.driverName ?? 'the driver'}. They will verify it '
-              'before leaving.'
-        : 'Label the bag and put it on the pickup shelf. It now shows in '
-              'Ready for Pickup for every packer at ${order.branchName}.';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -542,58 +610,43 @@ class _ReadySuccess extends StatelessWidget {
               padding: const EdgeInsets.all(AppSpacing.xl),
               child: Column(
                 children: [
-                  const CircleAvatar(
-                    radius: 40,
-                    backgroundColor: AppColors.greenTint,
-                    foregroundColor: AppColors.success,
-                    child: Icon(Icons.check_rounded, size: 48),
-                  ),
-                  const SizedBox(height: AppSpacing.l),
-                  Text(
-                    'Order #${order.number} is ready',
-                    style: textTheme.headlineSmall,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppSpacing.s),
-                  Text(
-                    nextStep,
-                    style: textTheme.bodyMedium,
-                    textAlign: TextAlign.center,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        color: AppColors.success,
+                        size: 28,
+                      ),
+                      const SizedBox(width: AppSpacing.s),
+                      Flexible(
+                        child: Text(
+                          'Order #${order.number} is ready',
+                          style: textTheme.headlineSmall,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: AppSpacing.xl),
-                  // Large order number to copy onto the bag.
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xl,
-                      vertical: AppSpacing.m,
-                    ),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.darkGreen, width: 2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        Text('BAG LABEL', style: textTheme.bodySmall),
-                        Text(
-                          '#${order.number}',
-                          style: textTheme.headlineMedium,
-                        ),
-                        Text(
-                          '${order.customerName} · '
-                          '${order.isDelivery ? 'Delivery' : 'Pickup'}',
-                          style: textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ),
+                  BagLabelCard(order: order),
                 ],
               ),
             ),
           ),
         ),
         BottomActionBar(
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
           children: [
-            FilledButton(
+            FilledButton.icon(
+              onPressed: _isPrinting ? null : _printLabel,
+              icon: _isPrinting
+                  ? const ButtonLoadingIndicator()
+                  : const Icon(Icons.print_outlined),
+              label: const Text('Print label'),
+            ),
+            // Same gap as above Cancel in the Verify order sheet.
+            const SizedBox(height: AppSpacing.s),
+            TextButton(
               onPressed: () => context.go(AppRoutes.workerPacking),
               child: const Text('Back to My Tasks'),
             ),

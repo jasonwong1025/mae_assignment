@@ -79,6 +79,8 @@
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>NSCameraUsageDescription</key>
+		<string>Grocerly uses the camera to take a proof of delivery photo.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 	<string>Grocerly needs your photos so you can add pictures to products.</string>
 </dict>

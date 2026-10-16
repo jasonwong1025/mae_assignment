@@ -24,13 +24,14 @@ int minutesReady(WorkerOrder order) {
 /// One order on Ready for Pickup, used for all three lists (waiting for
 /// pickup, waiting for drivers, handed over): order number, the customer's
 /// name in large text (what the packer matches at the counter), one detail
-/// line, and a time on the right.
+/// line, and the time under it (e.g. "Pickup by 4:03am").
 class PickupOrderCard extends StatelessWidget {
   const PickupOrderCard({
     required this.order,
-    required this.detail,
     required this.timeLabel,
     required this.time,
+    this.detail,
+    this.detailIcon,
     super.key,
     this.highlightTime = false,
     this.onTap,
@@ -38,10 +39,13 @@ class PickupOrderCard extends StatelessWidget {
 
   final WorkerOrder order;
 
-  /// Line under the name, e.g. "Packed by you" or "For Amir Hamzah".
-  final String detail;
+  /// Line under the name, e.g. "Driver: Amir Hamzah". Null: no line.
+  final String? detail;
 
-  /// Small word above the time, e.g. "Pickup", "Deliver" or "Handed over".
+  /// Small icon before [detail], e.g. a truck for the driver.
+  final IconData? detailIcon;
+
+  /// Words before the time, e.g. "Pickup by" or "Deliver by".
   final String timeLabel;
   final DateTime? time;
 
@@ -89,29 +93,50 @@ class PickupOrderCard extends StatelessWidget {
                       style: textTheme.titleLarge,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(detail, style: textTheme.bodySmall),
+                    if (detail != null) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Row(
+                        children: [
+                          if (detailIcon != null) ...[
+                            Icon(
+                              detailIcon,
+                              size: 16,
+                              color: AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                          ],
+                          Expanded(
+                            child: Text(detail!, style: textTheme.bodySmall),
+                          ),
+                        ],
+                      ),
+                    ],
+                    // Same style as the due time on My Tasks cards.
+                    if (time != null) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.schedule_rounded,
+                            size: 16,
+                            color: timeColor,
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Expanded(
+                            child: Text(
+                              '$timeLabel ${Formatters.time(time)}',
+                              style: textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: timeColor,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
-              if (time != null) ...[
-                const SizedBox(width: AppSpacing.s),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Icon(Icons.schedule_rounded, size: 18, color: timeColor),
-                    const SizedBox(height: 2),
-                    Text(timeLabel, style: textTheme.bodySmall),
-                    Text(
-                      Formatters.time(time),
-                      style: textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: timeColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
               if (onTap != null) ...[
                 const SizedBox(width: AppSpacing.xs),
                 const Icon(

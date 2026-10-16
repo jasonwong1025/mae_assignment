@@ -21,9 +21,12 @@ class WorkerOrderPolicy {
   // What a worker may see.
   // ---------------------------------------------------------------------
 
-  /// Active and working at the order's branch.
+  /// Active and assigned to the order's branch. Only Packing Staff have a
+  /// branch; drivers are never "in" one (they are limited by assignment).
   static bool _inBranch(WorkerProfile worker, WorkerOrder order) {
-    return worker.isActive && worker.branchId == order.branchId;
+    return worker.isActive &&
+        worker.branchId != null &&
+        worker.branchId == order.branchId;
   }
 
   /// My Packing Tasks: orders assigned to this packer at their branch.
@@ -59,15 +62,29 @@ class WorkerOrderPolicy {
     return worker.isPackingStaff &&
         _inBranch(worker, order) &&
         order.isDelivery &&
+        order.driverId != null &&
         order.status == OrderStatus.ready &&
         order.collectionVerifiedBy != order.driverId;
   }
 
-  /// My Deliveries: delivery orders assigned to this driver at their
+  /// Opening a ready delivery order at the packer's branch, read-only, to
+  /// find the bag for its driver. Stays open after the driver verifies it
+  /// (still ready), so the packer sees it was collected.
+  static bool canViewBranchDelivery(WorkerProfile worker, WorkerOrder order) {
+    return worker.isPackingStaff &&
+        _inBranch(worker, order) &&
+        order.isDelivery &&
+        order.driverId != null &&
+        order.status == OrderStatus.ready;
+  }
+
+  /// My Deliveries: delivery orders assigned to this driver, from any
   /// branch, in any status, including while still being packed.
   static bool canViewDelivery(WorkerProfile worker, WorkerOrder order) {
+    // Any branch: drivers are not tied to one. What limits them is that
+    // HQ assigned the delivery to them.
     return worker.isDeliveryDriver &&
-        _inBranch(worker, order) &&
+        worker.isActive &&
         order.isDelivery &&
         order.driverId == worker.id;
   }
@@ -77,6 +94,7 @@ class WorkerOrderPolicy {
     return canViewPackingTask(worker, order) ||
         canViewPickupOrder(worker, order) ||
         canViewCompletedPickup(worker, order) ||
+        canViewBranchDelivery(worker, order) ||
         canViewDelivery(worker, order);
   }
 
@@ -176,7 +194,8 @@ class WorkerOrderPolicy {
     if (!worker.isDeliveryDriver) {
       return 'Only Delivery Drivers can deliver orders.';
     }
-    if (worker.branchId != order.branchId) return _otherBranchMessage;
+    // No branch check: a driver can deliver for any branch, as long as the
+    // order is assigned to them (checked below).
     if (order.isPickup) {
       return 'This is a self-pickup order. It is handed over at the store.';
     }
@@ -208,31 +227,31 @@ class WorkerOrderPolicy {
   }
 
   /// Checks the code a driver entered or scanned against the order.
-  /// Manual: the order number on the bag. QR: the bag label's payload.
+  /// Manual: the collection code printed on the bag label. QR: the bag
+  /// label's payload.
   static String? checkCollectionCode(
     WorkerOrder order,
     VerificationMethod method,
     String code,
   ) {
     final matches = switch (method) {
-      VerificationMethod.manual => _matchesNumber(order, code),
+      VerificationMethod.manual => _matchesCollectionCode(order, code),
       VerificationMethod.qr => code.trim() == order.qrPayload,
     };
     if (matches) return null;
     return switch (method) {
       VerificationMethod.manual =>
-        'That number does not match order #${order.number}. '
-            'Check the bag and try again.',
+        'That code does not match order #${order.number}. '
+            'Check the label on the bag and try again.',
       VerificationMethod.qr =>
         'This QR code is not for order #${order.number}.',
     };
   }
 
-  /// Spaces and a leading "#" are ignored, so "2308", " 2308 " and "#2308"
-  /// all match order #2308.
-  static bool _matchesNumber(WorkerOrder order, String typed) {
-    final digits = typed.trim().replaceFirst('#', '').trim();
-    return digits == order.number.toString();
+  /// Spaces and letter case are ignored, so "k7p 4qa" matches "K7P4QA".
+  static bool _matchesCollectionCode(WorkerOrder order, String typed) {
+    final cleaned = typed.replaceAll(RegExp(r'\s'), '').toUpperCase();
+    return cleaned == order.collectionCode;
   }
 
   static String? checkStartDelivery(WorkerProfile worker, WorkerOrder order) {

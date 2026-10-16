@@ -1,5 +1,3 @@
-import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
-import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/sample_inventory.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
@@ -9,12 +7,19 @@ import 'package:mae_assignment/shared/models/order_status.dart';
 /// look like "today"; pass a fixed [now] in tests for repeatable results.
 ///
 /// Worker and branch ids match the mock workers in mock_workers.dart:
-/// - SS15 Subang: Daniel and Hakim (packers), Amir (driver)
-/// - Bukit Jalil: Hafiz (packer), Wei Jie (driver)
+/// - SS15 Subang: Daniel and Hakim (packers)
+/// - Bukit Jalil: Hafiz (packer)
+/// - Drivers Amir and Wei Jie have no branch: each has deliveries from both
+///   branches (Amir: SS15 orders and #1184; Wei Jie: #2301 and the other
+///   Bukit Jalil orders).
 ///
 // TODO(team): delete once orders come from the backend.
 List<WorkerOrder> seedWorkerOrders(DateTime now) {
   DateTime ago(int minutes) => now.subtract(Duration(minutes: minutes));
+
+  // [days] days back, [minutes] before this time of day; for My history.
+  DateTime daysAgo(int days, int minutes) =>
+      now.subtract(Duration(days: days, minutes: minutes));
 
   // Promised pickup or delivery time; negative is in the past.
   DateTime fromNow(int minutes) => now.add(Duration(minutes: minutes));
@@ -32,12 +37,14 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
   return [
     // ---------------- SS15 Subang ----------------
 
-    // Daniel: pending delivery. Amir sees it as "being packed".
+    // Daniel: pending delivery for Wei Jie (a cross-branch driver), who
+    // sees it as "being packed".
     WorkerOrder(
       id: 'ord-2301',
       number: 2301,
       branchId: _ss15,
       branchName: _ss15Name,
+      branchAddress: _ss15Address,
       customerName: 'Farah Idris',
       customerPhone: '012-345 6789',
       isDelivery: true,
@@ -55,8 +62,8 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       packerId: _daniel,
       packerName: _danielName,
       packerAssignedAt: ago(20),
-      driverId: _amir,
-      driverName: _amirName,
+      driverId: _weiJie,
+      driverName: _weiJieName,
       driverAssignedAt: ago(18),
     ),
 
@@ -67,6 +74,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       number: 2302,
       branchId: _ss15,
       branchName: _ss15Name,
+      branchAddress: _ss15Address,
       customerName: 'Wong Kar Yee',
       customerPhone: '016-221 4480',
       isDelivery: false,
@@ -94,6 +102,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       number: 2303,
       branchId: _ss15,
       branchName: _ss15Name,
+      branchAddress: _ss15Address,
       customerName: 'Mei Ling Tan',
       customerPhone: '017-909 1123',
       isDelivery: true,
@@ -124,6 +133,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       number: 2304,
       branchId: _ss15,
       branchName: _ss15Name,
+      branchAddress: _ss15Address,
       customerName: 'Nur Aisyah',
       customerPhone: '013-778 9021',
       isDelivery: false,
@@ -143,6 +153,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       number: 2305,
       branchId: _ss15,
       branchName: _ss15Name,
+      branchAddress: _ss15Address,
       customerName: 'Siti Aminah',
       customerPhone: '019-332 7781',
       isDelivery: false,
@@ -166,6 +177,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       number: 2306,
       branchId: _ss15,
       branchName: _ss15Name,
+      branchAddress: _ss15Address,
       customerName: 'Kelvin Lim',
       customerPhone: '012-880 4512',
       isDelivery: false,
@@ -193,6 +205,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       number: 2307,
       branchId: _ss15,
       branchName: _ss15Name,
+      branchAddress: _ss15Address,
       customerName: 'Raj Kumar',
       customerPhone: '014-662 0937',
       isDelivery: false,
@@ -220,6 +233,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       number: 2308,
       branchId: _ss15,
       branchName: _ss15Name,
+      branchAddress: _ss15Address,
       customerName: 'David Wong',
       customerPhone: '012-777 3344',
       isDelivery: true,
@@ -248,6 +262,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       number: 2309,
       branchId: _ss15,
       branchName: _ss15Name,
+      branchAddress: _ss15Address,
       customerName: 'Priya Nair',
       customerPhone: '011-2345 6780',
       isDelivery: true,
@@ -279,6 +294,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       number: 2310,
       branchId: _ss15,
       branchName: _ss15Name,
+      branchAddress: _ss15Address,
       customerName: 'Aisyah Rahman',
       customerPhone: '013-410 2209',
       isDelivery: true,
@@ -313,6 +329,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       number: 2311,
       branchId: _ss15,
       branchName: _ss15Name,
+      branchAddress: _ss15Address,
       customerName: 'Jun Hao Lee',
       customerPhone: '016-905 1180',
       isDelivery: false,
@@ -335,6 +352,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       number: 1181,
       branchId: _bukitJalil,
       branchName: _bukitJalilName,
+      branchAddress: _bukitJalilAddress,
       customerName: 'Nurul Huda',
       customerPhone: '012-450 7788',
       isDelivery: true,
@@ -361,6 +379,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       number: 1182,
       branchId: _bukitJalil,
       branchName: _bukitJalilName,
+      branchAddress: _bukitJalilAddress,
       customerName: 'Tan Mei Chen',
       customerPhone: '017-221 9087',
       isDelivery: false,
@@ -386,6 +405,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       number: 1183,
       branchId: _bukitJalil,
       branchName: _bukitJalilName,
+      branchAddress: _bukitJalilAddress,
       customerName: 'Arif Hassan',
       customerPhone: '019-887 6610',
       isDelivery: false,
@@ -403,12 +423,13 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       readyBy: _hafiz,
     ),
 
-    // Ready delivery for Wei Jie.
+    // Ready delivery for Amir: his Bukit Jalil job alongside his SS15 ones.
     WorkerOrder(
       id: 'ord-1184',
       number: 1184,
       branchId: _bukitJalil,
       branchName: _bukitJalilName,
+      branchAddress: _bukitJalilAddress,
       customerName: 'Lim Kok Wai',
       customerPhone: '016-773 2290',
       isDelivery: true,
@@ -425,8 +446,8 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       packerId: _hafiz,
       packerName: _hafizName,
       packerAssignedAt: ago(48),
-      driverId: _weiJie,
-      driverName: _weiJieName,
+      driverId: _amir,
+      driverName: _amirName,
       driverAssignedAt: ago(45),
       packingStartedAt: ago(30),
       readyAt: ago(14),
@@ -439,6 +460,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       number: 1185,
       branchId: _bukitJalil,
       branchName: _bukitJalilName,
+      branchAddress: _bukitJalilAddress,
       customerName: 'Kavitha Raman',
       customerPhone: '012-668 1023',
       isDelivery: true,
@@ -463,13 +485,157 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       collectionVerifiedAt: ago(12),
       outForDeliveryAt: ago(11),
     ),
+
+    // ---------------- Earlier days (for My history) ----------------
+
+    // Yesterday: pickup packed by Daniel, handed over by Hakim.
+    WorkerOrder(
+      id: 'ord-2280',
+      number: 2280,
+      branchId: _ss15,
+      branchName: _ss15Name,
+      branchAddress: _ss15Address,
+      customerName: 'Lee Siew Ling',
+      customerPhone: '012-334 9081',
+      isDelivery: false,
+      items: [_item(_ss15, 'L1', 'p29', 1), _item(_ss15, 'L2', 'p31', 2)],
+      packedLineIds: const {'L1', 'L2'},
+      status: OrderStatus.completed,
+      placedAt: daysAgo(1, 180),
+      dueAt: daysAgo(1, 60),
+      statusSince: daysAgo(1, 50),
+      packerId: _daniel,
+      packerName: _danielName,
+      packerAssignedAt: daysAgo(1, 170),
+      packingStartedAt: daysAgo(1, 150),
+      readyAt: daysAgo(1, 130),
+      readyBy: _daniel,
+      pickupVerification: VerificationMethod.manual,
+      pickupCompletedBy: _hakim,
+      pickupCompletedByName: _hakimName,
+      completedAt: daysAgo(1, 50),
+    ),
+
+    // Yesterday: delivery packed by Hakim, delivered by Amir.
+    WorkerOrder(
+      id: 'ord-2281',
+      number: 2281,
+      branchId: _ss15,
+      branchName: _ss15Name,
+      branchAddress: _ss15Address,
+      customerName: 'Ahmad Faiz',
+      customerPhone: '017-662 1045',
+      isDelivery: true,
+      address: '9, Jalan SS15/8, 47500 Subang Jaya',
+      items: [_item(_ss15, 'L1', 'p33', 2), _item(_ss15, 'L2', 'p15', 1)],
+      packedLineIds: const {'L1', 'L2'},
+      status: OrderStatus.completed,
+      placedAt: daysAgo(1, 240),
+      dueAt: daysAgo(1, 120),
+      statusSince: daysAgo(1, 110),
+      packerId: _hakim,
+      packerName: _hakimName,
+      packerAssignedAt: daysAgo(1, 230),
+      driverId: _amir,
+      driverName: _amirName,
+      driverAssignedAt: daysAgo(1, 225),
+      packingStartedAt: daysAgo(1, 210),
+      readyAt: daysAgo(1, 190),
+      readyBy: _hakim,
+      collectionVerification: VerificationMethod.manual,
+      collectionVerifiedBy: _amir,
+      collectionVerifiedAt: daysAgo(1, 170),
+      outForDeliveryAt: daysAgo(1, 168),
+      deliveredBy: _amir,
+      deliveredByName: _amirName,
+      completedAt: daysAgo(1, 110),
+    ),
+
+    // Three days ago: delivery packed by Daniel, delivered by Amir.
+    WorkerOrder(
+      id: 'ord-2275',
+      number: 2275,
+      branchId: _ss15,
+      branchName: _ss15Name,
+      branchAddress: _ss15Address,
+      customerName: 'Grace Ong',
+      customerPhone: '016-781 2237',
+      isDelivery: true,
+      address: '27, Jalan SS16/3, 47500 Subang Jaya',
+      items: [
+        _item(_ss15, 'L1', 'p10', 2),
+        _item(_ss15, 'L2', 'p22', 1),
+        _item(_ss15, 'L3', 'p25', 1),
+      ],
+      packedLineIds: const {'L1', 'L2', 'L3'},
+      status: OrderStatus.completed,
+      placedAt: daysAgo(3, 200),
+      dueAt: daysAgo(3, 90),
+      statusSince: daysAgo(3, 80),
+      packerId: _daniel,
+      packerName: _danielName,
+      packerAssignedAt: daysAgo(3, 190),
+      driverId: _amir,
+      driverName: _amirName,
+      driverAssignedAt: daysAgo(3, 185),
+      packingStartedAt: daysAgo(3, 170),
+      readyAt: daysAgo(3, 150),
+      readyBy: _daniel,
+      collectionVerification: VerificationMethod.qr,
+      collectionVerifiedBy: _amir,
+      collectionVerifiedAt: daysAgo(3, 130),
+      outForDeliveryAt: daysAgo(3, 128),
+      deliveredBy: _amir,
+      deliveredByName: _amirName,
+      completedAt: daysAgo(3, 80),
+    ),
+
+    // Yesterday at Bukit Jalil: packed by Hafiz, delivered by Wei Jie.
+    WorkerOrder(
+      id: 'ord-1170',
+      number: 1170,
+      branchId: _bukitJalil,
+      branchName: _bukitJalilName,
+      branchAddress: _bukitJalilAddress,
+      customerName: 'Siti Nurhaliza',
+      customerPhone: '019-224 5513',
+      isDelivery: true,
+      address: '5, Jalan Jalil Jaya 3, 57000 Bukit Jalil',
+      items: [
+        _item(_bukitJalil, 'L1', 'p12', 1),
+        _item(_bukitJalil, 'L2', 'p13', 1),
+      ],
+      packedLineIds: const {'L1', 'L2'},
+      status: OrderStatus.completed,
+      placedAt: daysAgo(1, 200),
+      dueAt: daysAgo(1, 90),
+      statusSince: daysAgo(1, 85),
+      packerId: _hafiz,
+      packerName: _hafizName,
+      packerAssignedAt: daysAgo(1, 190),
+      driverId: _weiJie,
+      driverName: _weiJieName,
+      driverAssignedAt: daysAgo(1, 185),
+      packingStartedAt: daysAgo(1, 170),
+      readyAt: daysAgo(1, 150),
+      readyBy: _hafiz,
+      collectionVerification: VerificationMethod.manual,
+      collectionVerifiedBy: _weiJie,
+      collectionVerifiedAt: daysAgo(1, 130),
+      outForDeliveryAt: daysAgo(1, 128),
+      deliveredBy: _weiJie,
+      deliveredByName: _weiJieName,
+      completedAt: daysAgo(1, 85),
+    ),
   ];
 }
 
 const _ss15 = 'ss15';
 const _ss15Name = 'SS15 Subang';
+const _ss15Address = '18, Jalan SS15/4D, 47500 Subang Jaya';
 const _bukitJalil = 'bukit-jalil';
 const _bukitJalilName = 'Bukit Jalil';
+const _bukitJalilAddress = 'Lot G-12, Jalan Jalil Perkasa 7, 57000 Bukit Jalil';
 
 const _daniel = 'mock-daniel';
 const _danielName = 'Daniel Lee';
@@ -484,17 +650,17 @@ const _weiJieName = 'Tan Wei Jie';
 
 /// The admin's sample products, by id, so order lines show the same names,
 /// brands, sizes, categories and descriptions as the Inventory tab.
-final List<InventoryItem> _inventory = sampleInventory();
-final Map<String, Product> _catalogue = {
+final _inventory = sampleInventory();
+final _catalogue = {
   for (final item in _inventory) item.product.id: item.product,
 };
 
 /// Each product's price at each branch, keyed "branchId/productId".
-final Map<String, double> _prices = {
+final _prices = {
   for (final item in _inventory)
     '${item.branchId}/${item.product.id}': item.price,
 };
-final Map<String, String> _categoryNames = {
+final _categoryNames = {
   for (final category in sampleCategories()) category.id: category.name,
 };
 

@@ -9,7 +9,6 @@ import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/ui/pickup_order_card.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/view_models/pickup_queue_view_model.dart';
-import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_scaffold.dart';
 import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
@@ -66,7 +65,6 @@ class _PickupQueueViewState extends ConsumerState<PickupQueueView> {
     final queue = ref.watch(pickupQueueViewModelProvider);
     final waitingForDrivers =
         ref.watch(pickupWaitingForDriversViewModelProvider).value ?? [];
-    final workerId = ref.watch(workerSessionProvider)?.id ?? '';
 
     return WorkerScaffold(
       currentTab: WorkerTab.readyForPickup,
@@ -127,14 +125,11 @@ class _PickupQueueViewState extends ConsumerState<PickupQueueView> {
             ),
             children: [
               // Customers collecting at the counter.
-              _SectionTitle('Waiting for Pickup (${waiting.length})'),
+              _SectionTitle('Waiting for pickup (${waiting.length})'),
               if (orders.isEmpty)
                 const _InlineEmpty(
                   icon: Icons.storefront_outlined,
                   title: 'No orders waiting for pickup',
-                  message:
-                      'Self-pickup orders appear here as soon as any packer '
-                      'at your branch marks them ready.',
                 )
               else if (waiting.isEmpty)
                 _InlineEmpty(
@@ -147,26 +142,40 @@ class _PickupQueueViewState extends ConsumerState<PickupQueueView> {
                   _card(
                     PickupOrderCard(
                       order: order,
-                      detail: packedByText(order, workerId),
-                      timeLabel: 'Pickup',
+                      // Who packed it is on the order screen; at the counter
+                      // only the order, name and time matter.
+                      timeLabel: 'Pickup by',
                       time: order.dueAt,
                       highlightTime: true,
                       onTap: () => _openOrder(order),
                     ),
                   ),
 
-              // Delivery bags for drivers to collect. Read-only: the
-              // driver verifies the bag in their own app.
-              if (drivers.isNotEmpty) ...[
-                _SectionTitle('Waiting for drivers (${drivers.length})'),
+              // Delivery bags for drivers to collect. They open read-only:
+              // the driver verifies the bag in their own app.
+              // Always shown, so the screen keeps the same shape; a short
+              // line when there is nothing (smaller than the pickup empty
+              // state, so the pickup orders stay the focus).
+              _SectionTitle('Waiting for drivers (${drivers.length})'),
+              if (drivers.isEmpty)
+                Text(
+                  waitingForDrivers.isEmpty
+                      ? 'No bags waiting for drivers.'
+                      : 'No matching bags.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                )
+              else ...[
                 for (final order in drivers)
                   _card(
                     PickupOrderCard(
                       order: order,
-                      detail: 'For ${order.driverName ?? 'driver'}',
-                      timeLabel: 'Deliver',
+                      detail: 'Driver: ${order.driverName ?? 'not assigned'}',
+                      detailIcon: Icons.local_shipping_outlined,
+                      timeLabel: 'Deliver by',
                       time: order.dueAt,
                       highlightTime: true,
+                      // Opens read-only, to find the bag for the driver.
+                      onTap: () => _openOrder(order),
                     ),
                   ),
               ],
@@ -186,7 +195,7 @@ class _PickupQueueViewState extends ConsumerState<PickupQueueView> {
   }
 }
 
-/// Section heading, e.g. "Waiting for Pickup (2)".
+/// Section heading, e.g. "Waiting for pickup (2)".
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.text);
 
@@ -204,15 +213,13 @@ class _SectionTitle extends StatelessWidget {
 /// Smaller empty message that sits inside the list, so the Waiting for
 /// drivers section below it stays visible.
 class _InlineEmpty extends StatelessWidget {
-  const _InlineEmpty({
-    required this.icon,
-    required this.title,
-    required this.message,
-  });
+  const _InlineEmpty({required this.icon, required this.title, this.message});
 
   final IconData icon;
   final String title;
-  final String message;
+
+  /// Optional line under the title.
+  final String? message;
 
   @override
   Widget build(BuildContext context) {
@@ -234,12 +241,14 @@ class _InlineEmpty extends StatelessWidget {
             style: textTheme.titleMedium,
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            message,
-            style: textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
+          if (message != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              message!,
+              style: textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+          ],
         ],
       ),
     );

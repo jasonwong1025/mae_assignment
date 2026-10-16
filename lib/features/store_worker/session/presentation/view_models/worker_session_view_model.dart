@@ -30,6 +30,11 @@ class WorkerSessionViewModel extends Notifier<WorkerProfile?> {
       return '${worker.name} has been deactivated by HQ, so this account '
           'cannot use the Store Worker app. Choose an active worker.';
     }
+    // Packing Staff work at one branch; without it they have no tasks.
+    if (worker.isPackingStaff && worker.branchId == null) {
+      return '${worker.name} has no branch assigned yet. Ask HQ to assign '
+          'one.';
+    }
     state = worker;
     return null;
   }

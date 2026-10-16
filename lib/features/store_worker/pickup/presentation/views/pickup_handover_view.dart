@@ -6,17 +6,17 @@ import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
-import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_item_tile.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/ui/bag_label_screen.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/ui/product_details_sheet.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/ui/pickup_order_card.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/view_models/pickup_handover_view_model.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_notice.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/ui/bottom_action_bar.dart';
-import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
-import 'package:mae_assignment/shared/ui/confirm_sheet.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
 import 'package:mae_assignment/shared/ui/order_status_label.dart';
+import 'package:mae_assignment/shared/ui/slide_to_confirm.dart';
 
 /// Handover screen for one self-pickup order: who it is for, what is in
 /// the bag (read-only), the manual check, and Complete pickup.
@@ -32,18 +32,13 @@ class PickupHandoverView extends ConsumerStatefulWidget {
 }
 
 class _PickupHandoverViewState extends ConsumerState<PickupHandoverView> {
-  // The two manual checks. Both are needed before Complete pickup.
-  bool _numberChecked = false;
-  bool _nameChecked = false;
-
-  /// True while Complete pickup is running.
-  bool _isBusy = false;
-
-  /// True once this packer handed the order over and the screen is
-  /// closing. Stops a "not available" flash as the order leaves the queue.
+  /// True once this packer handed the order over. The order then leaves
+  /// this packer's scope, so [_lastOrder] keeps the screen (and the tick
+  /// on the slider) showing until it closes, instead of "not available".
   bool _isLeaving = false;
 
-  bool get _isVerified => _numberChecked && _nameChecked;
+  /// The last version of the order shown, for while the screen closes.
+  WorkerOrder? _lastOrder;
 
   void _goBack() {
     if (context.canPop()) {
@@ -53,39 +48,36 @@ class _PickupHandoverViewState extends ConsumerState<PickupHandoverView> {
     }
   }
 
-  Future<void> _completePickup(WorkerOrder order) async {
-    final confirmed = await showConfirmSheet(
-      context,
-      icon: Icons.shopping_bag_outlined,
-      title: 'Hand over order #${order.number}?',
-      message:
-          'Give the bag to ${order.customerName}. This completes the order '
-          'and cannot be undone.',
-      confirmLabel: 'Hand over',
-    );
-    if (!confirmed || !mounted) return;
-
-    setState(() => _isBusy = true);
+  /// Runs once the packer slides to hand over (after checking the order
+  /// number and name, as the reminder above the slider asks). Returns true
+  /// if it worked, so the slider shows its tick.
+  Future<bool> _completePickup() async {
     final error = await ref
         .read(pickupHandoverViewModelProvider(widget.orderId).notifier)
         .completePickup(method: VerificationMethod.manual);
-    if (!mounted) return;
+    if (!mounted) return false;
 
-    final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
     if (error != null) {
-      setState(() => _isBusy = false);
-      messenger.showSnackBar(SnackBar(content: Text(error)));
-      return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(error)));
+      return false;
     }
-
     setState(() => _isLeaving = true);
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          'Order #${order.number} handed over to ${order.customerName}.',
+    return true;
+  }
+
+  /// After the tick: back to Ready for Pickup with a success message.
+  void _afterHandover(WorkerOrder order) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            'Order #${order.number} handed over to ${order.customerName}.',
+          ),
         ),
-      ),
-    );
+      );
     _goBack();
   }
 
@@ -104,7 +96,21 @@ class _PickupHandoverViewState extends ConsumerState<PickupHandoverView> {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: _goBack,
         ),
-        title: Text(order == null ? 'Pickup' : 'Pickup #${order.number}'),
+        title: Text(
+          order == null
+              ? 'Pickup'
+              : '${order.isDelivery ? 'Delivery' : 'Pickup'} #${order.number}',
+        ),
+        // Reprint the bag label while the order waits to be collected.
+        actions: [
+          if (order != null && order.status == OrderStatus.ready)
+            IconButton(
+              tooltip: 'Print label',
+              icon: const Icon(Icons.print_outlined),
+              onPressed: () => showBagLabelScreen(context, order),
+            ),
+          const SizedBox(width: 4),
+        ],
         shape: const Border(bottom: BorderSide(color: AppColors.border)),
       ),
       body: SafeArea(
@@ -122,17 +128,20 @@ class _PickupHandoverViewState extends ConsumerState<PickupHandoverView> {
                   pickupHandoverViewModelProvider(widget.orderId),
                 ),
               ),
-              data: (order) {
-                if (_isLeaving) return const SizedBox.shrink();
-                if (order == null || worker == null || order.isDelivery) {
+              data: (current) {
+                // While closing, keep showing the order as it was.
+                final order = _isLeaving && _lastOrder != null
+                    ? _lastOrder
+                    : current;
+                if (order != null && !_isLeaving) _lastOrder = order;
+                // Delivery orders open read-only (waiting for their driver).
+                if (order == null || worker == null) {
                   return EmptyState(
                     icon: Icons.storefront_outlined,
                     title: 'Order not available',
-                    message: order != null && order.isDelivery
-                        ? 'This is a delivery order. Its driver collects it '
-                              'from the store.'
-                        : 'This order is no longer waiting for pickup. '
-                              'Another packer may have handed it over.',
+                    message:
+                        'This order is no longer waiting at the store. It may '
+                        'have been handed over or collected.',
                     action: OutlinedButton(
                       onPressed: () => context.go(AppRoutes.workerPickup),
                       child: const Text('Back to Ready for Pickup'),
@@ -142,16 +151,10 @@ class _PickupHandoverViewState extends ConsumerState<PickupHandoverView> {
                 return _HandoverContent(
                   order: order,
                   workerId: worker.id,
-                  numberChecked: _numberChecked,
-                  nameChecked: _nameChecked,
-                  isBusy: _isBusy,
-                  onNumberChecked: (value) =>
-                      setState(() => _numberChecked = value),
-                  onNameChecked: (value) =>
-                      setState(() => _nameChecked = value),
-                  onComplete: _isVerified && !_isBusy
-                      ? () => _completePickup(order)
-                      : null,
+                  // The slider shows its own spinner and ignores slides
+                  // while the handover runs.
+                  onComplete: _completePickup,
+                  onCompleted: () => _afterHandover(order),
                   onBack: () => context.go(AppRoutes.workerPickup),
                 );
               },
@@ -167,28 +170,29 @@ class _HandoverContent extends StatelessWidget {
   const _HandoverContent({
     required this.order,
     required this.workerId,
-    required this.numberChecked,
-    required this.nameChecked,
-    required this.isBusy,
-    required this.onNumberChecked,
-    required this.onNameChecked,
     required this.onComplete,
+    required this.onCompleted,
     required this.onBack,
   });
 
   final WorkerOrder order;
   final String workerId;
-  final bool numberChecked;
-  final bool nameChecked;
-  final bool isBusy;
-  final ValueChanged<bool> onNumberChecked;
-  final ValueChanged<bool> onNameChecked;
+  final Future<bool> Function() onComplete;
 
-  /// Null keeps Complete pickup disabled.
-  final VoidCallback? onComplete;
+  /// Runs after the slider's tick has shown.
+  final VoidCallback onCompleted;
   final VoidCallback onBack;
 
-  bool get _canHandOver => order.status == OrderStatus.ready;
+  /// Only ready self-pickup orders. Delivery bags are collected by their
+  /// driver, so they are shown read-only.
+  bool get _canHandOver => order.status == OrderStatus.ready && order.isPickup;
+
+  /// A delivery bag still waiting for its driver: nothing to explain, the
+  /// header already shows the driver and delivery time.
+  bool get _isWaitingForDriver =>
+      order.isDelivery &&
+      order.status == OrderStatus.ready &&
+      order.collectionVerifiedBy != order.driverId;
 
   @override
   Widget build(BuildContext context) {
@@ -202,61 +206,58 @@ class _HandoverContent extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.l),
             children: [
               _CustomerHeader(order: order, workerId: workerId),
-              const SizedBox(height: AppSpacing.l),
-              if (_canHandOver)
-                _VerificationCard(
-                  order: order,
-                  numberChecked: numberChecked,
-                  nameChecked: nameChecked,
-                  onNumberChecked: onNumberChecked,
-                  onNameChecked: onNameChecked,
-                )
-              else
+              // Why it can no longer be handed over (handed over,
+              // cancelled, still being packed).
+              if (!_canHandOver && !_isWaitingForDriver) ...[
+                const SizedBox(height: AppSpacing.l),
                 _StatusNotice(order: order, workerId: workerId),
+              ],
               Padding(
                 padding: const EdgeInsets.only(
                   top: AppSpacing.xl,
                   bottom: AppSpacing.s,
                 ),
                 child: Text(
-                  'IN THE BAG (${order.lineCount} PRODUCTS · '
-                  '${order.itemCount} ITEMS)',
-                  style: textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
-                  ),
+                  'In the bag (${order.lineCount} products · '
+                  '${order.itemCount} items)',
+                  style: textTheme.titleMedium,
                 ),
               ),
-              // Read-only: the checklist belongs to the packer.
-              for (final item in order.items)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.s),
-                  child: PackingItemTile(
-                    item: item,
-                    isPacked: order.isPacked(item.lineId),
-                    onChanged: null,
-                  ),
+              // A plain read-only list: everything is already packed.
+              // Tapping a product shows its details.
+              Card(
+                elevation: 0,
+                clipBehavior: Clip.antiAlias,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: AppColors.border),
                 ),
+                child: Column(
+                  children: [
+                    for (final (index, item) in order.items.indexed) ...[
+                      if (index > 0) const Divider(height: 1),
+                      _ItemRow(
+                        item: item,
+                        onTap: () => showProductDetailsSheet(
+                          context,
+                          item: item,
+                          isPacked: order.isPacked(item.lineId),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ],
           ),
         ),
         if (_canHandOver)
           BottomActionBar(
             children: [
-              if (onComplete == null && !isBusy) ...[
-                Text(
-                  'Tick both checks above to continue',
-                  textAlign: TextAlign.center,
-                  style: textTheme.bodyMedium,
-                ),
-                const SizedBox(height: AppSpacing.s),
-              ],
-              FilledButton.icon(
-                onPressed: onComplete,
-                icon: isBusy
-                    ? const ButtonLoadingIndicator()
-                    : const Icon(Icons.shopping_bag_outlined),
-                label: const Text('Complete pickup'),
+              SlideToConfirm(
+                label: 'Slide to hand over',
+                onConfirmed: onComplete,
+                onCompleted: onCompleted,
               ),
             ],
           )
@@ -299,117 +300,99 @@ class _CustomerHeader extends StatelessWidget {
             Text('#${order.number}', style: textTheme.headlineMedium),
             OrderStatusBadge(
               status: order.status,
-              label: isReady ? 'Ready for pickup' : null,
+              label: isReady
+                  ? (order.isDelivery ? 'Ready for driver' : 'Ready for pickup')
+                  : null,
             ),
           ],
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(order.customerName, style: textTheme.titleLarge),
-        const SizedBox(height: AppSpacing.s),
-        Row(
-          children: [
-            const Icon(
-              Icons.phone_outlined,
-              size: 18,
-              color: AppColors.textSecondary,
-            ),
-            const SizedBox(width: AppSpacing.s),
-            Flexible(
-              child: Text(order.customerPhone, style: textTheme.bodyLarge),
-            ),
-          ],
-        ),
+        // The customer's phone is only for pickups; drivers contact
+        // delivery customers themselves.
+        if (order.isPickup) ...[
+          const SizedBox(height: AppSpacing.s),
+          Row(
+            children: [
+              const Icon(
+                Icons.phone_outlined,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
+              const SizedBox(width: AppSpacing.s),
+              Flexible(
+                child: Text(order.customerPhone, style: textTheme.bodyLarge),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: AppSpacing.xs),
-        Text(
-          isReady
-              ? '${packedByText(order, workerId)} · ready '
-                    '${Formatters.minutes(minutesReady(order))} ago'
-              : packedByText(order, workerId),
-          style: textTheme.bodySmall,
+        _IconLine(
+          icon: Icons.person_outline_rounded,
+          text: packedByText(order, workerId),
         ),
+        if (order.isDelivery) ...[
+          const SizedBox(height: AppSpacing.xs),
+          _IconLine(
+            icon: Icons.local_shipping_outlined,
+            text: 'Driver: ${order.driverName ?? 'not assigned'}',
+          ),
+        ],
+        if (isReady && order.dueAt != null) ...[
+          const SizedBox(height: AppSpacing.xs),
+          _IconLine(
+            icon: Icons.schedule_rounded,
+            text:
+                '${order.isDelivery ? 'Deliver by' : 'Pickup by'} '
+                '${Formatters.time(order.dueAt!)}',
+            color: _dueColor(order.dueAt!),
+            bold: true,
+          ),
+        ],
       ],
     );
   }
 }
 
-/// The manual check: order number and name, both ticked by the packer.
-/// This only confirms the right bag goes to the right person; it does not
-/// prove who the customer is.
-class _VerificationCard extends StatelessWidget {
-  const _VerificationCard({
-    required this.order,
-    required this.numberChecked,
-    required this.nameChecked,
-    required this.onNumberChecked,
-    required this.onNameChecked,
+/// Grey normally, amber within 15 minutes, red once late, like the due
+/// times on the other worker screens.
+Color _dueColor(DateTime dueAt) {
+  final minutesLeft = dueAt.difference(DateTime.now()).inMinutes;
+  if (minutesLeft < 0) return AppColors.error;
+  if (minutesLeft <= 15) return AppColors.warning;
+  return AppColors.textSecondary;
+}
+
+/// Small icon and one line of text, e.g. a clock and "Pickup by 4:03am".
+class _IconLine extends StatelessWidget {
+  const _IconLine({
+    required this.icon,
+    required this.text,
+    this.color = AppColors.textSecondary,
+    this.bold = false,
   });
 
-  final WorkerOrder order;
-  final bool numberChecked;
-  final bool nameChecked;
-  final ValueChanged<bool> onNumberChecked;
-  final ValueChanged<bool> onNameChecked;
+  final IconData icon;
+  final String text;
+  final Color color;
+  final bool bold;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final verified = numberChecked && nameChecked;
-
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: verified ? AppColors.success : AppColors.border,
-          width: verified ? 2 : 1,
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: AppSpacing.xs),
+        Expanded(
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: color,
+              fontWeight: bold ? FontWeight.w700 : null,
+            ),
+          ),
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.l),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Verify the customer', style: textTheme.titleMedium),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Ask for the order number and name before handing over the '
-              'bag.',
-              style: textTheme.bodyMedium,
-            ),
-            const SizedBox(height: AppSpacing.s),
-            CheckboxListTile(
-              value: numberChecked,
-              onChanged: (value) => onNumberChecked(value ?? false),
-              controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: EdgeInsets.zero,
-              title: Text('Customer gave order number #${order.number}'),
-            ),
-            CheckboxListTile(
-              value: nameChecked,
-              onChanged: (value) => onNameChecked(value ?? false),
-              controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: EdgeInsets.zero,
-              title: Text('Name matches ${order.customerName}'),
-            ),
-            if (verified)
-              const Row(
-                children: [
-                  Icon(Icons.verified_outlined, color: AppColors.success),
-                  SizedBox(width: AppSpacing.s),
-                  Expanded(
-                    child: Text(
-                      'Verified by manual check',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.success,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-          ],
-        ),
-      ),
+      ],
     );
   }
 }
@@ -423,6 +406,7 @@ class _StatusNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (order.isDelivery) return _deliveryNotice();
     final (icon, color, text) = switch (order.status) {
       OrderStatus.completed => (
         Icons.task_alt_rounded,
@@ -444,6 +428,49 @@ class _StatusNotice extends StatelessWidget {
     return WorkerNotice(icon: icon, color: color, text: text);
   }
 
+  /// Delivery bags: the packer only watches; the driver collects.
+  Widget _deliveryNotice() {
+    final driver = order.driverName ?? 'the driver';
+    final verifiedAt = order.collectionVerifiedAt;
+    final collected =
+        verifiedAt != null && order.collectionVerifiedBy == order.driverId;
+
+    final (icon, color, text) = switch (order.status) {
+      OrderStatus.ready when collected => (
+        Icons.task_alt_rounded,
+        AppColors.success,
+        'Collected by $driver at ${Formatters.time(verifiedAt)}.',
+      ),
+      // Not shown while waiting (see _HandoverContent).
+      OrderStatus.ready => (
+        Icons.local_shipping_outlined,
+        AppColors.info,
+        'Waiting for $driver to collect.',
+      ),
+      OrderStatus.outForDelivery => (
+        Icons.local_shipping_outlined,
+        AppColors.darkGreen,
+        'Collected. $driver is delivering it.',
+      ),
+      OrderStatus.completed => (
+        Icons.task_alt_rounded,
+        AppColors.success,
+        'Delivered to the customer.',
+      ),
+      OrderStatus.cancelled => (
+        Icons.block_rounded,
+        AppColors.error,
+        'This order was cancelled. Do not give it to the driver.',
+      ),
+      _ => (
+        Icons.hourglass_top_rounded,
+        AppColors.info,
+        'This order is still being packed.',
+      ),
+    };
+    return WorkerNotice(icon: icon, color: color, text: text);
+  }
+
   String _handedOverText() {
     final by = order.pickupCompletedBy == workerId
         ? 'you'
@@ -456,5 +483,53 @@ class _StatusNotice extends StatelessWidget {
       if (method != null) ' (${method.label.toLowerCase()})',
       '.',
     ].join();
+  }
+}
+
+/// One line in the bag: name, brand and size, quantity, and a chevron
+/// because tapping it opens the product's details.
+class _ItemRow extends StatelessWidget {
+  const _ItemRow({required this.item, required this.onTap});
+
+  final WorkerOrderItem item;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.l,
+          AppSpacing.m,
+          AppSpacing.s,
+          AppSpacing.m,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.name, style: textTheme.bodyLarge),
+                  Text(
+                    '${item.brand} · ${item.packSize}',
+                    style: textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.m),
+            Text('×${item.quantity}', style: textTheme.titleMedium),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

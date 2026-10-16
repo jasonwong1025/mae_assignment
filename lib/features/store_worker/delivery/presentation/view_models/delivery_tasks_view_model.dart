@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart' show DateUtils;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
@@ -17,35 +16,61 @@ class DeliveryGroups {
     this.outForDelivery = const [],
     this.readyToCollect = const [],
     this.beingPacked = const [],
-    this.completedToday = const [],
   });
 
-  /// From the repository's list (already sorted by stage, then by when it
-  /// was assigned). Cancelled orders and deliveries finished before today
-  /// are left out.
-  factory DeliveryGroups.from(List<WorkerOrder> orders, DateTime now) {
+  /// From the repository's list. Only active deliveries: completed ones
+  /// are in My history (Account), and cancelled ones are left out.
+  /// Each section puts the most urgent (earliest due) first. Ready to
+  /// collect also keeps each branch's orders together, so the driver
+  /// collects everything at one store in one trip.
+  factory DeliveryGroups.from(List<WorkerOrder> orders) {
     return DeliveryGroups(
-      outForDelivery: [
+      outForDelivery: _byDue([
         for (final order in orders)
           if (order.status == OrderStatus.outForDelivery) order,
-      ],
-      readyToCollect: [
+      ]),
+      readyToCollect: _byBranchThenDue([
         for (final order in orders)
           if (order.status == OrderStatus.ready) order,
-      ],
-      beingPacked: [
+      ]),
+      beingPacked: _byDue([
         for (final order in orders)
           if (order.status == OrderStatus.pending ||
               order.status == OrderStatus.packing)
             order,
-      ],
-      completedToday: [
-        for (final order in orders)
-          if (order.status == OrderStatus.completed &&
-              DateUtils.isSameDay(order.completedAt, now))
-            order,
-      ],
+      ]),
     );
+  }
+
+  /// Earliest due first; orders with no due time go last. Stable, so ties
+  /// keep the repository's order.
+  static List<WorkerOrder> _byDue(List<WorkerOrder> orders) {
+    final indexed = orders.indexed.toList()
+      ..sort((a, b) {
+        final byDue = _compareDue(a.$2, b.$2);
+        return byDue != 0 ? byDue : a.$1.compareTo(b.$1);
+      });
+    return [for (final (_, order) in indexed) order];
+  }
+
+  /// Branches in the order of their most urgent order, then by due time
+  /// within each branch.
+  static List<WorkerOrder> _byBranchThenDue(List<WorkerOrder> orders) {
+    final sorted = _byDue(orders);
+    final byBranch = <String, List<WorkerOrder>>{};
+    for (final order in sorted) {
+      byBranch.putIfAbsent(order.branchId, () => []).add(order);
+    }
+    return [for (final group in byBranch.values) ...group];
+  }
+
+  static int _compareDue(WorkerOrder a, WorkerOrder b) {
+    final dueA = a.dueAt;
+    final dueB = b.dueAt;
+    if (dueA == null && dueB == null) return 0;
+    if (dueA == null) return 1;
+    if (dueB == null) return -1;
+    return dueA.compareTo(dueB);
   }
 
   /// On the way now; the driver's current job.
@@ -56,13 +81,9 @@ class DeliveryGroups {
 
   /// Assigned but still being packed; visible, but cannot be collected yet.
   final List<WorkerOrder> beingPacked;
-  final List<WorkerOrder> completedToday;
 
   bool get isEmpty =>
-      outForDelivery.isEmpty &&
-      readyToCollect.isEmpty &&
-      beingPacked.isEmpty &&
-      completedToday.isEmpty;
+      outForDelivery.isEmpty && readyToCollect.isEmpty && beingPacked.isEmpty;
 }
 
 /// State for My Deliveries: the signed-in driver's deliveries at their
@@ -77,8 +98,6 @@ class DeliveryTasksViewModel extends StreamNotifier<DeliveryGroups> {
       return;
     }
     final repository = ref.watch(workerOrdersRepositoryProvider);
-    yield* repository
-        .watchMyDeliveries(worker)
-        .map((orders) => DeliveryGroups.from(orders, DateTime.now()));
+    yield* repository.watchMyDeliveries(worker).map(DeliveryGroups.from);
   }
 }

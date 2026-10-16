@@ -1,34 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/qr_scanner_page.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
 
-/// Sheet where the driver types the order number printed on the bag, to
-/// confirm they are collecting the right order. [onVerify] checks it and
-/// returns an error message, or null if it matched.
+/// Sheet where the driver scans the QR code on the bag label, or types
+/// the collection code printed under it, to confirm they are collecting the
+/// right order. [onScan] and [onVerify] check the code and return an
+/// error message, or null if it matched.
 /// Returns true if the order was verified.
 ///
 /// This only catches picking up the wrong bag; it is not a security check.
 Future<bool> showVerifyOrderSheet(
   BuildContext context, {
   required WorkerOrder order,
-  required Future<String?> Function(String typedNumber) onVerify,
+  required Future<String?> Function(String typedCode) onVerify,
+  required Future<String?> Function(String scannedCode) onScan,
 }) async {
   final verified = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (context) => _VerifyOrderSheet(order: order, onVerify: onVerify),
+    builder: (context) =>
+        _VerifyOrderSheet(order: order, onVerify: onVerify, onScan: onScan),
   );
   return verified ?? false;
 }
 
 class _VerifyOrderSheet extends StatefulWidget {
-  const _VerifyOrderSheet({required this.order, required this.onVerify});
+  const _VerifyOrderSheet({
+    required this.order,
+    required this.onVerify,
+    required this.onScan,
+  });
 
   final WorkerOrder order;
-  final Future<String?> Function(String typedNumber) onVerify;
+  final Future<String?> Function(String typedCode) onVerify;
+  final Future<String?> Function(String scannedCode) onScan;
 
   @override
   State<_VerifyOrderSheet> createState() => _VerifyOrderSheetState();
@@ -47,7 +56,7 @@ class _VerifyOrderSheetState extends State<_VerifyOrderSheet> {
 
   Future<void> _verify() async {
     if (_controller.text.trim().isEmpty) {
-      setState(() => _error = 'Type the order number from the bag.');
+      setState(() => _error = 'Type the code from the bag label.');
       return;
     }
     setState(() {
@@ -55,6 +64,25 @@ class _VerifyOrderSheetState extends State<_VerifyOrderSheet> {
       _error = null;
     });
     final error = await widget.onVerify(_controller.text);
+    if (!mounted) return;
+    if (error == null) {
+      Navigator.of(context).pop(true);
+      return;
+    }
+    setState(() {
+      _isChecking = false;
+      _error = error;
+    });
+  }
+
+  Future<void> _scan() async {
+    final code = await scanBagQrCode(context);
+    if (code == null || !mounted) return;
+    setState(() {
+      _isChecking = true;
+      _error = null;
+    });
+    final error = await widget.onScan(code);
     if (!mounted) return;
     if (error == null) {
       Navigator.of(context).pop(true);
@@ -75,7 +103,11 @@ class _VerifyOrderSheetState extends State<_VerifyOrderSheet> {
       padding: EdgeInsets.only(
         left: AppSpacing.xl,
         right: AppSpacing.xl,
-        bottom: MediaQuery.viewInsetsOf(context).bottom + AppSpacing.l,
+        // Keyboard when open, otherwise the gesture bar, like the
+        // pages' bottom bars.
+        bottom: MediaQuery.viewInsetsOf(context).bottom > 0
+            ? MediaQuery.viewInsetsOf(context).bottom
+            : MediaQuery.paddingOf(context).bottom,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -84,30 +116,44 @@ class _VerifyOrderSheetState extends State<_VerifyOrderSheet> {
           Text('Verify the order', style: textTheme.titleLarge),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Type the order number printed on the bag label for '
+            'Scan the QR code on the bag label for '
             '${widget.order.customerName}.',
             style: textTheme.bodyMedium,
           ),
           const SizedBox(height: AppSpacing.l),
+          FilledButton.icon(
+            onPressed: _isChecking ? null : _scan,
+            icon: const Icon(Icons.qr_code_scanner_rounded),
+            label: const Text('Scan QR code'),
+          ),
+          const SizedBox(height: AppSpacing.l),
+          Text(
+            'Or type the code under the QR code',
+            style: textTheme.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.s),
           TextField(
             controller: _controller,
-            autofocus: true,
-            keyboardType: TextInputType.number,
+            keyboardType: TextInputType.visiblePassword,
+            textCapitalization: TextCapitalization.characters,
+            autocorrect: false,
+            enableSuggestions: false,
             inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp('[0-9#]')),
+              FilteringTextInputFormatter.allow(RegExp('[A-Za-z0-9 ]')),
+              LengthLimitingTextInputFormatter(8),
             ],
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _verify(),
             decoration: InputDecoration(
-              labelText: 'Order number on the bag',
-              hintText: 'e.g. 2308',
-              prefixIcon: const Icon(Icons.tag_rounded),
+              labelText: 'Collection code',
+              hintText: 'e.g. K7P4QA',
+              prefixIcon: const Icon(Icons.password_rounded),
               errorText: _error,
               errorMaxLines: 3,
             ),
           ),
           const SizedBox(height: AppSpacing.l),
-          FilledButton(
+          OutlinedButton(
             onPressed: _isChecking ? null : _verify,
             child: _isChecking
                 ? const ButtonLoadingIndicator()

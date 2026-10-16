@@ -17,6 +17,7 @@ import 'package:mae_assignment/features/store_admin/sales/presentation/views/sal
 import 'package:mae_assignment/features/store_admin/staff/presentation/views/staff_view.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/views/delivery_detail_view.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/views/delivery_tasks_view.dart';
+import 'package:mae_assignment/features/store_worker/history/presentation/views/worker_history_view.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/views/packing_order_view.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/views/packing_tasks_view.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/views/pickup_handover_view.dart';
@@ -52,6 +53,9 @@ class AppRoutes {
   static const String workerPickup = '/worker/pickup';
   static const String workerDelivery = '/worker/delivery';
   static const String workerAccount = '/worker/account';
+
+  /// My history, opened from Account (both roles).
+  static const String workerHistory = '/worker/account/history';
 
   // Order pages inside the worker tabs (full screen, pushed over the tab).
   // The role guard covers them through their tab's path.
@@ -210,6 +214,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '${AppRoutes.workerDelivery}/:orderId',
         builder: (context, state) =>
             DeliveryDetailView(orderId: state.pathParameters['orderId']!),
+      ),
+      GoRoute(
+        path: AppRoutes.workerHistory,
+        builder: (context, state) => const WorkerHistoryView(),
       ),
       GoRoute(
         path: AppRoutes.workerAccount,

@@ -73,7 +73,8 @@ class WorkerScaffold extends ConsumerWidget {
               _AppBarTitle(
                 key: const ValueKey('worker-title'),
                 title: currentTab.label,
-                branchName: worker?.branchName,
+                // The packer's branch, or "Cross-branch delivery".
+                branchName: worker?.coverageLabel,
               ),
         ),
         actions: [...actions, if (actions.isNotEmpty) const SizedBox(width: 4)],

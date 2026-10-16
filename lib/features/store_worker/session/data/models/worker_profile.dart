@@ -13,9 +13,9 @@ class WorkerProfile {
     required this.email,
     required this.phone,
     required this.role,
-    required this.branchId,
-    required this.branchName,
     required this.isActive,
+    this.branchId,
+    this.branchName,
   });
 
   final String id;
@@ -26,9 +26,15 @@ class WorkerProfile {
   /// Exactly one role. A worker is never both.
   final WorkerRole role;
 
-  /// The one branch the worker is assigned to.
-  final String branchId;
-  final String branchName;
+  /// The one branch a Packing Staff member is permanently assigned to.
+  /// Null for Delivery Drivers: they are not tied to a branch and can be
+  /// given deliveries from any branch.
+  final String? branchId;
+  final String? branchName;
+
+  /// Where the worker operates, for headers and the Account screen:
+  /// the packer's branch, or "Cross-branch delivery" for drivers.
+  String get coverageLabel => branchName ?? 'Cross-branch delivery';
 
   /// False if HQ deactivated the worker. Inactive workers cannot use the
   /// Store Worker app.

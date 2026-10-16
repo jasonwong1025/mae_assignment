@@ -95,11 +95,7 @@ void main() {
 
         // Handover screen, verified, with its confirmation sheet.
         await _show(tester, container, AppRoutes.workerPickupOrder('ord-2306'));
-        await _tap(tester, 'Customer gave order number #2306');
-        await _tap(tester, 'Name matches Kelvin Lim');
-        await _tap(tester, 'Complete pickup');
-        expect(find.text('Hand over order #2306?'), findsOneWidget);
-        await _tap(tester, 'Cancel');
+        expect(find.text('Slide to hand over'), findsOneWidget);
 
         // A handed-over record.
         await _show(tester, container, AppRoutes.workerPickupOrder('ord-2307'));

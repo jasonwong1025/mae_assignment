@@ -6,16 +6,12 @@ import 'package:mae_assignment/features/store_worker/orders/data/models/worker_o
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/view_models/pickup_handover_view_model.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/shared/ui/slide_to_confirm.dart';
 
 import '../../helpers/worker_test_app.dart';
 
-/// Ticks both manual checks on the handover screen of [number]/[customer].
-Future<void> _verify(WidgetTester tester, int number, String customer) async {
-  await tester.tap(find.text('Customer gave order number #$number'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Name matches $customer'));
-  await tester.pumpAndSettle();
-}
+/// Far enough to reach the end of the slider on any phone width.
+const _fullSlide = Offset(500, 0);
 
 void main() {
   group('Ready for Pickup list', () {
@@ -28,7 +24,7 @@ void main() {
         location: AppRoutes.workerPickup,
       );
 
-      expect(find.text('Waiting for Pickup (2)'), findsOneWidget);
+      expect(find.text('Waiting for pickup (2)'), findsOneWidget);
       // 2305 was packed by Daniel; 2306 by Hakim and is still listed.
       expect(find.text('Siti Aminah'), findsOneWidget);
       expect(find.text('Kelvin Lim'), findsOneWidget);
@@ -41,7 +37,7 @@ void main() {
 
       // A ready delivery is not a pickup: it is listed under Waiting for
       // drivers instead. Another branch's pickup is not listed at all.
-      expect(find.text('For Amir Hamzah'), findsOneWidget);
+      expect(find.text('Driver: Amir Hamzah'), findsOneWidget);
       expect(find.text('#1183'), findsNothing);
     });
 
@@ -126,7 +122,7 @@ void main() {
       await scrollIntoView(tester, find.text('Waiting for drivers (1)'));
       await scrollIntoView(tester, find.text('David Wong'));
       expect(find.text('#2308'), findsOneWidget);
-      expect(find.text('For Amir Hamzah'), findsOneWidget);
+      expect(find.text('Driver: Amir Hamzah'), findsOneWidget);
 
       // Once Amir verifies the bag, it is collected and leaves the list.
       await repository.verifyCollection(
@@ -169,28 +165,21 @@ void main() {
       expect(find.text('Pickup #2306'), findsOneWidget);
       expect(find.textContaining('Packed by Hakim Roslan'), findsOneWidget);
 
-      // Items are listed (read-only) below the checks.
+      expect(find.textContaining('Pickup by'), findsOneWidget);
+
+      // Items are listed read-only, without checkboxes; tapping one shows
+      // its details.
+      expect(find.byType(Checkbox), findsNothing);
       await scrollIntoView(tester, find.text('Potato chips'));
-      expect(find.text('Potato chips'), findsOneWidget);
-      await scrollIntoView(
-        tester,
-        find.text('Customer gave order number #2306'),
-      );
+      await tester.tap(find.text('Potato chips'));
+      await tester.pumpAndSettle();
+      expect(find.text('Mister Potato'), findsWidgets);
+      expect(find.text('Mark as packed'), findsNothing);
+      await tester.tap(find.byTooltip('Close'));
+      await tester.pumpAndSettle();
 
-      // Complete pickup needs both checks.
-      expect(buttonWithText(tester, 'Complete pickup').enabled, isFalse);
-      await tester.tap(find.text('Customer gave order number #2306'));
-      await tester.pumpAndSettle();
-      expect(buttonWithText(tester, 'Complete pickup').enabled, isFalse);
-      await tester.tap(find.text('Name matches Kelvin Lim'));
-      await tester.pumpAndSettle();
-      expect(find.text('Verified by manual check'), findsOneWidget);
-      expect(buttonWithText(tester, 'Complete pickup').enabled, isTrue);
-
-      await tester.tap(find.text('Complete pickup'));
-      await tester.pumpAndSettle();
-      expect(find.text('Hand over order #2306?'), findsOneWidget);
-      await tester.tap(find.text('Hand over'));
+      // Slide all the way to hand over.
+      await tester.drag(find.byKey(SlideToConfirm.handleKey), _fullSlide);
       await tester.pumpAndSettle();
 
       // Back on the list: success message, 2306 gone, now in my handovers.
@@ -198,7 +187,7 @@ void main() {
         find.text('Order #2306 handed over to Kelvin Lim.'),
         findsOneWidget,
       );
-      expect(find.text('Waiting for Pickup (1)'), findsOneWidget);
+      expect(find.text('Waiting for pickup (1)'), findsOneWidget);
       expect(find.text('Kelvin Lim'), findsNothing);
 
       // The record shows who handed it over and how it was checked.
@@ -210,23 +199,21 @@ void main() {
       expect(find.textContaining('(manual check)'), findsOneWidget);
     });
 
-    testWidgets('cancelling the confirmation keeps the order waiting', (
-      tester,
-    ) async {
+    testWidgets('a short slide does not hand over', (tester) async {
       await pumpWorkerApp(
         tester,
         'Daniel Lee',
         location: AppRoutes.workerPickupOrder('ord-2305'),
       );
 
-      await _verify(tester, 2305, 'Siti Aminah');
-      await tester.tap(find.text('Complete pickup'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Cancel'));
+      await tester.drag(
+        find.byKey(SlideToConfirm.handleKey),
+        const Offset(60, 0),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Pickup #2305'), findsOneWidget);
-      expect(buttonWithText(tester, 'Complete pickup').enabled, isTrue);
+      expect(find.text('Slide to hand over'), findsOneWidget);
     });
 
     testWidgets('if another packer hands it over first, the screen says so', (
@@ -239,7 +226,6 @@ void main() {
         'Daniel Lee',
         location: AppRoutes.workerPickupOrder('ord-2306'),
       );
-      await _verify(tester, 2306, 'Kelvin Lim');
 
       await repository.completePickup(
         mockWorker('Hakim Roslan'),
@@ -249,7 +235,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Order not available'), findsOneWidget);
-      expect(find.text('Complete pickup'), findsNothing);
+      expect(find.text('Slide to hand over'), findsNothing);
     });
 
     testWidgets('the packer who packed it sees who handed it over', (
@@ -272,7 +258,7 @@ void main() {
         find.textContaining('Handed over by Daniel Lee at'),
         findsOneWidget,
       );
-      expect(find.text('Complete pickup'), findsNothing);
+      expect(find.text('Slide to hand over'), findsNothing);
       expect(find.text('Back to Ready for Pickup'), findsOneWidget);
     });
 
@@ -291,7 +277,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('Complete pickup'), findsNothing);
+      expect(find.text('Slide to hand over'), findsNothing);
     });
 
     testWidgets("another branch's pickup is not available", (tester) async {

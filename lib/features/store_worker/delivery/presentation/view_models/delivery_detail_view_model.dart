@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
@@ -36,14 +38,26 @@ class DeliveryDetailViewModel extends StreamNotifier<WorkerOrder?> {
         .watchOrder(worker, orderId);
   }
 
-  /// Checks the order number the driver typed from the bag.
-  Future<String?> verifyByNumber(String typedNumber) {
+  /// Checks the collection code the driver typed from the bag label.
+  Future<String?> verifyByCode(String typedCode) {
     return _run((repository, worker) {
       return repository.verifyCollection(
         worker,
         orderId,
         method: VerificationMethod.manual,
-        code: typedNumber,
+        code: typedCode,
+      );
+    });
+  }
+
+  /// Checks the QR code the driver scanned from the bag label.
+  Future<String?> verifyByQr(String scannedCode) {
+    return _run((repository, worker) {
+      return repository.verifyCollection(
+        worker,
+        orderId,
+        method: VerificationMethod.qr,
+        code: scannedCode,
       );
     });
   }
@@ -54,9 +68,9 @@ class DeliveryDetailViewModel extends StreamNotifier<WorkerOrder?> {
     });
   }
 
-  Future<String?> completeDelivery() {
+  Future<String?> completeDelivery({required Uint8List photo}) {
     return _run((repository, worker) {
-      return repository.completeDelivery(worker, orderId);
+      return repository.completeDelivery(worker, orderId, photo: photo);
     });
   }
 

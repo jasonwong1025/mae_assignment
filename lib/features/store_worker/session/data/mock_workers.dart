@@ -8,8 +8,9 @@ final mockWorkerProfilesProvider = Provider<List<WorkerProfile>>((ref) {
   return mockWorkerProfiles;
 });
 
-/// Sample Store Workers for the preview. Branch ids match the store admin's
-/// sample branches.
+/// Sample Store Workers for the preview. Packers' branch ids match the
+/// store admin's sample branches; drivers have no branch (they deliver for
+/// any branch).
 // TODO(team): delete once worker profiles come from the backend.
 const mockWorkerProfiles = [
   // Branch A: SS15 Subang.
@@ -39,8 +40,7 @@ const mockWorkerProfiles = [
     email: 'amir.hamzah@grocerly.my',
     phone: '011-555 0175',
     role: WorkerRole.deliveryDriver,
-    branchId: 'ss15',
-    branchName: 'SS15 Subang',
+    // No branch: drivers take deliveries from any branch.
     isActive: true,
   ),
   WorkerProfile(
@@ -71,8 +71,7 @@ const mockWorkerProfiles = [
     email: 'weijie.tan@grocerly.my',
     phone: '016-555 0129',
     role: WorkerRole.deliveryDriver,
-    branchId: 'bukit-jalil',
-    branchName: 'Bukit Jalil',
+    // No branch: drivers take deliveries from any branch.
     isActive: true,
   ),
 ];

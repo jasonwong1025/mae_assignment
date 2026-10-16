@@ -14,6 +14,7 @@ class PackingItemTile extends StatelessWidget {
     required this.onChanged,
     super.key,
     this.onTap,
+    this.showCheckbox = true,
   });
 
   final WorkerOrderItem item;
@@ -24,6 +25,10 @@ class PackingItemTile extends StatelessWidget {
 
   /// Opens the product's details. Null: the row does nothing when tapped.
   final VoidCallback? onTap;
+
+  /// False hides the checkbox, e.g. on the pickup handover screen where
+  /// everything is already packed and nothing can be ticked.
+  final bool showCheckbox;
 
   @override
   Widget build(BuildContext context) {
@@ -61,17 +66,19 @@ class PackingItemTile extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.s),
               _QuantityBadge(quantity: item.quantity),
+              if (!showCheckbox) const SizedBox(width: AppSpacing.xs),
               // Scaled up (it does not change the layout) and round.
-              Transform.scale(
-                scale: 1.3,
-                child: Checkbox(
-                  value: isPacked,
-                  shape: const CircleBorder(),
-                  onChanged: enabled
-                      ? (value) => onChanged!(value ?? false)
-                      : null,
+              if (showCheckbox)
+                Transform.scale(
+                  scale: 1.3,
+                  child: Checkbox(
+                    value: isPacked,
+                    shape: const CircleBorder(),
+                    onChanged: enabled
+                        ? (value) => onChanged!(value ?? false)
+                        : null,
+                  ),
                 ),
-              ),
             ],
           ),
         ),

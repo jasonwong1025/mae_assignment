@@ -4,8 +4,7 @@ import 'package:mae_assignment/features/store_worker/orders/data/models/worker_o
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 
-final StreamNotifierProvider<PackingTasksViewModel, List<WorkerOrder>>
-packingTasksViewModelProvider =
+final packingTasksViewModelProvider =
     StreamNotifierProvider.autoDispose<
       PackingTasksViewModel,
       List<WorkerOrder>

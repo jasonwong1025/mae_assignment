@@ -8,17 +8,16 @@ import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/store_worker/delivery/data/services/launcher_service.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/delivery_order_card.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/delivery_stepper.dart';
+import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/expandable_photo.dart';
+import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/proof_of_delivery_sheet.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/verify_order_sheet.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/view_models/delivery_detail_view_model.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
-import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_item_tile.dart';
-import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_progress_bar.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_notice.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/ui/bottom_action_bar.dart';
 import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
-import 'package:mae_assignment/shared/ui/confirm_sheet.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
 import 'package:mae_assignment/shared/ui/order_status_label.dart';
 
@@ -65,7 +64,8 @@ class _DeliveryDetailViewState extends ConsumerState<DeliveryDetailView> {
     await showVerifyOrderSheet(
       context,
       order: order,
-      onVerify: _viewModel.verifyByNumber,
+      onVerify: _viewModel.verifyByCode,
+      onScan: _viewModel.verifyByQr,
     );
   }
 
@@ -78,19 +78,12 @@ class _DeliveryDetailViewState extends ConsumerState<DeliveryDetailView> {
   }
 
   Future<void> _completeDelivery(WorkerOrder order) async {
-    final confirmed = await showConfirmSheet(
-      context,
-      icon: Icons.task_alt_rounded,
-      title: 'Mark order #${order.number} delivered?',
-      message:
-          'Only confirm once the groceries are with ${order.customerName}. '
-          'This completes the order and cannot be undone.',
-      confirmLabel: 'Mark delivered',
-    );
-    if (!confirmed || !mounted) return;
+    // A photo is required: proof for disputes and contactless drop-offs.
+    final photo = await showProofOfDeliverySheet(context, order: order);
+    if (photo == null || !mounted) return;
 
     setState(() => _isBusy = true);
-    final error = await _viewModel.completeDelivery();
+    final error = await _viewModel.completeDelivery(photo: photo);
     if (!mounted) return;
     if (error != null) {
       setState(() => _isBusy = false);
@@ -100,6 +93,21 @@ class _DeliveryDetailViewState extends ConsumerState<DeliveryDetailView> {
     setState(() => _isLeaving = true);
     _showMessage('Order #${order.number} delivered to ${order.customerName}.');
     _goBack();
+  }
+
+  /// True until the driver starts the delivery: Navigate leads to the
+  /// branch the bag is collected from, not to the customer.
+  bool _collectsFirst(WorkerOrder order) =>
+      order.status == OrderStatus.pending ||
+      order.status == OrderStatus.packing ||
+      order.status == OrderStatus.ready;
+
+  /// The pickup branch before collection, the customer's address after.
+  String? _navigationTarget(WorkerOrder order) {
+    if (_collectsFirst(order)) {
+      return order.branchAddress ?? 'Grocerly ${order.branchName}';
+    }
+    return order.address;
   }
 
   Future<void> _navigate(String address) async {
@@ -171,9 +179,12 @@ class _DeliveryDetailViewState extends ConsumerState<DeliveryDetailView> {
                   workerId: worker.id,
                   isBusy: _isBusy,
                   onCall: () => _call(order.customerPhone),
-                  onNavigate: order.address == null
+                  onNavigate: _navigationTarget(order) == null
                       ? null
-                      : () => _navigate(order.address!),
+                      : () => _navigate(_navigationTarget(order)!),
+                  navigateLabel: _collectsFirst(order)
+                      ? 'Navigate to store'
+                      : 'Navigate',
                   onVerify: () => _verify(order),
                   onStart: _startDelivery,
                   onComplete: () => _completeDelivery(order),
@@ -195,6 +206,7 @@ class _DeliveryContent extends StatelessWidget {
     required this.isBusy,
     required this.onCall,
     required this.onNavigate,
+    required this.navigateLabel,
     required this.onVerify,
     required this.onStart,
     required this.onComplete,
@@ -206,16 +218,13 @@ class _DeliveryContent extends StatelessWidget {
   final bool isBusy;
   final VoidCallback onCall;
 
-  /// Null if the order has no address.
+  /// Null if there is nowhere to navigate to.
   final VoidCallback? onNavigate;
+  final String navigateLabel;
   final VoidCallback onVerify;
   final VoidCallback onStart;
   final VoidCallback onComplete;
   final VoidCallback onBack;
-
-  bool get _isBeingPacked =>
-      order.status == OrderStatus.pending ||
-      order.status == OrderStatus.packing;
 
   @override
   Widget build(BuildContext context) {
@@ -235,30 +244,29 @@ class _DeliveryContent extends StatelessWidget {
                 children: [
                   Text('#${order.number}', style: textTheme.headlineSmall),
                   OrderStatusBadge(
-                    status: order.status,
+                    status: deliveryBadgeStatus(order),
                     label: deliveryStatusLabel(order),
                   ),
                 ],
               ),
               const SizedBox(height: AppSpacing.l),
               DeliveryStepper(order: order, workerId: workerId),
-              const SizedBox(height: AppSpacing.l),
-              _StatusNotice(order: order, workerId: workerId),
-              if (_isBeingPacked) ...[
-                const SizedBox(height: AppSpacing.m),
-                PackingProgressBar(order: order),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  'Being packed by ${order.packerName}',
-                  style: textTheme.bodySmall,
-                ),
+              // Only when it adds something the stepper and button do not.
+              if (_StatusNotice.isShown(order, workerId)) ...[
+                const SizedBox(height: AppSpacing.l),
+                _StatusNotice(order: order, workerId: workerId),
               ],
               const SizedBox(height: AppSpacing.l),
               _CustomerCard(
                 order: order,
                 onCall: onCall,
                 onNavigate: onNavigate,
+                navigateLabel: navigateLabel,
               ),
+              if (order.proofPhoto != null) ...[
+                const SizedBox(height: AppSpacing.l),
+                _ProofCard(order: order),
+              ],
               const SizedBox(height: AppSpacing.l),
               _ItemsSection(order: order),
             ],
@@ -278,51 +286,46 @@ class _DeliveryContent extends StatelessWidget {
   }
 }
 
-/// One line saying what the driver should do now.
+/// A notice only where it adds something the badge, stepper and button
+/// do not: where to collect and to verify first, the delivered time, and
+/// the cancelled warning.
 class _StatusNotice extends StatelessWidget {
   const _StatusNotice({required this.order, required this.workerId});
 
   final WorkerOrder order;
   final String workerId;
 
+  static bool isShown(WorkerOrder order, String workerId) {
+    return switch (order.status) {
+      OrderStatus.ready => order.collectionVerifiedBy != workerId,
+      OrderStatus.completed || OrderStatus.cancelled => true,
+      _ => false,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
-    final verifiedByMe = order.collectionVerifiedBy == workerId;
     final completedAt = order.completedAt;
 
     final (icon, color, text) = switch (order.status) {
-      OrderStatus.pending || OrderStatus.packing => (
-        Icons.hourglass_top_rounded,
-        AppColors.info,
-        'Still being packed. You can verify and collect it once it is ready.',
-      ),
-      OrderStatus.ready when !verifiedByMe => (
-        Icons.inventory_2_outlined,
-        AppColors.success,
-        'Ready at ${order.branchName}. Check the bag label and verify the '
-            'order number before you leave.',
-      ),
-      OrderStatus.ready => (
-        Icons.verified_outlined,
-        AppColors.success,
-        'Order verified. Start the delivery when you leave the store.',
-      ),
-      OrderStatus.outForDelivery => (
-        Icons.local_shipping_outlined,
-        AppColors.darkGreen,
-        'On the way. Mark it delivered once the customer has the groceries.',
-      ),
       OrderStatus.completed => (
         Icons.task_alt_rounded,
         AppColors.success,
         completedAt == null
             ? 'Delivered.'
-            : 'Delivered at ${Formatters.time(completedAt)}.',
+            : 'Delivered on ${Formatters.date(completedAt)} at '
+                  '${Formatters.time(completedAt)}.',
       ),
       OrderStatus.cancelled => (
         Icons.block_rounded,
         AppColors.error,
         'This order was cancelled. Do not deliver it.',
+      ),
+      // Ready and not yet verified (see isShown).
+      _ => (
+        Icons.inventory_2_outlined,
+        AppColors.success,
+        'Collect at ${order.branchName}. Verify the bag before you leave.',
       ),
     };
 
@@ -336,11 +339,13 @@ class _CustomerCard extends StatelessWidget {
     required this.order,
     required this.onCall,
     required this.onNavigate,
+    required this.navigateLabel,
   });
 
   final WorkerOrder order;
   final VoidCallback onCall;
   final VoidCallback? onNavigate;
+  final String navigateLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -374,8 +379,23 @@ class _CustomerCard extends StatelessWidget {
                 ),
               ],
             ),
+            // Drivers deliver for any branch, so show where to collect.
             const SizedBox(height: AppSpacing.l),
-            Text('DELIVER TO', style: _labelStyle(textTheme)),
+            _IconLabel(
+              icon: Icons.storefront_outlined,
+              text: 'COLLECT FROM',
+              style: _labelStyle(textTheme),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text('Grocerly ${order.branchName}', style: textTheme.bodyLarge),
+            if (order.branchAddress != null)
+              Text(order.branchAddress!, style: textTheme.bodyMedium),
+            const SizedBox(height: AppSpacing.l),
+            _IconLabel(
+              icon: Icons.place_outlined,
+              text: 'DELIVER TO',
+              style: _labelStyle(textTheme),
+            ),
             const SizedBox(height: AppSpacing.xs),
             Text(
               order.address ?? 'No address given',
@@ -424,7 +444,7 @@ class _CustomerCard extends StatelessWidget {
                   child: FilledButton.icon(
                     onPressed: onNavigate,
                     icon: const Icon(Icons.directions_outlined),
-                    label: const Text('Navigate'),
+                    label: Text(navigateLabel),
                   ),
                 ),
               ],
@@ -468,22 +488,98 @@ class _ItemsSection extends StatelessWidget {
         shape: const Border(),
         collapsedShape: const Border(),
         childrenPadding: const EdgeInsets.fromLTRB(
-          AppSpacing.m,
+          AppSpacing.l,
           0,
-          AppSpacing.m,
-          AppSpacing.m,
+          AppSpacing.l,
+          AppSpacing.s,
         ),
         children: [
-          // Read-only: the checklist belongs to the packer.
-          for (final item in order.items)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.s),
-              child: PackingItemTile(
-                item: item,
-                isPacked: order.isPacked(item.lineId),
-                onChanged: null,
-              ),
+          // A plain read-only list: the checklist belongs to the packer,
+          // and the driver only needs to know what is in the bag.
+          for (final (index, item) in order.items.indexed) ...[
+            if (index > 0) const Divider(height: 1),
+            _ItemRow(item: item),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// The proof of delivery photo.
+class _ProofCard extends StatelessWidget {
+  const _ProofCard({required this.order});
+
+  final WorkerOrder order;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final labelStyle = textTheme.bodySmall?.copyWith(
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.4,
+    );
+
+    return Card(
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.l),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.photo_camera_outlined,
+                  size: 16,
+                  color: labelStyle?.color,
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Text('PROOF OF DELIVERY', style: labelStyle),
+              ],
             ),
+            const SizedBox(height: AppSpacing.s),
+            ExpandablePhoto(photo: order.proofPhoto!, borderRadius: 8),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One line of the order: name, brand and size, and quantity.
+class _ItemRow extends StatelessWidget {
+  const _ItemRow({required this.item});
+
+  final WorkerOrderItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.s),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.name, style: textTheme.bodyLarge),
+                Text(
+                  '${item.brand} · ${item.packSize}',
+                  style: textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.m),
+          Text('×${item.quantity}', style: textTheme.titleMedium),
         ],
       ),
     );
@@ -584,5 +680,29 @@ class _ActionBar extends StatelessWidget {
           ],
         );
     }
+  }
+}
+
+/// A section label with a small icon before it, e.g. "COLLECT FROM".
+class _IconLabel extends StatelessWidget {
+  const _IconLabel({
+    required this.icon,
+    required this.text,
+    required this.style,
+  });
+
+  final IconData icon;
+  final String text;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: style?.color ?? AppColors.textSecondary),
+        const SizedBox(width: AppSpacing.xs),
+        Text(text, style: style),
+      ],
+    );
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:mae_assignment/shared/models/order_status.dart';
 
 /// How a worker confirmed an order at handover or collection.
@@ -73,6 +75,7 @@ class WorkerOrder {
     required this.packerId,
     required this.packerName,
     required this.packerAssignedAt,
+    this.branchAddress,
     this.dueAt,
     Set<String> packedLineIds = const {},
     this.address,
@@ -92,6 +95,7 @@ class WorkerOrder {
     this.outForDeliveryAt,
     this.deliveredBy,
     this.deliveredByName,
+    this.proofPhoto,
     this.completedAt,
     this.cancelledAt,
   }) : items = List.unmodifiable(items),
@@ -105,6 +109,10 @@ class WorkerOrder {
 
   final String branchId;
   final String branchName;
+
+  /// Where the bag is collected from (the branch's address), shown to
+  /// drivers, who can be given deliveries from any branch.
+  final String? branchAddress;
   final String customerName;
   final String customerPhone;
 
@@ -165,6 +173,10 @@ class WorkerOrder {
   final String? deliveredBy;
   final String? deliveredByName;
 
+  /// Photo the driver took when delivering. Kept in memory for the mock;
+  /// later uploaded to storage with only its URL on the order.
+  final Uint8List? proofPhoto;
+
   /// When the order was completed, by pickup or by delivery.
   final DateTime? completedAt;
   final DateTime? cancelledAt;
@@ -200,9 +212,31 @@ class WorkerOrder {
   /// True if the order has a line with this id.
   bool hasLine(String lineId) => items.any((item) => item.lineId == lineId);
 
-  /// Text inside the order's QR label. Only identifies the order; it is
-  /// not a secret.
-  String get qrPayload => 'grocerly:order:$id';
+  /// Text inside the order's QR label. Includes the collection code, so
+  /// the QR cannot be made up from the order number alone.
+  String get qrPayload => 'grocerly:order:$id:$collectionCode';
+
+  /// Short code printed on the bag label and nowhere in the driver's app,
+  /// typed by the driver when the QR code cannot be scanned. Proves they
+  /// are holding the bag, since the order number is already on their
+  /// screen.
+  ///
+  /// Mock only: worked out from the order id so it stays the same across
+  /// restarts. The backend will generate a random one per order.
+  String get collectionCode {
+    // No 0/O, 1/I/L, 2/Z, 5/S, 8/B: easy to misread on a label.
+    const alphabet = 'ACDEFGHJKMNPQRTUVWXY3479';
+    var hash = 0x811c9dc5;
+    for (final unit in id.codeUnits) {
+      hash = ((hash ^ unit) * 0x01000193) & 0xffffffff;
+    }
+    final code = StringBuffer();
+    for (var i = 0; i < 6; i++) {
+      code.write(alphabet[hash % alphabet.length]);
+      hash = hash ~/ alphabet.length;
+    }
+    return code.toString();
+  }
 
   /// Copy with some values changed. Values left out keep their current
   /// value (nothing in the worker workflows sets a field back to null).
@@ -222,6 +256,7 @@ class WorkerOrder {
     DateTime? outForDeliveryAt,
     String? deliveredBy,
     String? deliveredByName,
+    Uint8List? proofPhoto,
     DateTime? completedAt,
   }) {
     return WorkerOrder(
@@ -229,6 +264,7 @@ class WorkerOrder {
       number: number,
       branchId: branchId,
       branchName: branchName,
+      branchAddress: branchAddress,
       customerName: customerName,
       customerPhone: customerPhone,
       isDelivery: isDelivery,
@@ -260,6 +296,7 @@ class WorkerOrder {
       outForDeliveryAt: outForDeliveryAt ?? this.outForDeliveryAt,
       deliveredBy: deliveredBy ?? this.deliveredBy,
       deliveredByName: deliveredByName ?? this.deliveredByName,
+      proofPhoto: proofPhoto ?? this.proofPhoto,
       completedAt: completedAt ?? this.completedAt,
       cancelledAt: cancelledAt,
     );

@@ -66,11 +66,15 @@ class MockWorkerSelectorView extends ConsumerWidget {
     final workers = ref.watch(mockWorkerProfilesProvider);
     final current = ref.watch(workerSessionProvider);
 
-    // Group by branch, keeping the order the branches first appear in.
+    // Group packers by branch, keeping the order the branches first
+    // appear in; drivers (no branch) go in their own group at the end.
+    const driversGroup = 'Delivery drivers · all branches';
     final byBranch = <String, List<WorkerProfile>>{};
-    for (final worker in workers) {
-      byBranch.putIfAbsent(worker.branchName, () => []).add(worker);
+    for (final worker in workers.where((w) => w.branchName != null)) {
+      byBranch.putIfAbsent(worker.branchName!, () => []).add(worker);
     }
+    final drivers = workers.where((w) => w.branchName == null).toList();
+    if (drivers.isNotEmpty) byBranch[driversGroup] = drivers;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Store Worker preview')),
@@ -208,7 +212,7 @@ class _WorkerTile extends StatelessWidget {
                           const SizedBox(width: AppSpacing.xs),
                           Flexible(
                             child: Text(
-                              '${worker.role.label} · ${worker.branchName}',
+                              '${worker.role.label} · ${worker.coverageLabel}',
                               style: textTheme.bodySmall,
                               overflow: TextOverflow.ellipsis,
                             ),

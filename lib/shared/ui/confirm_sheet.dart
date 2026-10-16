@@ -10,17 +10,20 @@ Future<bool> showConfirmSheet(
   BuildContext context, {
   required IconData icon,
   required String title,
-  required String message,
   required String confirmLabel,
+  String? message,
   String cancelLabel = 'Cancel',
 }) async {
   final confirmed = await showModalBottomSheet<bool>(
     context: context,
     useSafeArea: true,
+    // Grow to fit longer messages (or large text) instead of being cut off
+    // at the default height, and scroll if it still does not fit.
+    isScrollControlled: true,
     builder: (sheetContext) {
       final textTheme = Theme.of(sheetContext).textTheme;
 
-      return Padding(
+      return SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.xl,
           0,
@@ -43,12 +46,14 @@ Future<bool> showConfirmSheet(
               style: textTheme.titleLarge,
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppSpacing.s),
-            Text(
-              message,
-              style: textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
+            if (message != null) ...[
+              const SizedBox(height: AppSpacing.s),
+              Text(
+                message,
+                style: textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+            ],
             const SizedBox(height: AppSpacing.xl),
             FilledButton(
               onPressed: () => Navigator.of(sheetContext).pop(true),

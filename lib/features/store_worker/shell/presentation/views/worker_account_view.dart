@@ -36,6 +36,21 @@ class WorkerAccountView extends ConsumerWidget {
                 _ProfileCard(worker: worker),
                 const SizedBox(height: AppSpacing.l),
                 _DetailsCard(worker: worker),
+                const SizedBox(height: AppSpacing.l),
+                // Past work, out of the bottom navigation because it is
+                // only looked at now and then.
+                Card(
+                  clipBehavior: Clip.antiAlias,
+                  child: ListTile(
+                    leading: const Icon(
+                      Icons.history_rounded,
+                      color: AppColors.darkGreen,
+                    ),
+                    title: const Text('My history'),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => context.push(AppRoutes.workerHistory),
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.xl),
                 FilledButton.icon(
                   onPressed: () => context.go(AppRoutes.workerDevSelect),
@@ -77,14 +92,9 @@ class _ProfileCard extends StatelessWidget {
                 children: [
                   Text(worker.name, style: textTheme.titleLarge),
                   const SizedBox(height: AppSpacing.xs),
-                  Wrap(
-                    spacing: AppSpacing.s,
-                    runSpacing: AppSpacing.xs,
-                    children: [
-                      _RoleTag(label: worker.role.label),
-                      WorkerStatusChip(isActive: worker.isActive),
-                    ],
-                  ),
+                  // No "Active" badge: inactive workers cannot sign in, so
+                  // everyone who sees this is active.
+                  _RoleTag(label: worker.role.label),
                 ],
               ),
             ),
@@ -135,14 +145,11 @@ class _DetailsCard extends StatelessWidget {
         child: Column(
           children: [
             _DetailRow(
-              icon: Icons.badge_outlined,
-              label: 'Role',
-              value: worker.role.label,
-            ),
-            _DetailRow(
               icon: Icons.storefront_outlined,
-              label: 'Assigned branch',
-              value: worker.branchName,
+              // Packers have one branch; drivers cover every branch.
+              label: worker.branchName == null ? 'Coverage' : 'Assigned branch',
+              value:
+                  worker.branchName ?? 'All branches (cross-branch delivery)',
             ),
             _DetailRow(
               icon: Icons.mail_outline_rounded,

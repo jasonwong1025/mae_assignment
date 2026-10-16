@@ -50,7 +50,7 @@ class DeliveryTasksView extends ConsumerWidget {
             padding: const EdgeInsets.all(AppSpacing.l),
             children: [
               // The driver's current job first, then what they can collect
-              // now, then what is coming, then what is done.
+              // now, then what is coming. Finished ones are in My history.
               ..._section(
                 context,
                 'Out for delivery',
@@ -67,12 +67,6 @@ class DeliveryTasksView extends ConsumerWidget {
                 context,
                 'Being packed',
                 groups.beingPacked,
-                openOrder,
-              ),
-              ..._section(
-                context,
-                'Completed today',
-                groups.completedToday,
                 openOrder,
               ),
             ],
@@ -95,13 +89,9 @@ class DeliveryTasksView extends ConsumerWidget {
     return [
       Padding(
         padding: const EdgeInsets.only(top: AppSpacing.s, bottom: AppSpacing.s),
-        child: Text(
-          '${title.toUpperCase()} (${orders.length})',
-          style: textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.4,
-          ),
-        ),
+        // Same heading style as Ready for Pickup, e.g.
+        // "Waiting for pickup (2)".
+        child: Text('$title (${orders.length})', style: textTheme.titleMedium),
       ),
       for (final order in orders)
         Padding(
