@@ -112,3 +112,29 @@ app builds straight after a checkout without anyone needing to run the
 generator first. Regenerate and commit the result whenever you change an
 annotated file. The analyzer ignores generated files (see
 `analysis_options.yaml`).
+
+## Continuous integration
+
+Every push and pull request to `main` runs the quality gate in
+`.github/workflows/ci.yml`. It mirrors the local checks, so a green CI means
+the change follows the team guidelines:
+
+- **flutter** job: pins the Flutter version from `.fvmrc`, then
+  `pub get --enforce-lockfile`, `dart format --set-exit-if-changed`,
+  `flutter analyze --fatal-infos`, a check that committed Freezed output is up
+  to date, and `flutter test`.
+- **firestore-rules** job: runs the `test_firebase` rules tests against the
+  Firestore emulator (self-managed by `firebase-tools`, no device).
+
+Before pushing, you can run the same checks locally:
+
+```bash
+fvm dart format .
+fvm flutter analyze --fatal-infos
+fvm dart run build_runner build
+fvm flutter test
+(cd test_firebase && npm test)
+```
+
+Patrol end-to-end tests are not in CI yet; they need a device or emulator and
+are run manually.

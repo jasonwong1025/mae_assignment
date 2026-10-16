@@ -12,6 +12,9 @@ analyzer:
     - ios/**
     - web/**
     - windows/**
+    # Node project for the Firestore rules tests; its node_modules ships
+    # stray Dart template files that are not ours to analyze.
+    - test_firebase/**
     # Generated code (Freezed / json_serializable) is not ours to lint.
     - "**/*.freezed.dart"
     - "**/*.g.dart"

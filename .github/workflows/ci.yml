@@ -1,0 +1,97 @@
+name: CI
+
+# Quality gate for every change to main. Enforces the team guidelines:
+# the pinned Flutter SDK, formatting, very_good_analysis (infos are fatal),
+# the Dart test suite, up-to-date generated code, and the Firestore rules
+# tests. Deployment is intentionally out of scope for now.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer commit on a branch cancels the previous run, except on main where
+# every commit is checked to completion.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  flutter:
+    name: Format, analyze & test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Reads the exact Flutter version from .fvmrc, so CI matches what the
+      # team runs through FVM. No channel drift.
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze (infos are fatal)
+        run: flutter analyze --fatal-infos
+
+      # Regenerate Freezed/build_runner output and fail if it differs from
+      # what was committed, so generated code can never go stale. Checks both
+      # modified tracked files and any new, uncommitted generated files.
+      - name: Verify generated code is up to date
+        run: |
+          dart run build_runner build
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::Generated code is out of date. Run 'dart run build_runner build' and commit the result."
+            git --no-pager status --short
+            git --no-pager diff
+            exit 1
+          fi
+
+      - name: Run unit and widget tests
+        run: flutter test
+
+  firestore-rules:
+    name: Firestore rules tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: test_firebase
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # The Firestore emulator runs on the JVM.
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: test_firebase/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # emulators:exec starts the Firestore emulator, runs vitest, then shuts
+      # it down. No device needed.
+      - name: Run security rules tests
+        run: npm test
