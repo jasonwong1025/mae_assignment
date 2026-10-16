@@ -50,3 +50,16 @@ app.*.map.json
 
 # FVM Version Cache
 .fvm/
+
+# Firebase Emulator Suite
+*-debug.log
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+database-debug.log
+pubsub-debug.log
+.firebase/
+/emulator-data/
+
+# Node tooling for Firestore rules tests (test_firebase/)
+node_modules/

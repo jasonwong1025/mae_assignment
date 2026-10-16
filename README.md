@@ -45,8 +45,35 @@ If linking fails with `Cloud billing quota exceeded`, request more [billing acco
 
 ## Tests
 
+Testing has three layers.
+
+### 1. Unit and widget tests (`flutter_test`)
+
 ```bash
 fvm flutter test
 ```
 
-Tests use fakes and do not connect to Firebase. Change `.fvmrc`, the Flutter constraint in `pubspec.yaml`, and `pubspec.lock` together when the team intentionally upgrades Flutter.
+These use fakes and do not connect to Firebase. They cover view models, repositories, policies, validators, and widgets. Change `.fvmrc`, the Flutter constraint in `pubspec.yaml`, and `pubspec.lock` together when the team intentionally upgrades Flutter.
+
+### 2. Firestore Security Rules tests (Firebase Emulator Suite)
+
+The real `firestore.rules` are tested against the Firestore emulator with `@firebase/rules-unit-testing`. These need Node and Java but no device.
+
+```bash
+cd test_firebase
+npm install          # first time only
+npm test             # starts the emulator, runs the tests, shuts it down
+```
+
+### 3. Firebase integration tests (emulator + device)
+
+`integration_test/` runs the real `firebase_auth` and `cloud_firestore` SDKs against the Auth and Firestore emulators, so `AuthService`, `UserService` and `AuthRepository` are exercised end to end without touching the shared project. The emulator ports and hosts live in the `emulators` block of `firebase.json`. See `integration_test/README.md` for how to run against an Android device or emulator.
+
+```bash
+# in one terminal
+firebase emulators:start --only auth,firestore --project mae-assignment-grocerly
+# in another, against a connected device
+fvm flutter test integration_test -d <device-id> --dart-define=USE_FIREBASE_EMULATOR=true
+```
+
+The app only talks to the emulators when started with `--dart-define=USE_FIREBASE_EMULATOR=true`; a normal run and every release build use the real backend.
