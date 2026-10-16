@@ -51,6 +51,11 @@ dev_dependencies:
     sdk: flutter
   integration_test:
     sdk: flutter
+  # In-memory fakes for Firebase Auth and Firestore, so backend logic
+  # (AuthRepository, UserService) is unit-tested in the Dart VM with no
+  # device, emulator, or network. Patrol owns the real end-to-end checks.
+  fake_cloud_firestore: ^4.2.0
+  firebase_auth_mocks: ^0.15.0
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

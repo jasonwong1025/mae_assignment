@@ -45,7 +45,10 @@ If linking fails with `Cloud billing quota exceeded`, request more [billing acco
 
 ## Tests
 
-Testing has three layers.
+Testing has three layers, following the test pyramid: most coverage is in fast,
+device-free tests; the emulator and device layers are used only where they are
+genuinely needed. The first two layers need no device and run the same way on
+macOS, Windows and Linux.
 
 ### 1. Unit and widget tests (`flutter_test`)
 
@@ -53,11 +56,21 @@ Testing has three layers.
 fvm flutter test
 ```
 
-These use fakes and do not connect to Firebase. They cover view models, repositories, policies, validators, and widgets. Change `.fvmrc`, the Flutter constraint in `pubspec.yaml`, and `pubspec.lock` together when the team intentionally upgrades Flutter.
+Run in the Dart VM: no device, emulator or network. They cover view models,
+repositories, policies, validators, and widgets. Backend logic that uses
+Firebase (`AuthService`, `UserService`, `AuthRepository`) is tested with the
+in-memory fakes `firebase_auth_mocks` and `fake_cloud_firestore`, so these
+checks stay fast and portable. Change `.fvmrc`, the Flutter constraint in
+`pubspec.yaml`, and `pubspec.lock` together when the team intentionally
+upgrades Flutter.
 
 ### 2. Firestore Security Rules tests (Firebase Emulator Suite)
 
-The real `firestore.rules` are tested against the Firestore emulator with `@firebase/rules-unit-testing`. These need Node and Java but no device.
+The real `firestore.rules` cannot be faked, so they are tested against the
+Firestore emulator with `@firebase/rules-unit-testing`. The emulator starts and
+stops itself; this needs Node and Java (both expected by the Firebase CLI) but
+no device, and works the same on every OS. Emulator ports live in the
+`emulators` block of `firebase.json`.
 
 ```bash
 cd test_firebase
@@ -65,15 +78,15 @@ npm install          # first time only
 npm test             # starts the emulator, runs the tests, shuts it down
 ```
 
-### 3. Firebase integration tests (emulator + device)
+### 3. End-to-end tests (Patrol, device + emulator)
 
-`integration_test/` runs the real `firebase_auth` and `cloud_firestore` SDKs against the Auth and Firestore emulators, so `AuthService`, `UserService` and `AuthRepository` are exercised end to end without touching the shared project. The emulator ports and hosts live in the `emulators` block of `firebase.json`. See `integration_test/README.md` for how to run against an Android device or emulator.
+Patrol drives the real app on a device against the emulators, including native
+UI such as the Google sign-in dialog. This is the slow, device-dependent layer,
+reserved for a few whole-journey checks rather than everyday logic coverage.
+The app only talks to the emulators when started with
+`--dart-define=USE_FIREBASE_EMULATOR=true`; a normal run and every release build
+use the real backend. An Android emulator image reaches the host emulators on
+`10.0.2.2` with no network setup; a physical device needs the host's LAN
+address via `--dart-define=FIREBASE_EMULATOR_HOST=<host-ip>`.
 
-```bash
-# in one terminal
-firebase emulators:start --only auth,firestore --project mae-assignment-grocerly
-# in another, against a connected device
-fvm flutter test integration_test -d <device-id> --dart-define=USE_FIREBASE_EMULATOR=true
-```
-
-The app only talks to the emulators when started with `--dart-define=USE_FIREBASE_EMULATOR=true`; a normal run and every release build use the real backend.
+(Patrol setup is added when the first E2E flow is written.)
