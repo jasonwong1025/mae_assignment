@@ -22,6 +22,11 @@ class BranchViewModel extends AsyncNotifier<BranchState> {
   @override
   Future<BranchState> build() async {
     final branches = await ref.watch(branchRepositoryProvider).getBranches();
+    if (branches.isEmpty) {
+      throw const BranchException(
+        'No branches yet. Add one in the Branches tab.',
+      );
+    }
     return BranchState(branches: branches, selected: branches.first);
   }
 
@@ -30,6 +35,7 @@ class BranchViewModel extends AsyncNotifier<BranchState> {
   Future<void> reload() async {
     final selectedId = state.value?.selected.id;
     final branches = await ref.read(branchRepositoryProvider).getBranches();
+    if (branches.isEmpty) return;
     final selected = branches.firstWhere(
       (branch) => branch.id == selectedId,
       orElse: () => branches.first,

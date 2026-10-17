@@ -9,8 +9,10 @@ import 'package:mae_assignment/features/store_admin/staff/data/services/staff_se
 import 'package:mae_assignment/features/store_admin/staff/presentation/ui/worker_card.dart';
 import 'package:mae_assignment/features/store_admin/staff/presentation/views/staff_view.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
+import 'package:mae_assignment/shared/services/branch_service.dart';
 
 import '../../helpers/fake_auth_repository.dart';
+import '../../helpers/fake_branch_service.dart';
 import '../../helpers/fake_staff_service.dart';
 
 const _admin = AppUser(
@@ -35,6 +37,7 @@ Future<void> _pumpStaff(WidgetTester tester, Size size) async {
     ProviderScope(
       overrides: [
         authRepositoryProvider.overrideWithValue(repository),
+        branchServiceProvider.overrideWithValue(FakeBranchService()),
         staffServiceProvider.overrideWithValue(FakeStaffService()),
       ],
       child: MaterialApp(theme: AppTheme.light, home: const StaffView()),

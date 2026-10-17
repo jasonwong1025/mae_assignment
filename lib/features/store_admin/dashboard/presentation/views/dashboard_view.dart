@@ -13,6 +13,7 @@ import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_
 import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_sidebar.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
+import 'package:mae_assignment/shared/repositories/branch_repository.dart';
 
 /// Store admin home page: today's numbers for the selected branch.
 class DashboardView extends ConsumerWidget {
@@ -34,7 +35,10 @@ class DashboardView extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) => Center(
           child: Text(
-            'Could not load the dashboard.',
+            // e.g. "No branches yet. Add one in the Branches tab."
+            error is BranchException
+                ? error.message
+                : 'Could not load the dashboard.',
             style: textTheme.bodyMedium,
           ),
         ),

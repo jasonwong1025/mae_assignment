@@ -13,8 +13,10 @@ import 'package:mae_assignment/features/store_admin/dispatch/presentation/views/
 import 'package:mae_assignment/features/store_admin/orders/data/repositories/orders_repository.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/repositories/branch_repository.dart';
+import 'package:mae_assignment/shared/services/branch_service.dart';
 
 import '../../helpers/fake_auth_repository.dart';
+import '../../helpers/fake_branch_service.dart';
 import '../../helpers/map_test_setup.dart';
 
 const _admin = AppUser(
@@ -37,7 +39,10 @@ Future<ProviderContainer> _pumpDispatch(WidgetTester tester, Size size) async {
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [authRepositoryProvider.overrideWithValue(repository)],
+      overrides: [
+        authRepositoryProvider.overrideWithValue(repository),
+        branchServiceProvider.overrideWithValue(FakeBranchService()),
+      ],
       child: MaterialApp(theme: AppTheme.light, home: const DispatchView()),
     ),
   );
@@ -62,7 +67,9 @@ void main() {
     test('assigning a driver updates the order and the driver', () async {
       final orders = OrdersRepository();
       final repository = DispatchRepository(orders, DriverLocationService());
-      final branch = (await BranchRepository().getBranches()).first;
+      final branch = (await BranchRepository(
+        FakeBranchService(),
+      ).getBranches()).first;
       final drivers = await repository.getDrivers();
       final kumar = drivers.firstWhere((d) => d.name == 'Kumar Selvam');
       final amir = drivers.firstWhere((d) => d.name == 'Amir Hamzah');
@@ -100,7 +107,9 @@ void main() {
         OrdersRepository(),
         DriverLocationService(),
       );
-      final branch = (await BranchRepository().getBranches()).first;
+      final branch = (await BranchRepository(
+        FakeBranchService(),
+      ).getBranches()).first;
       final drivers = await repository.getDrivers();
       final amir = drivers.firstWhere((d) => d.name == 'Amir Hamzah');
       final kumar = drivers.firstWhere((d) => d.name == 'Kumar Selvam');

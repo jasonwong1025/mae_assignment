@@ -9,8 +9,10 @@ import 'package:mae_assignment/features/store_admin/sales/data/repositories/sale
 import 'package:mae_assignment/features/store_admin/sales/presentation/ui/top_products_rows.dart';
 import 'package:mae_assignment/features/store_admin/sales/presentation/views/sales_view.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
+import 'package:mae_assignment/shared/services/branch_service.dart';
 
 import '../../helpers/fake_auth_repository.dart';
+import '../../helpers/fake_branch_service.dart';
 import '../../helpers/fake_image_picker_service.dart';
 
 const _admin = AppUser(
@@ -33,7 +35,10 @@ Future<void> _pumpSales(WidgetTester tester, Size size) async {
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [authRepositoryProvider.overrideWithValue(repository)],
+      overrides: [
+        authRepositoryProvider.overrideWithValue(repository),
+        branchServiceProvider.overrideWithValue(FakeBranchService()),
+      ],
       child: MaterialApp(theme: AppTheme.light, home: const SalesView()),
     ),
   );
