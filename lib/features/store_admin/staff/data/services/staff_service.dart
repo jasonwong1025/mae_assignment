@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/core/firebase/firestore_paths.dart';
 import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
 
 final staffServiceProvider = Provider<StaffService>((ref) {
@@ -15,7 +16,7 @@ class StaffService {
   final FirebaseFirestore _firestore;
 
   CollectionReference<Map<String, dynamic>> get _users {
-    return _firestore.collection('users');
+    return _firestore.collection(FirestoreCollections.users);
   }
 
   Future<List<Worker>> getWorkers() async {

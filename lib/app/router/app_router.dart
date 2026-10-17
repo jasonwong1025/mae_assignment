@@ -7,6 +7,7 @@ import 'package:mae_assignment/features/authentication/presentation/views/home_p
 import 'package:mae_assignment/features/authentication/presentation/views/login_view.dart';
 import 'package:mae_assignment/features/authentication/presentation/views/onboarding_view.dart';
 import 'package:mae_assignment/features/authentication/presentation/views/register_view.dart';
+import 'package:mae_assignment/features/customer/catalogue/presentation/views/catalogue_view.dart';
 import 'package:mae_assignment/features/store_admin/branches/presentation/views/branches_view.dart';
 import 'package:mae_assignment/features/store_admin/dashboard/presentation/views/dashboard_view.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/views/dispatch_view.dart';
@@ -37,6 +38,10 @@ class AppRoutes {
   static const String login = '/login';
   static const String register = '/register';
   static const String home = '/home';
+
+  // Customer (mobile). The catalogue is the customer's Home.
+  static const String customerCatalogue = '/shop';
+
   static const String adminDashboard = '/admin/dashboard';
   static const String adminOrders = '/admin/orders';
   static const String adminInventory = '/admin/inventory';
@@ -149,6 +154,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.home,
         builder: (context, state) => const HomePlaceholderView(),
+      ),
+      GoRoute(
+        path: AppRoutes.customerCatalogue,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: CatalogueView()),
       ),
 
       // Store admin tabs. No page animation, so switching tabs changes

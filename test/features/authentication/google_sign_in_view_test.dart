@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/app/app.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
+import 'package:mae_assignment/features/customer/catalogue/data/repositories/catalogue_repository.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 
 import '../../helpers/fake_auth_repository.dart';
@@ -15,6 +16,15 @@ const _customer = AppUser(
   role: UserRole.customer,
 );
 
+/// Loads an empty catalogue instantly, so landing on the customer home in
+/// these auth tests does not reach Firestore.
+class _EmptyCatalogueRepository implements CatalogueRepository {
+  @override
+  Future<CatalogueData> loadCatalogue(String branchId) async {
+    return const CatalogueData(categories: [], products: []);
+  }
+}
+
 void main() {
   late FakeAuthRepository repository;
   late ProviderContainer container;
@@ -22,7 +32,12 @@ void main() {
   setUp(() {
     repository = FakeAuthRepository()..googleUserToSignIn = _customer;
     container = ProviderContainer(
-      overrides: [authRepositoryProvider.overrideWithValue(repository)],
+      overrides: [
+        authRepositoryProvider.overrideWithValue(repository),
+        catalogueRepositoryProvider.overrideWithValue(
+          _EmptyCatalogueRepository(),
+        ),
+      ],
     );
   });
 
@@ -50,11 +65,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.googleSignInCalls, 1);
-    expect(find.text('Hi, May'), findsOneWidget);
+    // Lands on the customer catalogue (its content needs Firestore, so we
+    // check the route, not the products).
+    expect(routerLocation(container), AppRoutes.customerCatalogue);
 
+    // A customer cannot reach the admin dashboard; the guard sends them
+    // back to the customer home.
     container.read(appRouterProvider).go(AppRoutes.adminDashboard);
     await tester.pumpAndSettle();
-    expect(find.text('Hi, May'), findsOneWidget);
+    expect(routerLocation(container), isNot(AppRoutes.adminDashboard));
   });
 
   testWidgets('Google button on registration opens the customer home', (
@@ -69,6 +88,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.googleSignInCalls, 1);
-    expect(find.text('Hi, May'), findsOneWidget);
+    expect(routerLocation(container), AppRoutes.customerCatalogue);
   });
+}
+
+/// The base path the router is at.
+String routerLocation(ProviderContainer container) {
+  return container
+      .read(appRouterProvider)
+      .routerDelegate
+      .currentConfiguration
+      .uri
+      .path;
 }

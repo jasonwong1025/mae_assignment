@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mae_assignment/core/firebase/firestore_paths.dart';
 
 /// The three kinds of user in Grocerly.
 /// Saved in Firestore by name, e.g. "storeAdmin".
@@ -36,15 +37,15 @@ class AppUser {
   });
 
   factory AppUser.fromMap(String uid, Map<String, dynamic> map) {
-    final createdAt = map['createdAt'];
+    final createdAt = map[UserFields.createdAt];
 
     return AppUser(
       uid: uid,
-      name: map['name'] as String? ?? '',
-      email: map['email'] as String? ?? '',
-      phone: map['phone'] as String? ?? '',
-      role: UserRole.fromName(map['role'] as String?),
-      isActive: map['isActive'] as bool? ?? true,
+      name: map[UserFields.name] as String? ?? '',
+      email: map[UserFields.email] as String? ?? '',
+      phone: map[UserFields.phone] as String? ?? '',
+      role: UserRole.fromName(map[UserFields.role] as String?),
+      isActive: map[UserFields.isActive] as bool? ?? true,
       createdAt: createdAt is Timestamp ? createdAt.toDate() : null,
     );
   }
@@ -66,11 +67,11 @@ class AppUser {
   /// so it is not saved as a field.
   Map<String, dynamic> toMap() {
     return {
-      'name': name,
-      'email': email,
-      'phone': phone,
-      'role': role.name,
-      'createdAt': FieldValue.serverTimestamp(),
+      UserFields.name: name,
+      UserFields.email: email,
+      UserFields.phone: phone,
+      UserFields.role: role.name,
+      UserFields.createdAt: FieldValue.serverTimestamp(),
     };
   }
 }
