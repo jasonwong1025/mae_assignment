@@ -82,15 +82,15 @@ void main() {
     repository = OrderRepository(service);
   });
 
-  void stubCreate({int highest = 0, String newId = 'o1'}) {
-    when(service.highestOrderNumber).thenAnswer((_) async => highest);
+  void stubCreate({int nextNumber = 1, String newId = 'o1'}) {
+    when(service.nextOrderNumber).thenAnswer((_) async => nextNumber);
     when(() => service.createOrder(any())).thenAnswer((_) async => newId);
   }
 
   test(
     'turns the cart into an order with the next number and new id',
     () async {
-      stubCreate(highest: 2300, newId: 'o-new');
+      stubCreate(nextNumber: 2301, newId: 'o-new');
 
       final order = await repository.placeOrder(
         cart: _cart(),
@@ -185,7 +185,7 @@ void main() {
   });
 
   test('wraps a Firestore failure in a friendly OrderException', () async {
-    when(service.highestOrderNumber).thenThrow(Exception('offline'));
+    when(service.nextOrderNumber).thenThrow(Exception('offline'));
 
     await expectLater(
       repository.placeOrder(

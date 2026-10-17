@@ -38,18 +38,29 @@ class OrderService {
     return doc.id;
   }
 
-  /// The highest order number in use, or 0 if there are no orders. The next
-  /// order's number is this plus one. Orders are few in this app, so a
-  /// single-document lookup by `number` descending is enough.
-  Future<int> highestOrderNumber() async {
-    final snapshot = await _orders
-        .orderBy(OrderFields.number, descending: true)
-        .limit(1)
-        .get()
+  /// Reserves and returns the next order number, atomically, from the
+  /// shared counters/orders document.
+  ///
+  /// A customer cannot read other customers' orders (see `firestore.rules`),
+  /// so the next number cannot come from scanning the orders collection.
+  /// A transaction on a single counter is both allowed and race-safe:
+  /// concurrent checkouts never get the same number. The first order starts
+  /// at 1001 so numbers look like real order ids.
+  Future<int> nextOrderNumber() {
+    final counter = _firestore
+        .collection(FirestoreCollections.counters)
+        .doc(CounterDocs.orders);
+    return _firestore
+        .runTransaction((transaction) async {
+          final snapshot = await transaction.get(counter);
+          final current = snapshot.exists
+              ? (snapshot.data()?[CounterFields.value] as num?)?.toInt() ?? 1000
+              : 1000;
+          final next = current + 1;
+          transaction.set(counter, {CounterFields.value: next});
+          return next;
+        })
         .timeout(_timeout);
-    if (snapshot.docs.isEmpty) return 0;
-    final value = snapshot.docs.first.data()[OrderFields.number];
-    return value is num ? value.toInt() : 0;
   }
 
   /// One order by id, or null if it does not exist.

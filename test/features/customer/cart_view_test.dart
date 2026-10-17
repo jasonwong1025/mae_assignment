@@ -180,7 +180,7 @@ void main() {
           phone: '0123456789',
           role: UserRole.customer,
         );
-      when(orderService.highestOrderNumber).thenAnswer((_) async => 2300);
+      when(orderService.nextOrderNumber).thenAnswer((_) async => 2301);
       when(() => orderService.createOrder(any())).thenAnswer((_) async => 'o1');
       // The tracking screen the view navigates to streams the order by id.
       when(() => orderService.watchOrder('o1')).thenAnswer(

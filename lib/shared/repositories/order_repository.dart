@@ -58,7 +58,8 @@ class OrderRepository {
 
     final fee = cart.deliveryFeeFor(deliveryFee);
     final nextNumber = await _run(
-      () async => (await _service.highestOrderNumber()) + 1,
+      _service.nextOrderNumber,
+      label: 'nextOrderNumber (counters/orders)',
     );
 
     final order = Order(
@@ -98,7 +99,10 @@ class OrderRepository {
       promoCode: cart.promoCode,
     );
 
-    final id = await _run(() => _service.createOrder(order));
+    final id = await _run(
+      () => _service.createOrder(order),
+      label: 'createOrder (orders/*)',
+    );
     return order.copyWith(id: id);
   }
 
@@ -114,13 +118,14 @@ class OrderRepository {
   Stream<Order?> watchOrder(String id) => _service.watchOrder(id);
 
   /// Runs a Firestore call and turns any error into an OrderException.
-  Future<T> _run<T>(Future<T> Function() call) async {
+  /// [label] names the operation in logs so a denied call is easy to spot.
+  Future<T> _run<T>(Future<T> Function() call, {String label = 'order'}) async {
     try {
       return await call();
     } on OrderException {
       rethrow;
     } on Object catch (error) {
-      debugPrint('Order request failed: $error');
+      debugPrint('Order request failed [$label]: $error');
       throw const OrderException(
         'Could not reach the server. Please check your connection and '
         'try again.',

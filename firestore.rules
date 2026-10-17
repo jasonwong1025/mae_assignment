@@ -131,5 +131,21 @@ service cloud.firestore {
 
       allow delete: if false;
     }
+
+    // Monotonic counters, e.g. the order-number sequence. Any signed-in
+    // user may read and bump a counter (checkout reserves the next order
+    // number here, since a customer cannot scan all orders). The value only
+    // ever moves forward; order ownership is still enforced on orders/.
+    match /counters/{name} {
+      allow read: if isSignedIn();
+      // `resource` is null when the counter does not exist yet (first bump),
+      // so check for null before reading resource.data; `!resource.exists`
+      // would throw a null error and deny the create.
+      allow write: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['value'])
+        && request.resource.data.value is int
+        && (resource == null
+            || request.resource.data.value > resource.data.value);
+    }
   }
 }

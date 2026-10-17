@@ -34,6 +34,28 @@ class FirestoreCollections {
   /// users/{uid}/addresses/{addressId} — a customer's saved delivery
   /// addresses, each with a map location. Owner-only.
   static const String addresses = 'addresses';
+
+  /// counters/{name} — monotonic counters (e.g. the order number sequence)
+  /// incremented in a transaction. Not per-user: a customer cannot read
+  /// other customers' orders, so the next order number comes from here
+  /// rather than from scanning the orders collection.
+  static const String counters = 'counters';
+}
+
+/// Document ids and field keys for counters/{name}.
+class CounterDocs {
+  CounterDocs._();
+
+  /// counters/orders holds the last order number issued.
+  static const String orders = 'orders';
+}
+
+/// Field keys in counters/{name}.
+class CounterFields {
+  CounterFields._();
+
+  /// The last value handed out. The next id is this plus one.
+  static const String value = 'value';
 }
 
 /// Field keys in users/{uid}.

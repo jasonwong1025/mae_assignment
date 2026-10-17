@@ -61,16 +61,14 @@ void main() {
     expect(doc.data()![OrderFields.status], 'pending');
   });
 
-  test('highestOrderNumber is 0 when there are no orders', () async {
-    expect(await service.highestOrderNumber(), 0);
+  test('nextOrderNumber starts at 1001 for the first order', () async {
+    expect(await service.nextOrderNumber(), 1001);
   });
 
-  test('highestOrderNumber returns the largest number in use', () async {
-    await service.createOrder(_order(customerId: 'u1', number: 2300));
-    await service.createOrder(_order(customerId: 'u2', number: 2305));
-    await service.createOrder(_order(customerId: 'u1', number: 2301));
-
-    expect(await service.highestOrderNumber(), 2305);
+  test('nextOrderNumber increments on each call', () async {
+    expect(await service.nextOrderNumber(), 1001);
+    expect(await service.nextOrderNumber(), 1002);
+    expect(await service.nextOrderNumber(), 1003);
   });
 
   test('getOrder reads back a created order', () async {
