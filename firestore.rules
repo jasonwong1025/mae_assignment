@@ -71,9 +71,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Store branches. Every signed-in user can see them (customers choose
+    // a branch, workers see theirs). Only the admin adds or edits them.
+    // Branches are never deleted; they are closed instead.
     match /branches/{branchId} {
       allow read: if isSignedIn();
-      allow write: if false;
+      allow create, update: if isAdmin();
+      allow delete: if false;
 
       match /inventory/{productId} {
         allow read: if isSignedIn();

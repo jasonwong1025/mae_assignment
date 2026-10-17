@@ -10,8 +10,10 @@ import 'package:mae_assignment/features/store_admin/orders/presentation/ui/order
 import 'package:mae_assignment/features/store_admin/orders/presentation/view_models/orders_filter_view_model.dart';
 import 'package:mae_assignment/features/store_admin/orders/presentation/views/orders_view.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
+import 'package:mae_assignment/shared/services/branch_service.dart';
 
 import '../../helpers/fake_auth_repository.dart';
+import '../../helpers/fake_branch_service.dart';
 
 const _admin = AppUser(
   uid: 'uid-1',
@@ -33,7 +35,10 @@ Future<void> _pumpOrders(WidgetTester tester, Size size) async {
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [authRepositoryProvider.overrideWithValue(repository)],
+      overrides: [
+        authRepositoryProvider.overrideWithValue(repository),
+        branchServiceProvider.overrideWithValue(FakeBranchService()),
+      ],
       child: MaterialApp(theme: AppTheme.light, home: const OrdersView()),
     ),
   );

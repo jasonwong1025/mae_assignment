@@ -67,7 +67,10 @@ class BranchSwitcher extends ConsumerWidget {
                 children: [
                   Text('Grocerly', style: textTheme.titleLarge),
                   Text(
-                    selected?.name ?? 'Loading branches',
+                    selected?.name ??
+                        (ref.watch(branchViewModelProvider).hasError
+                            ? 'No branches yet'
+                            : 'Loading branches'),
                     style: textTheme.bodySmall,
                     overflow: TextOverflow.ellipsis,
                   ),

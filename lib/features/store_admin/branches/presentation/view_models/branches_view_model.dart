@@ -78,6 +78,17 @@ class BranchesViewModel extends AsyncNotifier<PageResult<Branch>> {
     return updateBranch(branch.withTemporarilyClosed(closed: closed));
   }
 
+  /// One-time setup: adds the 3 sample branches.
+  Future<String?> addSampleBranches() async {
+    try {
+      await ref.read(branchRepositoryProvider).addSampleBranches();
+    } on BranchException catch (e) {
+      return e.message;
+    }
+    await _reload();
+    return null;
+  }
+
   /// Finds addresses for the form's search box.
   Future<List<AddressResult>> searchAddress(String text) {
     return ref.read(addressRepositoryProvider).search(text);

@@ -4,8 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/app/app.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
+import 'package:mae_assignment/shared/services/branch_service.dart';
 
 import '../../helpers/fake_auth_repository.dart';
+import '../../helpers/fake_branch_service.dart';
 
 void main() {
   testWidgets('Admin signs in, lands on the dashboard and opens Orders', (
@@ -26,7 +28,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [authRepositoryProvider.overrideWithValue(repository)],
+        overrides: [
+          authRepositoryProvider.overrideWithValue(repository),
+          branchServiceProvider.overrideWithValue(FakeBranchService()),
+        ],
         child: const GrocerlyApp(),
       ),
     );

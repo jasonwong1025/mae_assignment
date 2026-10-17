@@ -9,8 +9,10 @@ import 'package:mae_assignment/features/store_admin/reviews/data/repositories/re
 import 'package:mae_assignment/features/store_admin/reviews/presentation/ui/review_rows.dart';
 import 'package:mae_assignment/features/store_admin/reviews/presentation/views/reviews_view.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
+import 'package:mae_assignment/shared/services/branch_service.dart';
 
 import '../../helpers/fake_auth_repository.dart';
+import '../../helpers/fake_branch_service.dart';
 
 const _admin = AppUser(
   uid: 'uid-1',
@@ -32,7 +34,10 @@ Future<void> _pumpReviews(WidgetTester tester, Size size) async {
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [authRepositoryProvider.overrideWithValue(repository)],
+      overrides: [
+        authRepositoryProvider.overrideWithValue(repository),
+        branchServiceProvider.overrideWithValue(FakeBranchService()),
+      ],
       child: MaterialApp(theme: AppTheme.light, home: const ReviewsView()),
     ),
   );

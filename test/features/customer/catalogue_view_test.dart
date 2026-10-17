@@ -4,6 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue_product.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/repositories/catalogue_repository.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/views/catalogue_view.dart';
+import 'package:mae_assignment/shared/services/branch_service.dart';
+
+import '../../helpers/fake_branch_service.dart';
 
 /// Serves a fixed catalogue, so the Home screen can be tested with no
 /// Firestore. Content is independent of the branch id.
@@ -41,6 +44,7 @@ Future<void> _pump(WidgetTester tester, CatalogueData data) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        branchServiceProvider.overrideWithValue(FakeBranchService()),
         catalogueRepositoryProvider.overrideWithValue(
           _FakeCatalogueRepository(data),
         ),

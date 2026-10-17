@@ -10,8 +10,10 @@ import 'package:mae_assignment/features/store_admin/inventory/data/services/imag
 import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/product_card.dart';
 import 'package:mae_assignment/features/store_admin/inventory/presentation/views/inventory_view.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
+import 'package:mae_assignment/shared/services/branch_service.dart';
 
 import '../../helpers/fake_auth_repository.dart';
+import '../../helpers/fake_branch_service.dart';
 import '../../helpers/fake_image_picker_service.dart';
 
 const _admin = AppUser(
@@ -40,6 +42,7 @@ Future<void> _pumpInventory(
     ProviderScope(
       overrides: [
         authRepositoryProvider.overrideWithValue(repository),
+        branchServiceProvider.overrideWithValue(FakeBranchService()),
         imagePickerServiceProvider.overrideWithValue(
           imagePicker ?? FakeImagePickerService(),
         ),

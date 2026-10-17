@@ -9,6 +9,7 @@ import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_
 import 'package:mae_assignment/features/store_admin/shell/presentation/ui/pagination_bar.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/ui/side_panel_frame.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
+import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
 
 /// Branches tab: every branch of the retailer. The admin can add a
 /// branch, edit it, or close it to new orders for a while.
@@ -88,6 +89,14 @@ class _BranchesViewState extends ConsumerState<BranchesView> {
     );
   }
 
+  Future<void> _addSampleBranches() async {
+    final error = await ref
+        .read(branchesViewModelProvider.notifier)
+        .addSampleBranches();
+    if (!mounted) return;
+    _showMessage(error ?? 'The 3 sample branches were added.');
+  }
+
   void _pushPage(WidgetBuilder panelBuilder) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -142,15 +151,16 @@ class _BranchesViewState extends ConsumerState<BranchesView> {
                     data: (result) {
                       final shown = result.items;
                       if (shown.isEmpty) {
-                        return Align(
-                          alignment: Alignment.topLeft,
-                          child: Text(
-                            filter.searchText.trim().isEmpty
-                                ? 'No branches yet. Add the first one.'
-                                : 'No branches match your search.',
-                            style: textTheme.bodyMedium,
-                          ),
-                        );
+                        if (filter.searchText.trim().isNotEmpty) {
+                          return Align(
+                            alignment: Alignment.topLeft,
+                            child: Text(
+                              'No branches match your search.',
+                              style: textTheme.bodyMedium,
+                            ),
+                          );
+                        }
+                        return _NoBranches(onAddSamples: _addSampleBranches);
                       }
 
                       final Widget list;
@@ -235,6 +245,53 @@ class _BranchesViewState extends ConsumerState<BranchesView> {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// Shown when there are no branches yet. Adds the 3 sample branches that
+/// the other tabs' sample data uses.
+// TODO(team): delete with sampleBranches() once every tab reads Firestore.
+class _NoBranches extends StatefulWidget {
+  const _NoBranches({required this.onAddSamples});
+
+  final Future<void> Function() onAddSamples;
+
+  @override
+  State<_NoBranches> createState() => _NoBranchesState();
+}
+
+class _NoBranchesState extends State<_NoBranches> {
+  bool _isAdding = false;
+
+  Future<void> _add() async {
+    setState(() => _isAdding = true);
+    await widget.onAddSamples();
+    if (mounted) setState(() => _isAdding = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'No branches yet. Add your own, or start with the 3 sample '
+            'branches (SS15 Subang, Bukit Jalil, Puchong).',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+            onPressed: _isAdding ? null : _add,
+            child: _isAdding
+                ? const ButtonLoadingIndicator()
+                : const Text('Add sample branches'),
+          ),
+        ],
       ),
     );
   }

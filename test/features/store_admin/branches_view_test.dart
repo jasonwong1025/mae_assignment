@@ -9,8 +9,11 @@ import 'package:mae_assignment/features/store_admin/inventory/data/repositories/
 import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
 import 'package:mae_assignment/shared/repositories/branch_repository.dart';
+import 'package:mae_assignment/shared/repositories/sample_branches.dart';
+import 'package:mae_assignment/shared/services/branch_service.dart';
 
 import '../../helpers/fake_auth_repository.dart';
+import '../../helpers/fake_branch_service.dart';
 import '../../helpers/fake_image_picker_service.dart';
 import '../../helpers/map_test_setup.dart';
 
@@ -23,7 +26,11 @@ const _admin = AppUser(
 );
 
 /// Shows the Branches tab. Returns the providers.
-Future<ProviderContainer> _pumpBranches(WidgetTester tester, Size size) async {
+Future<ProviderContainer> _pumpBranches(
+  WidgetTester tester,
+  Size size, {
+  bool empty = false,
+}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -34,7 +41,12 @@ Future<ProviderContainer> _pumpBranches(WidgetTester tester, Size size) async {
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [authRepositoryProvider.overrideWithValue(repository)],
+      overrides: [
+        authRepositoryProvider.overrideWithValue(repository),
+        branchServiceProvider.overrideWithValue(
+          FakeBranchService(empty: empty),
+        ),
+      ],
       child: MaterialApp(theme: AppTheme.light, home: const BranchesView()),
     ),
   );
@@ -66,6 +78,18 @@ void main() {
   setUpAll(mockMapTileCache);
 
   group('Branch', () {
+    test('saving and loading keeps every field', () {
+      final branch = sampleBranches()[2];
+      final loaded = Branch.fromMap(branch.id, branch.toMap());
+
+      expect(loaded.name, 'Puchong');
+      expect(loaded.location, branch.location);
+      expect(loaded.feePerKm, 0.6);
+      // Puchong is closed on Sundays.
+      expect(loaded.weeklyHours.last.isClosed, isTrue);
+      expect(loaded.weeklyHours.first.opensAt, 8 * 60);
+    });
+
     test('delivery fee rounds the km up and stops at the limit', () {
       final branch = _branch();
 
@@ -84,7 +108,7 @@ void main() {
 
   group('BranchRepository', () {
     test('adds a branch with a new id and keeps names unique', () async {
-      final repository = BranchRepository();
+      final repository = BranchRepository(FakeBranchService());
 
       final added = await repository.addBranch(_branch());
       final all = await repository.getBranches();
@@ -137,6 +161,19 @@ void main() {
       branches.firstWhere((b) => b.id == 'puchong').isTemporarilyClosed,
       isTrue,
     );
+  });
+
+  testWidgets('With no branches, the sample branches can be added', (
+    tester,
+  ) async {
+    await _pumpBranches(tester, desktop, empty: true);
+
+    expect(find.text('Add sample branches'), findsOneWidget);
+    await tester.tap(find.text('Add sample branches'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('1-3 of 3 branches'), findsOneWidget);
+    expect(find.text('The 3 sample branches were added.'), findsOneWidget);
   });
 
   testWidgets('Phone shows cards', (tester) async {
