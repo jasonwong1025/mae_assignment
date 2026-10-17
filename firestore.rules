@@ -84,5 +84,46 @@ service cloud.firestore {
         allow write: if false;
       }
     }
+
+    // Customer orders (the shared order contract). The customer app writes
+    // an order at checkout and reads its own orders for tracking; the Store
+    // Worker and Store Admin apps read them to pack and oversee.
+    //
+    // A signed-in staff member (not a customer) can read any order. The id
+    // of the staff role check is kept here rather than inferred, so a
+    // customer can never read another customer's order.
+    function isStaff() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid))
+            .data.role in ['storeAdmin', 'storeWorker'];
+    }
+
+    match /orders/{orderId} {
+      function isOrderOwner() {
+        return request.auth != null
+          && resource.data.customerId == request.auth.uid;
+      }
+
+      // Owner reads their own order; staff read any order.
+      allow read: if isOrderOwner() || isStaff();
+
+      // A customer creates their own order. The order must belong to them,
+      // start in a pending state, and carry the required fields, so a
+      // client cannot forge an order into packing or onto another account.
+      allow create: if request.auth != null
+        && request.resource.data.customerId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasAll(
+            ['number', 'customerId', 'branchId', 'items', 'total', 'status',
+             'placedAt'])
+        && request.resource.data.placedAt == request.time;
+
+      // Staff advance an order's status (pack, ready, deliver, complete).
+      // The customer side does not update orders yet; cancellation comes
+      // with its own rule in a later slice.
+      allow update: if isStaff();
+
+      allow delete: if false;
+    }
   }
 }

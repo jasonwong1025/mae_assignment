@@ -1,10 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/customer/cart/data/models/cart.dart';
 import 'package:mae_assignment/features/customer/cart/presentation/view_models/cart_view_model.dart';
+import 'package:mae_assignment/features/customer/cart/presentation/view_models/checkout_view_model.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/ui/product_thumbnail.dart';
 import 'package:mae_assignment/features/customer/shell/customer_routes.dart';
 import 'package:mae_assignment/features/customer/shell/presentation/ui/customer_scaffold.dart';
@@ -12,18 +17,60 @@ import 'package:mae_assignment/shared/ui/empty_state.dart';
 
 /// Customer Cart tab (wireframe 2): the chosen items with quantity steppers,
 /// a delivery-vs-pickup toggle, promo, the price breakdown, and Place order.
-class CartView extends ConsumerWidget {
+class CartView extends ConsumerStatefulWidget {
   const CartView({super.key});
 
-  void _comingSoon(BuildContext context, String what) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$what is not connected yet.')));
+  @override
+  ConsumerState<CartView> createState() => _CartViewState();
+}
+
+class _CartViewState extends ConsumerState<CartView> {
+  final _addressController = TextEditingController();
+  final _noteController = TextEditingController();
+
+  @override
+  void dispose() {
+    _addressController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  void _placeOrder() {
+    final cart = ref.read(cartViewModelProvider);
+    unawaited(
+      ref
+          .read(checkoutViewModelProvider.notifier)
+          .placeOrder(
+            address: cart.fulfilment == FulfilmentMethod.delivery
+                ? _addressController.text
+                : null,
+            note: _noteController.text,
+          ),
+    );
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final cart = ref.watch(cartViewModelProvider);
+
+    // React to checkout outcomes: navigate on success, snackbar on failure.
+    ref.listen<CheckoutState>(checkoutViewModelProvider, (previous, next) {
+      switch (next) {
+        case CheckoutPlaced(:final order):
+          ref.read(checkoutViewModelProvider.notifier).reset();
+          context.go(AppRoutes.customerOrder(order.id));
+        case CheckoutFailure(:final message):
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(SnackBar(content: Text(message)));
+          ref.read(checkoutViewModelProvider.notifier).reset();
+        case CheckoutIdle():
+        case CheckoutPlacing():
+          break;
+      }
+    });
+
+    final isPlacing = ref.watch(checkoutViewModelProvider) is CheckoutPlacing;
 
     return CustomerScaffold(
       currentTab: CustomerTab.cart,
@@ -32,7 +79,10 @@ class CartView extends ConsumerWidget {
           ? const _EmptyCart()
           : _CartContent(
               cart: cart,
-              onPlaceOrder: () => _comingSoon(context, 'Checkout'),
+              addressController: _addressController,
+              noteController: _noteController,
+              isPlacing: isPlacing,
+              onPlaceOrder: _placeOrder,
             ),
     );
   }
@@ -54,14 +104,24 @@ class _EmptyCart extends StatelessWidget {
 }
 
 class _CartContent extends ConsumerWidget {
-  const _CartContent({required this.cart, required this.onPlaceOrder});
+  const _CartContent({
+    required this.cart,
+    required this.addressController,
+    required this.noteController,
+    required this.isPlacing,
+    required this.onPlaceOrder,
+  });
 
   final Cart cart;
+  final TextEditingController addressController;
+  final TextEditingController noteController;
+  final bool isPlacing;
   final VoidCallback onPlaceOrder;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
+    final isDelivery = cart.fulfilment == FulfilmentMethod.delivery;
 
     return SafeArea(
       child: Column(
@@ -96,6 +156,12 @@ class _CartContent extends ConsumerWidget {
                 ],
                 const SizedBox(height: AppSpacing.l),
                 _FulfilmentPicker(selected: cart.fulfilment),
+                if (isDelivery) ...[
+                  const SizedBox(height: AppSpacing.l),
+                  _AddressField(controller: addressController),
+                ],
+                const SizedBox(height: AppSpacing.l),
+                _NoteField(controller: noteController),
                 const SizedBox(height: AppSpacing.l),
                 _PromoRow(cart: cart),
                 const SizedBox(height: AppSpacing.l),
@@ -107,12 +173,88 @@ class _CartContent extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.all(AppSpacing.l),
             child: FilledButton(
-              onPressed: onPlaceOrder,
-              child: Text('Place order — ${Formatters.money(cart.total)}'),
+              onPressed: isPlacing ? null : onPlaceOrder,
+              child: isPlacing
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text('Place order — ${Formatters.money(cart.total)}'),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Delivery address, shown only for delivery orders.
+class _AddressField extends StatelessWidget {
+  const _AddressField({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'DELIVERY ADDRESS',
+          style: textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.4,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s),
+        TextField(
+          controller: controller,
+          minLines: 2,
+          maxLines: 3,
+          textInputAction: TextInputAction.newline,
+          decoration: const InputDecoration(
+            hintText: 'Unit, street, postcode',
+            isDense: true,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Optional note for the store (e.g. substitution preferences).
+class _NoteField extends StatelessWidget {
+  const _NoteField({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'NOTE FOR THE STORE (OPTIONAL)',
+          style: textTheme.bodySmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.4,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s),
+        TextField(
+          controller: controller,
+          minLines: 1,
+          maxLines: 3,
+          textInputAction: TextInputAction.newline,
+          decoration: const InputDecoration(
+            hintText: 'e.g. leave at the door, no plastic bags',
+            isDense: true,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -415,6 +557,7 @@ class _PromoRowState extends ConsumerState<_PromoRow> {
       children: [
         Expanded(
           child: TextField(
+            key: const Key('cart_promo_field'),
             controller: _controller,
             textCapitalization: TextCapitalization.characters,
             decoration: InputDecoration(

@@ -118,7 +118,7 @@ void main() {
       ],
     );
 
-    await tester.enterText(find.byType(TextField), 'FRESH5');
+    await tester.enterText(find.byKey(const Key('cart_promo_field')), 'FRESH5');
     await tester.tap(find.text('Apply'));
     await tester.pumpAndSettle();
 

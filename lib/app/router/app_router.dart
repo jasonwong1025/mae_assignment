@@ -10,6 +10,7 @@ import 'package:mae_assignment/features/authentication/presentation/views/regist
 import 'package:mae_assignment/features/customer/account/presentation/views/customer_account_view.dart';
 import 'package:mae_assignment/features/customer/cart/presentation/views/cart_view.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/views/catalogue_view.dart';
+import 'package:mae_assignment/features/customer/orders/presentation/views/customer_order_tracking_view.dart';
 import 'package:mae_assignment/features/customer/orders/presentation/views/customer_orders_view.dart';
 import 'package:mae_assignment/features/store_admin/branches/presentation/views/branches_view.dart';
 import 'package:mae_assignment/features/store_admin/dashboard/presentation/views/dashboard_view.dart';
@@ -197,6 +198,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.customerOrders,
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: CustomerOrdersView()),
+      ),
+      // One order's live tracking screen, pushed over the Orders tab.
+      GoRoute(
+        path: '${AppRoutes.customerOrders}/:orderId',
+        builder: (context, state) => CustomerOrderTrackingView(
+          orderId: state.pathParameters['orderId']!,
+        ),
       ),
       GoRoute(
         path: AppRoutes.customerAccount,
