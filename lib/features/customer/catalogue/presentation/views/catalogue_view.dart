@@ -3,11 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/customer/cart/presentation/view_models/cart_view_model.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue_product.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/ui/product_card.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/ui/product_thumbnail.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/view_models/catalogue_filter_view_model.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/view_models/catalogue_view_model.dart';
+import 'package:mae_assignment/features/customer/shell/customer_routes.dart';
+import 'package:mae_assignment/features/customer/shell/presentation/ui/customer_scaffold.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
 
@@ -16,6 +19,22 @@ import 'package:mae_assignment/shared/ui/empty_state.dart';
 /// grid of products to add to the cart.
 class CatalogueView extends ConsumerWidget {
   const CatalogueView({super.key});
+
+  void _addToCart(
+    BuildContext context,
+    WidgetRef ref,
+    CatalogueProduct product,
+  ) {
+    ref.read(cartViewModelProvider.notifier).add(product);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('${product.name} added to cart'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+  }
 
   void _comingSoon(BuildContext context, String what) {
     ScaffoldMessenger.of(context)
@@ -26,9 +45,12 @@ class CatalogueView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(catalogueViewModelProvider);
+    final cartCount = ref.watch(cartCountProvider);
 
-    return Scaffold(
-      body: SafeArea(
+    return CustomerScaffold(
+      currentTab: CustomerTab.home,
+      cartCount: cartCount,
+      child: SafeArea(
         child: state.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, stackTrace) => ErrorState(
@@ -37,7 +59,7 @@ class CatalogueView extends ConsumerWidget {
           ),
           data: (data) => _Catalogue(
             data: data,
-            onAdd: (product) => _comingSoon(context, 'The cart'),
+            onAdd: (product) => _addToCart(context, ref, product),
             onOpen: (product) => _comingSoon(context, 'Product details'),
           ),
         ),

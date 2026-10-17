@@ -7,7 +7,10 @@ import 'package:mae_assignment/features/authentication/presentation/views/home_p
 import 'package:mae_assignment/features/authentication/presentation/views/login_view.dart';
 import 'package:mae_assignment/features/authentication/presentation/views/onboarding_view.dart';
 import 'package:mae_assignment/features/authentication/presentation/views/register_view.dart';
+import 'package:mae_assignment/features/customer/account/presentation/views/customer_account_view.dart';
+import 'package:mae_assignment/features/customer/cart/presentation/views/cart_view.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/views/catalogue_view.dart';
+import 'package:mae_assignment/features/customer/orders/presentation/views/customer_orders_view.dart';
 import 'package:mae_assignment/features/store_admin/branches/presentation/views/branches_view.dart';
 import 'package:mae_assignment/features/store_admin/dashboard/presentation/views/dashboard_view.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/views/dispatch_view.dart';
@@ -39,8 +42,14 @@ class AppRoutes {
   static const String register = '/register';
   static const String home = '/home';
 
-  // Customer (mobile). The catalogue is the customer's Home.
+  // Customer (mobile). Four tabs: Home (catalogue), Cart, Orders, Account.
   static const String customerCatalogue = '/shop';
+  static const String customerCart = '/shop/cart';
+  static const String customerOrders = '/shop/orders';
+  static const String customerAccount = '/shop/account';
+
+  /// One customer order's tracking screen, pushed over Orders.
+  static String customerOrder(String orderId) => '$customerOrders/$orderId';
 
   static const String adminDashboard = '/admin/dashboard';
   static const String adminOrders = '/admin/orders';
@@ -159,6 +168,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.customerCatalogue,
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: CatalogueView()),
+      ),
+      GoRoute(
+        path: AppRoutes.customerCart,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: CartView()),
+      ),
+      GoRoute(
+        path: AppRoutes.customerOrders,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: CustomerOrdersView()),
+      ),
+      GoRoute(
+        path: AppRoutes.customerAccount,
+        pageBuilder: (context, state) =>
+            const NoTransitionPage(child: CustomerAccountView()),
       ),
 
       // Store admin tabs. No page animation, so switching tabs changes

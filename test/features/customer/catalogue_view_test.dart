@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mae_assignment/features/customer/cart/presentation/view_models/cart_view_model.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue_product.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/repositories/catalogue_repository.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/views/catalogue_view.dart';
@@ -36,23 +37,29 @@ CatalogueProduct _product(
   );
 }
 
-Future<void> _pump(WidgetTester tester, CatalogueData data) async {
+Future<ProviderContainer> _pump(WidgetTester tester, CatalogueData data) async {
   tester.view.physicalSize = const Size(390, 1600);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
+  final container = ProviderContainer(
+    overrides: [
+      branchServiceProvider.overrideWithValue(FakeBranchService()),
+      catalogueRepositoryProvider.overrideWithValue(
+        _FakeCatalogueRepository(data),
+      ),
+    ],
+  );
+  addTearDown(container.dispose);
+
   await tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        branchServiceProvider.overrideWithValue(FakeBranchService()),
-        catalogueRepositoryProvider.overrideWithValue(
-          _FakeCatalogueRepository(data),
-        ),
-      ],
+    UncontrolledProviderScope(
+      container: container,
       child: const MaterialApp(home: CatalogueView()),
     ),
   );
   await tester.pumpAndSettle();
+  return container;
 }
 
 void main() {
@@ -136,5 +143,28 @@ void main() {
     await _pump(tester, const CatalogueData(categories: [], products: []));
 
     expect(find.text('No products found'), findsOneWidget);
+  });
+
+  testWidgets('tapping add puts the product in the cart', (tester) async {
+    final container = await _pump(
+      tester,
+      CatalogueData(
+        categories: const [],
+        products: [_product('p1', 'Roma tomato')],
+      ),
+    );
+
+    expect(container.read(cartViewModelProvider).itemCount, 0);
+
+    final addButton = find.descendant(
+      of: find.byType(InkWell),
+      matching: find.byIcon(Icons.add_rounded),
+    );
+    await tester.tap(addButton);
+    await tester.pump();
+
+    expect(container.read(cartViewModelProvider).quantityOf('p1'), 1);
+    // The cart badge now shows on the Cart tab.
+    expect(find.text('1'), findsWidgets);
   });
 }
