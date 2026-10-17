@@ -93,6 +93,23 @@ Future<String?> _adminRedirect(AuthRepository authRepository) async {
   }
 }
 
+/// The home page for an already signed-in user, by role. Used when the app
+/// opens with a live session (e.g. after a restart) so each role lands on
+/// its own home instead of the shared placeholder. Falls back to the
+/// placeholder if the role cannot be read.
+Future<String> _homeForSignedInUser(AuthRepository authRepository) async {
+  try {
+    final user = await authRepository.getCurrentUser();
+    return switch (user?.role) {
+      UserRole.storeAdmin => AppRoutes.adminDashboard,
+      UserRole.customer => AppRoutes.customerCatalogue,
+      _ => AppRoutes.home,
+    };
+  } on Object catch (_) {
+    return AppRoutes.home;
+  }
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
   final workerPreviewEnabled = ref.watch(workerPreviewEnabledProvider);
@@ -136,8 +153,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         state.matchedLocation,
       );
 
-      // Signed in but on a signed-out page: go home.
-      if (isSignedIn && onSignedOutPage) return AppRoutes.home;
+      // Signed in but on a signed-out page: go to the role's home.
+      if (isSignedIn && onSignedOutPage) {
+        return _homeForSignedInUser(authRepository);
+      }
       // Signed out but on any other page: go to onboarding.
       if (!isSignedIn && !onSignedOutPage) return AppRoutes.onboarding;
 
