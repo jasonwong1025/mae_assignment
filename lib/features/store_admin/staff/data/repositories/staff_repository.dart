@@ -1,11 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../shared/models/page_result.dart';
 import '../models/worker.dart';
-import '../sample_workers.dart';
+import '../services/staff_service.dart';
 
 final staffRepositoryProvider = Provider<StaffRepository>((ref) {
-  return StaffRepository();
+  return StaffRepository(ref.watch(staffServiceProvider));
 });
 
 /// Error with a message to show on screen.
@@ -18,20 +20,23 @@ class StaffException implements Exception {
   String toString() => message;
 }
 
-/// Store Workers for the Staff tab.
-/// No backend yet: workers are kept in memory and reset on restart.
+/// Store Workers for the Staff tab, saved in Firestore.
 class StaffRepository {
-  final List<Worker> _workers = sampleWorkers();
-  int _nextId = 100;
+  StaffRepository(this._service);
+
+  final StaffService _service;
 
   /// One page of the packers of the branch plus all drivers.
   /// Packers come first, then drivers, each sorted by name.
+  /// Workers are few, so all are loaded and the page is cut here.
   Future<PageResult<Worker>> getWorkers(
     String branchId, {
     String searchText = '',
     int page = 1,
   }) async {
-    final matching = _workers.where((worker) {
+    final workers = await _run(_service.getWorkers);
+
+    final matching = workers.where((worker) {
       final isListed = worker.isDriver || worker.branchId == branchId;
       return isListed && worker.matchesSearch(searchText);
     }).toList();
@@ -44,15 +49,9 @@ class StaffRepository {
     return PageResult.fromList(matching, page: page);
   }
 
-  /// All active drivers. Drivers work for every branch.
-  Future<List<Worker>> getDrivers() async {
-    return _workers
-        .where((worker) => worker.isDriver && worker.isActive)
-        .toList();
-  }
-
-  /// Adds a worker. They sign in with [temporaryPassword].
-  Future<Worker> addWorker({
+  /// Creates the worker's login and profile. They sign in with
+  /// [temporaryPassword].
+  Future<void> addWorker({
     required String name,
     required String email,
     required String phone,
@@ -60,44 +59,58 @@ class StaffRepository {
     required WorkerRole role,
     required String? branchId,
   }) async {
-    _checkEmailIsFree(email);
+    final String id;
+    try {
+      id = await _service.createLogin(
+        email: email,
+        password: temporaryPassword,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw StaffException(_messageFor(e));
+    }
 
-    // TODO: create the Firebase account. The password is not saved yet.
     final worker = Worker(
-      id: 'w${_nextId++}',
+      id: id,
       name: name,
       email: email,
       phone: phone,
       role: role,
       branchId: role == WorkerRole.deliveryDriver ? null : branchId,
       isActive: true,
-      isOnDuty: false,
-      ordersToday: const [],
       joinedAt: DateTime.now(),
     );
-    _workers.add(worker);
-    return worker;
+    await _run(() => _service.createWorker(worker));
   }
 
-  /// Replaces the worker that has the same id.
-  Future<void> updateWorker(Worker worker) async {
-    _checkEmailIsFree(worker.email, exceptWorkerId: worker.id);
+  /// Saves changed details or the active flag.
+  Future<void> updateWorker(Worker worker) {
+    return _run(() => _service.updateWorker(worker));
+  }
 
-    final index = _workers.indexWhere((old) => old.id == worker.id);
-    if (index == -1) {
-      throw const StaffException('This worker no longer exists.');
+  /// Runs a Firestore call and turns any error into a StaffException.
+  Future<T> _run<T>(Future<T> Function() call) async {
+    try {
+      return await call();
+    } catch (error) {
+      debugPrint('Staff request failed: $error');
+      throw const StaffException(
+        'Could not reach the server. Please check your connection.',
+      );
     }
-    _workers[index] = worker;
   }
 
-  /// Emails must be unique because workers sign in with them.
-  void _checkEmailIsFree(String email, {String? exceptWorkerId}) {
-    final isTaken = _workers.any((worker) {
-      return worker.id != exceptWorkerId &&
-          worker.email.toLowerCase() == email.toLowerCase();
-    });
-    if (isTaken) {
-      throw const StaffException('A worker with this email already exists.');
+  String _messageFor(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'email-already-in-use':
+        return 'An account with this email already exists.';
+      case 'invalid-email':
+        return 'Please enter a valid email.';
+      case 'weak-password':
+        return 'The temporary password is too weak.';
+      case 'network-request-failed':
+        return 'No internet connection. Please check and try again.';
+      default:
+        return 'Could not create the login. Please try again.';
     }
   }
 }

@@ -54,8 +54,7 @@ class StaffTable extends StatelessWidget {
                       name: Text('NAME', style: headingStyle),
                       role: Text('ROLE', style: headingStyle),
                       branch: Text('BRANCH', style: headingStyle),
-                      rightNow: Text('RIGHT NOW', style: headingStyle),
-                      today: Text('TODAY', style: headingStyle),
+                      email: Text('EMAIL', style: headingStyle),
                       phone: Text('PHONE', style: headingStyle),
                       status: Text('STATUS', style: headingStyle),
                     ),
@@ -93,8 +92,7 @@ class _RowLayout extends StatelessWidget {
     required this.name,
     required this.role,
     required this.branch,
-    required this.rightNow,
-    required this.today,
+    required this.email,
     required this.phone,
     required this.status,
   });
@@ -102,8 +100,7 @@ class _RowLayout extends StatelessWidget {
   final Widget name;
   final Widget role;
   final Widget branch;
-  final Widget rightNow;
-  final Widget today;
+  final Widget email;
   final Widget phone;
   final Widget status;
 
@@ -121,8 +118,7 @@ class _RowLayout extends StatelessWidget {
           Expanded(flex: 4, child: _spaced(name)),
           Expanded(flex: 3, child: _spaced(role)),
           Expanded(flex: 3, child: _spaced(branch)),
-          Expanded(flex: 4, child: _spaced(rightNow)),
-          SizedBox(width: 64, child: today),
+          Expanded(flex: 5, child: _spaced(email)),
           Expanded(flex: 3, child: _spaced(phone)),
           SizedBox(
             width: 104,
@@ -184,8 +180,7 @@ class _WorkerRow extends StatelessWidget {
               ),
               role: cell(worker.role.label),
               branch: cell(branchName),
-              rightNow: cell(worker.rightNow),
-              today: cell('${worker.ordersToday.length}'),
+              email: cell(worker.email),
               phone: cell(worker.phone),
               status: WorkerStatusChip(isActive: worker.isActive),
             ),

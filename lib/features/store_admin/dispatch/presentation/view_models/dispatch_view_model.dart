@@ -2,8 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../orders/data/models/order.dart';
 import '../../../shell/presentation/view_models/branch_view_model.dart';
-import '../../../staff/data/models/worker.dart';
-import '../../../staff/data/repositories/staff_repository.dart';
+import '../../data/models/driver.dart';
 import '../../data/models/driver_location.dart';
 import '../../data/repositories/dispatch_repository.dart';
 import 'dispatch_state.dart';
@@ -17,7 +16,7 @@ final _deliveriesProvider = StreamProvider.autoDispose<List<Order>>((
   yield* repository.watchDeliveries(branchState.selected.id);
 });
 
-final _driversProvider = FutureProvider.autoDispose<List<Worker>>((ref) {
+final _driversProvider = FutureProvider.autoDispose<List<Driver>>((ref) {
   return ref.watch(dispatchRepositoryProvider).getDrivers();
 });
 
@@ -85,8 +84,6 @@ class DispatchViewModel extends Notifier<AsyncValue<DispatchState>> {
             oldDriverLocation: oldDriver?.location,
           );
     } on DispatchException catch (e) {
-      return e.message;
-    } on StaffException catch (e) {
       return e.message;
     }
 

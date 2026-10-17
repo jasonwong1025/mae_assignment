@@ -31,6 +31,7 @@ class AppUser {
     required this.email,
     required this.phone,
     required this.role,
+    this.isActive = true,
     this.createdAt,
   });
 
@@ -40,6 +41,9 @@ class AppUser {
   final String email;
   final String phone;
   final UserRole role;
+
+  /// False if HQ deactivated this Store Worker. They cannot sign in.
+  final bool isActive;
 
   /// Null until Firestore has saved the server time.
   final DateTime? createdAt;
@@ -53,6 +57,7 @@ class AppUser {
       email: map['email'] as String? ?? '',
       phone: map['phone'] as String? ?? '',
       role: UserRole.fromName(map['role'] as String?),
+      isActive: map['isActive'] as bool? ?? true,
       createdAt: createdAt is Timestamp ? createdAt.toDate() : null,
     );
   }

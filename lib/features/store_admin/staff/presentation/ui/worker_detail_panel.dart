@@ -140,21 +140,9 @@ class _WorkerDetails extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onToggleActive;
 
-  /// "Packing order #2291 for 4m", "Free", "Off duty" or "Deactivated".
-  String get _currentTask {
-    final order = worker.currentOrderNumber;
-    if (!worker.isActive || !worker.isOnDuty || order == null) {
-      return worker.rightNow;
-    }
-    final verb = worker.isDriver ? 'Delivering' : 'Packing';
-    final minutes = Formatters.minutes(worker.minutesOnCurrentOrder ?? 0);
-    return '$verb order #$order for $minutes';
-  }
-
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final doneWord = worker.isDriver ? 'delivered' : 'packed';
     // Smaller than the theme's buttons so two fit in a row.
     final buttonStyle = OutlinedButton.styleFrom(
       minimumSize: const Size(0, 44),
@@ -204,50 +192,6 @@ class _WorkerDetails extends StatelessWidget {
         const _SectionTitle('Contact'),
         _InfoRow(icon: Icons.phone_outlined, text: worker.phone),
         _InfoRow(icon: Icons.mail_outline_rounded, text: worker.email),
-
-        const _SectionTitle('Right now'),
-        _InfoRow(
-          icon: worker.isDriver
-              ? Icons.local_shipping_outlined
-              : Icons.inventory_2_outlined,
-          text: _currentTask,
-        ),
-
-        _SectionTitle('Today · ${worker.ordersToday.length} $doneWord'),
-        if (worker.ordersToday.isEmpty)
-          Text('No orders $doneWord yet today.', style: textTheme.bodyMedium)
-        else
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final number in worker.ordersToday)
-                Chip(
-                  label: Text('#$number'),
-                  visualDensity: VisualDensity.compact,
-                ),
-            ],
-          ),
-
-        const _SectionTitle('Rating'),
-        if (!worker.isDriver)
-          Text(
-            'Customers only rate delivery drivers.',
-            style: textTheme.bodyMedium,
-          )
-        else if (worker.rating == null)
-          Text('No ratings yet.', style: textTheme.bodyMedium)
-        else
-          Row(
-            children: [
-              const Icon(Icons.star_rounded, color: AppColors.yellow),
-              const SizedBox(width: 6),
-              Text(
-                '${worker.rating!.toStringAsFixed(1)} out of 5',
-                style: textTheme.bodyLarge,
-              ),
-            ],
-          ),
 
         const _SectionTitle('Joined'),
         _InfoRow(

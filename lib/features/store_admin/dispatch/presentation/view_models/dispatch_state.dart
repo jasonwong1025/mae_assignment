@@ -2,7 +2,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../orders/data/models/order.dart';
 import '../../../../../shared/models/branch.dart';
-import '../../../staff/data/models/worker.dart';
+import '../../data/models/driver.dart';
 import '../../data/models/driver_location.dart';
 
 const _distance = Distance();
@@ -14,7 +14,7 @@ const _metresPerMinute = 500.0;
 class DispatchDriver {
   const DispatchDriver({required this.worker, this.location, this.order});
 
-  final Worker worker;
+  final Driver worker;
 
   /// Null if the driver shares no location.
   final DriverLocation? location;
@@ -91,7 +91,7 @@ class DispatchState {
   factory DispatchState.from({
     required Branch branch,
     required List<Order> deliveries,
-    required List<Worker> drivers,
+    required List<Driver> drivers,
     required Map<String, DriverLocation> locations,
   }) {
     final dispatchDrivers = [

@@ -60,7 +60,6 @@ class StaffViewModel extends AsyncNotifier<PageResult<Worker>> {
   Future<String?> updateDetails(
     Worker worker, {
     required String name,
-    required String email,
     required String phone,
     required WorkerRole role,
     required String? branchId,
@@ -68,7 +67,6 @@ class StaffViewModel extends AsyncNotifier<PageResult<Worker>> {
     return _save(
       worker.withDetails(
         name: name.trim(),
-        email: email.trim().toLowerCase(),
         phone: phone.trim(),
         role: role,
         branchId: branchId,
