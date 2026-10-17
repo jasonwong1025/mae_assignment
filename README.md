@@ -120,15 +120,23 @@ Every push and pull request to `main` runs the quality gate in
 the change follows the team guidelines:
 
 - **flutter** job: pins the Flutter version from `.fvmrc`, then
-  `pub get --enforce-lockfile`, `dart format --set-exit-if-changed`,
-  `flutter analyze --fatal-infos`, a check that committed Freezed output is up
-  to date, and `flutter test`.
+  `pub get --enforce-lockfile`, the Firestore paths check (see below),
+  `dart format --set-exit-if-changed`, `flutter analyze --fatal-infos`, a
+  check that committed Freezed output is up to date, and `flutter test`.
 - **firestore-rules** job: runs the `test_firebase` rules tests against the
   Firestore emulator (self-managed by `firebase-tools`, no device).
+
+Firestore collection and document paths must go through the constants in
+`lib/core/firebase/firestore_paths.dart`, so each path lives in one place and
+stays in step with `firestore.rules`. `tool/check_firestore_paths.dart` fails
+if any file under `lib/` passes a string literal to `.collection()` or
+`.doc()`. It is written in Dart so it runs the same on macOS, Windows and
+Linux.
 
 Before pushing, you can run the same checks locally:
 
 ```bash
+fvm dart run tool/check_firestore_paths.dart
 fvm dart format .
 fvm flutter analyze --fatal-infos
 fvm dart run build_runner build

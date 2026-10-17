@@ -41,6 +41,11 @@ jobs:
       - name: Install dependencies
         run: flutter pub get --enforce-lockfile
 
+      # Fail fast if a Firestore path is hard-coded instead of using the
+      # constants in lib/core/firebase/firestore_paths.dart.
+      - name: Check Firestore paths are centralized
+        run: dart run tool/check_firestore_paths.dart
+
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
 
