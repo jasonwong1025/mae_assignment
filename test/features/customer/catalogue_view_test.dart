@@ -167,4 +167,53 @@ void main() {
     // The cart badge now shows on the Cart tab.
     expect(find.text('1'), findsWidgets);
   });
+
+  // Catalogue fits common phone widths at a real phone height, with no
+  // overflow. The "Going fast today" row and the grid both carry a product
+  // with a long two-line name and a low stock hint, which is what overflowed
+  // before. 844 is a common phone height; a shorter height would clip the
+  // scrollable lists, which is expected and not an overflow.
+  for (final width in const [320.0, 360.0, 430.0]) {
+    testWidgets('catalogue fits at ${width.toInt()}dp without overflow', (
+      tester,
+    ) async {
+      tester.view.physicalSize = Size(width, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      final container = ProviderContainer(
+        overrides: [
+          branchServiceProvider.overrideWithValue(FakeBranchService()),
+          catalogueRepositoryProvider.overrideWithValue(
+            _FakeCatalogueRepository(
+              CatalogueData(
+                categories: const [
+                  CatalogueCategory(id: 'produce', name: 'Fresh produce'),
+                ],
+                products: [
+                  // Low stock → appears in "Going fast"; long name → 2 lines.
+                  _product('p1', 'Granny Smith apple 4 pack', stock: 3),
+                  _product('p2', 'Fresh milk 1 litre carton', stock: 5),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(home: CatalogueView()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The "Going fast today" row rendered (low-stock products present).
+      expect(find.text('GOING FAST TODAY'), findsOneWidget);
+      // No RenderFlex overflow (or any other) was thrown while laying out.
+      expect(tester.takeException(), isNull);
+    });
+  }
 }

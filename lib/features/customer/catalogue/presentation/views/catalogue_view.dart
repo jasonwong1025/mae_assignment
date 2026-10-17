@@ -347,7 +347,7 @@ class _GoingFast extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: 150,
+          height: 184,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
@@ -356,6 +356,7 @@ class _GoingFast extends StatelessWidget {
                 const SizedBox(width: AppSpacing.m),
             itemBuilder: (context, index) {
               final product = products[index];
+              final remaining = product.lowStockRemaining;
               return SizedBox(
                 width: 120,
                 child: InkWell(
@@ -364,14 +365,32 @@ class _GoingFast extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ProductThumbnail(imageUrl: product.coverImageUrl),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        product.name,
-                        style: textTheme.bodyMedium,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                      // Fixed-size image, so a two-line name below never
+                      // overflows the row.
+                      SizedBox(
+                        width: 120,
+                        height: 120,
+                        child: ProductThumbnail(
+                          imageUrl: product.coverImageUrl,
+                        ),
                       ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Expanded(
+                        child: Text(
+                          product.name,
+                          style: textTheme.bodyMedium,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (remaining != null)
+                        Text(
+                          'Only $remaining left',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.warning,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -406,11 +425,14 @@ class _ProductGrid extends StatelessWidget {
         AppSpacing.s,
       ),
       sliver: SliverGrid(
+        // A fixed cell height (not an aspect ratio) so the card has the same
+        // vertical space on every phone width; an aspect ratio made narrow
+        // phones too short and the card overflowed.
         gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
           maxCrossAxisExtent: 240,
           mainAxisSpacing: AppSpacing.m,
           crossAxisSpacing: AppSpacing.m,
-          childAspectRatio: 0.56,
+          mainAxisExtent: 288,
         ),
         delegate: SliverChildBuilderDelegate((context, index) {
           final product = products[index];

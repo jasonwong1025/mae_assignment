@@ -67,11 +67,13 @@ class CustomerProductCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppSpacing.s),
-              Text(
-                product.name,
-                style: textTheme.bodyLarge,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              Flexible(
+                child: Text(
+                  product.name,
+                  style: textTheme.bodyLarge,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               if (product.brand.isNotEmpty)
                 Text(
