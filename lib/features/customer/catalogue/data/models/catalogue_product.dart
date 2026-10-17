@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:mae_assignment/core/firebase/firestore_paths.dart';
 
 part 'catalogue_product.freezed.dart';
 
@@ -40,23 +41,23 @@ abstract class CatalogueProduct with _$CatalogueProduct {
     required Map<String, dynamic> product,
     required Map<String, dynamic> inventory,
   }) {
-    if (inventory['isHidden'] == true) return null;
+    if (inventory[InventoryFields.isHidden] == true) return null;
 
-    final name = product['name'] as String?;
-    final price = (inventory['price'] as num?)?.toDouble();
-    final stock = (inventory['stock'] as num?)?.toInt();
+    final name = product[ProductFields.name] as String?;
+    final price = (inventory[InventoryFields.price] as num?)?.toDouble();
+    final stock = (inventory[InventoryFields.stock] as num?)?.toInt();
     if (name == null || price == null || stock == null) return null;
 
     return CatalogueProduct(
       id: id,
       name: name,
-      brand: product['brand'] as String? ?? '',
-      categoryId: product['categoryId'] as String? ?? '',
-      packSize: product['packSize'] as String? ?? '',
+      brand: product[ProductFields.brand] as String? ?? '',
+      categoryId: product[ProductFields.categoryId] as String? ?? '',
+      packSize: product[ProductFields.packSize] as String? ?? '',
       price: price,
       stock: stock,
-      description: product['description'] as String? ?? '',
-      imageUrls: _stringList(product['imageUrls']),
+      description: product[ProductFields.description] as String? ?? '',
+      imageUrls: _stringList(product[ProductFields.imageUrls]),
     );
   }
 
@@ -96,12 +97,12 @@ abstract class CatalogueCategory with _$CatalogueCategory {
     String id,
     Map<String, dynamic> data,
   ) {
-    final name = data['name'] as String?;
+    final name = data[CategoryFields.name] as String?;
     if (name == null) return null;
     return CatalogueCategory(
       id: id,
       name: name,
-      sortOrder: (data['sortOrder'] as num?)?.toInt() ?? 0,
+      sortOrder: (data[CategoryFields.sortOrder] as num?)?.toInt() ?? 0,
     );
   }
 }

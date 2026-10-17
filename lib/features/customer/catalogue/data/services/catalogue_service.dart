@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/core/firebase/firestore_paths.dart';
 
 final catalogueServiceProvider = Provider<CatalogueService>((ref) {
   return CatalogueService(FirebaseFirestore.instance);
@@ -17,13 +18,16 @@ class CatalogueService {
   final FirebaseFirestore _firestore;
 
   CollectionReference<Map<String, dynamic>> get _products =>
-      _firestore.collection('products');
+      _firestore.collection(FirestoreCollections.products);
 
   CollectionReference<Map<String, dynamic>> get _categories =>
-      _firestore.collection('categories');
+      _firestore.collection(FirestoreCollections.categories);
 
   CollectionReference<Map<String, dynamic>> _inventory(String branchId) =>
-      _firestore.collection('branches').doc(branchId).collection('inventory');
+      _firestore
+          .collection(FirestoreCollections.branches)
+          .doc(branchId)
+          .collection(FirestoreCollections.inventory);
 
   /// Every catalogue product, keyed by id.
   Future<Map<String, Map<String, dynamic>>> fetchProducts() async {

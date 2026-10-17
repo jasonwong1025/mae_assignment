@@ -24,6 +24,13 @@ class FirebaseEmulators {
   static const int _authPort = 9099;
   static const int _firestorePort = 8085;
 
+  /// True inside `flutter test` (the test runner sets FLUTTER_TEST). Used
+  /// as a hard safety gate: a test must never reach the real project.
+  static bool get _isUnderFlutterTest {
+    if (kIsWeb) return false;
+    return Platform.environment.containsKey('FLUTTER_TEST');
+  }
+
   /// The emulators always run on the developer's own machine. The Android
   /// emulator reaches that machine on 10.0.2.2; everything else (web,
   /// desktop, iOS simulator, tests) uses localhost. An override lets a real
@@ -41,9 +48,26 @@ class FirebaseEmulators {
 
   /// Connects the Firebase SDKs to the emulators. Call once, right after
   /// `Firebase.initializeApp`, before any Auth or Firestore use. Safe to
-  /// call when [enabled] is false; it simply does nothing.
+  /// call when [enabled] is false; it then only runs the safety check.
+  ///
+  /// The safety check is deliberately a loud warning, not a force-to-
+  /// emulator. A debug `fvm flutter run` against the shared project is a
+  /// supported workflow (teammates use the shared test data), so we must
+  /// not silently redirect it. We only make the choice impossible to miss,
+  /// so nobody mutates the shared project by accident.
   static void connect() {
-    if (!enabled) return;
+    if (!enabled) {
+      // Hard stop: a test run must never touch the real shared project.
+      if (_isUnderFlutterTest) {
+        throw StateError(
+          'Firebase is pointed at the real project during a test run. '
+          'Run tests with --dart-define=USE_FIREBASE_EMULATOR=true, or use '
+          'the in-memory fakes instead of connecting to Firebase.',
+        );
+      }
+      _warnIfRiskyRealBackend();
+      return;
+    }
 
     final emulatorHost = host;
     FirebaseFirestore.instance.useFirestoreEmulator(
@@ -57,6 +81,21 @@ class FirebaseEmulators {
     debugPrint(
       'Firebase emulators: Auth $emulatorHost:$_authPort, '
       'Firestore $emulatorHost:$_firestorePort',
+    );
+  }
+
+  /// Prints a prominent warning in debug builds when the app is about to
+  /// talk to the real shared project. Harmless in release (where hitting
+  /// the real backend is correct and the flag is always off).
+  static void _warnIfRiskyRealBackend() {
+    if (!kDebugMode) return;
+    debugPrint(
+      '┌───────────────────────────────────────────────────────────────┐\n'
+      '│  Firebase: using the REAL shared project (not the emulator).  │\n'
+      '│  Reads and writes affect mae-assignment-grocerly.             │\n'
+      '│  For local testing, run with:                                 │\n'
+      '│    --dart-define=USE_FIREBASE_EMULATOR=true                    │\n'
+      '└───────────────────────────────────────────────────────────────┘',
     );
   }
 }
