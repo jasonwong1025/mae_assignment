@@ -5,11 +5,13 @@ import 'package:mae_assignment/app/theme/app_theme.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
 import 'package:mae_assignment/features/store_admin/staff/data/repositories/staff_repository.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/services/staff_service.dart';
 import 'package:mae_assignment/features/store_admin/staff/presentation/ui/worker_card.dart';
 import 'package:mae_assignment/features/store_admin/staff/presentation/views/staff_view.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 
 import '../../helpers/fake_auth_repository.dart';
+import '../../helpers/fake_staff_service.dart';
 
 const _admin = AppUser(
   uid: 'uid-1',
@@ -31,19 +33,25 @@ Future<void> _pumpStaff(WidgetTester tester, Size size) async {
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [authRepositoryProvider.overrideWithValue(repository)],
+      overrides: [
+        authRepositoryProvider.overrideWithValue(repository),
+        staffServiceProvider.overrideWithValue(FakeStaffService()),
+      ],
       child: MaterialApp(theme: AppTheme.light, home: const StaffView()),
     ),
   );
   await tester.pumpAndSettle();
 }
 
-/// Types [text] into the field labelled [label].
+/// Types [text] into the form field labelled [label].
 Future<void> _fill(WidgetTester tester, String label, String text) async {
   final field = find.descendant(
     of: find
         .ancestor(
-          of: find.text(label.toUpperCase()),
+          of: find.descendant(
+            of: find.byType(Form),
+            matching: find.text(label.toUpperCase()),
+          ),
           matching: find.byType(Column),
         )
         .first,
@@ -59,7 +67,9 @@ void main() {
 
   group('StaffRepository', () {
     test('lists the branch packers and every driver', () async {
-      final result = await StaffRepository().getWorkers('puchong');
+      final result = await StaffRepository(
+        FakeStaffService(),
+      ).getWorkers('puchong');
       final names = result.items.map((worker) => worker.name);
 
       // 3 Puchong packers and 14 drivers.
@@ -70,7 +80,7 @@ void main() {
     });
 
     test('returns pages of 20, packers first', () async {
-      final repository = StaffRepository();
+      final repository = StaffRepository(FakeStaffService());
 
       final first = await repository.getWorkers('ss15');
       final second = await repository.getWorkers('ss15', page: 2);
@@ -85,21 +95,20 @@ void main() {
     });
 
     test('search looks through every page', () async {
-      final result = await StaffRepository().getWorkers(
-        'ss15',
-        searchText: 'tan wei loon',
-      );
+      final result = await StaffRepository(
+        FakeStaffService(),
+      ).getWorkers('ss15', searchText: 'tan wei loon');
 
       expect(result.items.single.name, 'Tan Wei Loon');
     });
 
     test('refuses an email that is already used', () async {
-      final repository = StaffRepository();
+      final repository = StaffRepository(FakeStaffService());
 
       expect(
         () => repository.addWorker(
           name: 'Someone',
-          email: 'Daniel.Lee@grocerly.my',
+          email: 'daniel.lee@grocerly.my',
           phone: '0123456789',
           temporaryPassword: 'password1',
           role: WorkerRole.packingStaff,
@@ -119,29 +128,27 @@ void main() {
       role: WorkerRole.packingStaff,
       branchId: 'ss15',
       isActive: true,
-      isOnDuty: true,
-      currentOrderNumber: 2291,
-      minutesOnCurrentOrder: 4,
-      ordersToday: const [2289],
       joinedAt: DateTime(2025, 3, 12),
     );
 
-    test('rightNow describes what the worker is doing', () {
-      expect(packer.rightNow, 'Packing #2291');
-      expect(packer.withActive(active: false).rightNow, 'Deactivated');
+    test('saves the fields the rules expect', () {
+      final map = packer.toMap();
+      expect(map['role'], 'storeWorker');
+      expect(map['workerRole'], 'packingStaff');
+      expect(map['branchId'], 'ss15');
+      expect(Worker.fromMap('w1', map).name, 'Daniel Lee');
     });
 
     test('becoming a driver removes the branch', () {
       final driver = packer.withDetails(
         name: packer.name,
-        email: packer.email,
         phone: packer.phone,
         role: WorkerRole.deliveryDriver,
         branchId: 'ss15',
       );
 
       expect(driver.branchId, isNull);
-      expect(driver.rightNow, 'Delivering #2291');
+      expect(driver.email, packer.email);
     });
 
     test('search matches name, email and phone', () {
@@ -164,8 +171,8 @@ void main() {
     expect(find.text('Amir Hamzah'), findsOneWidget);
     expect(find.text('All branches'), findsNWidgets(8));
 
-    expect(find.text('Packing #2291'), findsOneWidget);
-    expect(find.text('Deactivated'), findsNWidgets(2));
+    // Nadia; the deactivated driver is on page 2.
+    expect(find.text('Deactivated'), findsOneWidget);
     expect(find.text('1-20 of 26 workers'), findsOneWidget);
   });
 
@@ -197,10 +204,9 @@ void main() {
     await tester.tap(find.text('Amir Hamzah'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Delivering order #2290 for 9m'), findsOneWidget);
-    expect(find.text('4.8 out of 5'), findsOneWidget);
-    expect(find.text('amir.hamzah@grocerly.my'), findsOneWidget);
-    expect(find.text('TODAY · 3 DELIVERED'), findsOneWidget);
+    // Once in the table, once in the panel.
+    expect(find.text('amir.hamzah@grocerly.my'), findsNWidgets(2));
+    expect(find.text('Delivery Driver'), findsWidgets);
   });
 
   testWidgets('Adding a worker puts them in the table', (tester) async {
@@ -247,7 +253,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Daniel Lee was saved.'), findsOneWidget);
-    expect(find.text('Delivering #2291'), findsOneWidget);
     // 11 packers now, so 9 drivers fit on the page, plus the open panel.
     expect(find.text('All branches'), findsNWidgets(10));
   });
@@ -266,7 +271,6 @@ void main() {
 
     expect(find.text('Hakim Roslan was deactivated.'), findsOneWidget);
     expect(find.text('Reactivate'), findsOneWidget);
-    expect(find.text('Packing #2288'), findsNothing);
   });
 
   testWidgets('Phone shows cards and opens details as a page', (tester) async {

@@ -91,7 +91,6 @@ class _WorkerFormState extends ConsumerState<WorkerForm> {
       error = await viewModel.updateDetails(
         worker,
         name: _nameController.text,
-        email: _emailController.text,
         phone: _phoneController.text,
         role: _role,
         branchId: _branchId,
@@ -129,13 +128,23 @@ class _WorkerFormState extends ConsumerState<WorkerForm> {
             validator: Validators.name,
           ),
           const SizedBox(height: 16),
-          LabeledTextField(
-            label: 'Email',
-            hint: 'name@example.com',
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            validator: Validators.email,
-          ),
+          // The login email cannot be changed after the account exists.
+          if (_isAdding)
+            LabeledTextField(
+              label: 'Email',
+              hint: 'name@example.com',
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              validator: Validators.email,
+            )
+          else ...[
+            const _FieldLabel('Email'),
+            Text(widget.worker!.email, style: textTheme.bodyLarge),
+            Text(
+              'The login email cannot be changed.',
+              style: textTheme.bodySmall,
+            ),
+          ],
           const SizedBox(height: 16),
           LabeledTextField(
             label: 'Phone number',

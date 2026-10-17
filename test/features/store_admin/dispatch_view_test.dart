@@ -11,7 +11,6 @@ import 'package:mae_assignment/features/store_admin/dispatch/data/services/drive
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/deliveries_table.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/views/dispatch_view.dart';
 import 'package:mae_assignment/features/store_admin/orders/data/repositories/orders_repository.dart';
-import 'package:mae_assignment/features/store_admin/staff/data/repositories/staff_repository.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/repositories/branch_repository.dart';
 
@@ -62,14 +61,9 @@ void main() {
   group('DispatchRepository', () {
     test('assigning a driver updates the order and the driver', () async {
       final orders = OrdersRepository();
-      final staff = StaffRepository();
-      final repository = DispatchRepository(
-        orders,
-        staff,
-        DriverLocationService(),
-      );
+      final repository = DispatchRepository(orders, DriverLocationService());
       final branch = (await BranchRepository().getBranches()).first;
-      final drivers = await staff.getDrivers();
+      final drivers = await repository.getDrivers();
       final kumar = drivers.firstWhere((d) => d.name == 'Kumar Selvam');
       final amir = drivers.firstWhere((d) => d.name == 'Amir Hamzah');
 
@@ -88,7 +82,7 @@ void main() {
       expect(updated.assignedWorker, 'Kumar');
       expect(updated.timeline.last.title, 'Driver Kumar assigned');
 
-      final kumarNow = (await staff.getDrivers()).firstWhere(
+      final kumarNow = (await repository.getDrivers()).firstWhere(
         (d) => d.id == kumar.id,
       );
       expect(kumarNow.currentOrderNumber, 2292);
@@ -102,14 +96,12 @@ void main() {
     });
 
     test('reassigning sets the old driver free', () async {
-      final staff = StaffRepository();
       final repository = DispatchRepository(
         OrdersRepository(),
-        staff,
         DriverLocationService(),
       );
       final branch = (await BranchRepository().getBranches()).first;
-      final drivers = await staff.getDrivers();
+      final drivers = await repository.getDrivers();
       final amir = drivers.firstWhere((d) => d.name == 'Amir Hamzah');
       final kumar = drivers.firstWhere((d) => d.name == 'Kumar Selvam');
 
@@ -122,7 +114,7 @@ void main() {
         oldDriver: amir,
       );
 
-      final amirNow = (await staff.getDrivers()).firstWhere(
+      final amirNow = (await repository.getDrivers()).firstWhere(
         (d) => d.id == amir.id,
       );
       expect(amirNow.currentOrderNumber, isNull);

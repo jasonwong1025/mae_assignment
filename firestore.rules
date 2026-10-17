@@ -3,14 +3,21 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // True if the signed-in user's profile says they are the HQ admin.
+    function isAdmin() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid))
+            .data.role == 'storeAdmin';
+    }
+
     // User profiles. The document id is the Firebase Authentication uid.
     match /users/{uid} {
       function isOwner() {
         return request.auth != null && request.auth.uid == uid;
       }
 
-      // Users can only read their own profile.
-      allow read: if isOwner();
+      // Users read their own profile. The admin reads all (Staff tab).
+      allow read: if isOwner() || isAdmin();
 
       // Public sign-up can only create customers, and only with these fields.
       allow create: if isOwner()
@@ -19,11 +26,26 @@ service cloud.firestore {
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.createdAt == request.time;
 
-      // Users can edit their details, but never their own role, email or
-      // creation time.
+      // The admin creates Store Worker profiles from the Staff tab.
+      allow create: if isAdmin()
+        && request.resource.data.role == 'storeWorker'
+        && request.resource.data.workerRole in ['packingStaff', 'deliveryDriver']
+        && request.resource.data.isActive == true;
+
+      // Users can edit their details, but never their own role, email,
+      // creation time, branch or active flag.
       allow update: if isOwner()
         && !request.resource.data.diff(resource.data).affectedKeys()
-            .hasAny(['role', 'email', 'createdAt']);
+            .hasAny(['role', 'email', 'createdAt', 'workerRole', 'branchId',
+                     'isActive', 'joinedAt']);
+
+      // The admin edits workers (details, role, branch, active), but not
+      // their login email, and cannot turn them into another kind of user.
+      allow update: if isAdmin()
+        && resource.data.role == 'storeWorker'
+        && request.resource.data.role == 'storeWorker'
+        && !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['email', 'createdAt', 'joinedAt']);
 
       allow delete: if false;
     }

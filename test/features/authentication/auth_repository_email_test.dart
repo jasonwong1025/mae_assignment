@@ -1,7 +1,6 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mae_assignment/features/authentication/data/hardcoded_admin.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/authentication/data/services/auth_service.dart';
 import 'package:mae_assignment/features/authentication/data/services/google_sign_in_service.dart';
@@ -11,8 +10,8 @@ import 'package:mae_assignment/shared/models/app_user.dart';
 /// Device-free tests for AuthRepository's email flows, wiring the real
 /// AuthService and UserService onto in-memory Firebase fakes. This is the
 /// portable replacement for the Dart integration test: it exercises the real
-/// orchestration (create account + write profile, hardcoded admin, sign-in
-/// returning the stored profile) with no device, emulator or network.
+/// orchestration (create account + write profile, deactivated workers,
+/// sign-in returning the stored profile) with no device, emulator or network.
 /// These email-flow tests never trigger Google sign-in, but AuthRepository
 /// calls GoogleSignInService.signOut() during signOut(), so that one method
 /// is a no-op here.
@@ -80,16 +79,25 @@ void main() {
       expect(repository.isSignedIn, isTrue);
     });
 
-    test('hardcoded admin signs in without touching Firebase', () async {
-      final user = await repository.signIn(
-        email: HardcodedAdmin.email,
-        password: HardcodedAdmin.password,
+    test('a deactivated worker cannot sign in', () async {
+      final account = await auth.createUserWithEmailAndPassword(
+        email: 'worker@example.com',
+        password: 'password123',
       );
+      await firestore.collection('users').doc(account.user!.uid).set({
+        'name': 'Worker',
+        'email': 'worker@example.com',
+        'phone': '',
+        'role': 'storeWorker',
+        'isActive': false,
+      });
+      await auth.signOut();
 
-      expect(user.role, UserRole.storeAdmin);
-      expect(repository.isSignedIn, isTrue);
-      // No real Firebase account was created for the admin.
-      expect(auth.currentUser, isNull);
+      await expectLater(
+        repository.signIn(email: 'worker@example.com', password: 'password123'),
+        throwsA(isA<AuthException>()),
+      );
+      expect(repository.isSignedIn, isFalse);
     });
 
     test('missing profile ends the session and reports an error', () async {

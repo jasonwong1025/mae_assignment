@@ -1,11 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver_location.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/repositories/dispatch_repository.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_state.dart';
 import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
-import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
-import 'package:mae_assignment/features/store_admin/staff/data/repositories/staff_repository.dart';
 
 /// This branch's deliveries. Updates when an order changes.
 final StreamProvider<List<Order>> _deliveriesProvider =
@@ -15,8 +14,8 @@ final StreamProvider<List<Order>> _deliveriesProvider =
       yield* repository.watchDeliveries(branchState.selected.id);
     });
 
-final FutureProvider<List<Worker>> _driversProvider =
-    FutureProvider.autoDispose<List<Worker>>((ref) {
+final FutureProvider<List<Driver>> _driversProvider =
+    FutureProvider.autoDispose<List<Driver>>((ref) {
       return ref.watch(dispatchRepositoryProvider).getDrivers();
     });
 
@@ -85,8 +84,6 @@ class DispatchViewModel extends Notifier<AsyncValue<DispatchState>> {
             oldDriverLocation: oldDriver?.location,
           );
     } on DispatchException catch (e) {
-      return e.message;
-    } on StaffException catch (e) {
       return e.message;
     }
 

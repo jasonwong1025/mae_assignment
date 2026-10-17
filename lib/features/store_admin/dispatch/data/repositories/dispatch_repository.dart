@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver_location.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/data/sample_drivers.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/services/driver_location_service.dart';
 import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
 import 'package:mae_assignment/features/store_admin/orders/data/repositories/orders_repository.dart';
-import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
-import 'package:mae_assignment/features/store_admin/staff/data/repositories/staff_repository.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
 
 final driverLocationServiceProvider = Provider<DriverLocationService>((ref) {
@@ -16,7 +16,6 @@ final driverLocationServiceProvider = Provider<DriverLocationService>((ref) {
 final dispatchRepositoryProvider = Provider<DispatchRepository>((ref) {
   return DispatchRepository(
     ref.watch(ordersRepositoryProvider),
-    ref.watch(staffRepositoryProvider),
     ref.watch(driverLocationServiceProvider),
   );
 });
@@ -32,13 +31,12 @@ class DispatchException implements Exception {
 }
 
 /// Data for the Dispatch tab: delivery orders, drivers and where they are.
-/// Uses the same orders and staff as the Orders and Staff tabs, so an
-/// assignment shows up there too.
+/// Uses the same orders as the Orders tab, so an assignment shows up
+/// there too. Drivers are sample data until orders are in Firestore.
 class DispatchRepository {
-  DispatchRepository(this._orders, this._staff, this._locations);
+  DispatchRepository(this._orders, this._locations);
 
   final OrdersRepository _orders;
-  final StaffRepository _staff;
   final DriverLocationService _locations;
 
   /// Delivery orders of the branch that are ready or on the road.
@@ -52,7 +50,10 @@ class DispatchRepository {
     });
   }
 
-  Future<List<Worker>> getDrivers() => _staff.getDrivers();
+  /// Sample drivers, kept in memory until orders are in Firestore.
+  final List<Driver> _drivers = [...sampleDrivers()];
+
+  Future<List<Driver>> getDrivers() async => [..._drivers];
 
   /// Live driver locations, by worker id.
   Stream<Map<String, DriverLocation>> watchLocations() {
@@ -64,8 +65,8 @@ class DispatchRepository {
   Future<void> assignDriver({
     required Branch branch,
     required Order order,
-    required Worker driver,
-    Worker? oldDriver,
+    required Driver driver,
+    Driver? oldDriver,
     DriverLocation? oldDriverLocation,
   }) async {
     if (!driver.isOnDuty || driver.currentOrderNumber != null) {
@@ -77,11 +78,11 @@ class DispatchRepository {
 
     // Set the old driver free.
     if (oldDriver != null) {
-      await _staff.updateWorker(oldDriver.withCurrentOrder(null));
+      _saveDriver(oldDriver.withCurrentOrder(null));
       _locations.setStops(oldDriver.id, []);
     }
 
-    await _staff.updateWorker(driver.withCurrentOrder(order.number));
+    _saveDriver(driver.withCurrentOrder(order.number));
     await _orders.updateOrder(
       branch.id,
       order.withDriver(
@@ -103,5 +104,10 @@ class DispatchRepository {
       oldDriverLocation?.position ?? branch.location,
       order.location!,
     ]);
+  }
+
+  void _saveDriver(Driver driver) {
+    final index = _drivers.indexWhere((old) => old.id == driver.id);
+    if (index != -1) _drivers[index] = driver;
   }
 }

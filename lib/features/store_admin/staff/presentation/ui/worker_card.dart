@@ -51,13 +51,6 @@ class WorkerCard extends StatelessWidget {
                       style: textTheme.bodySmall,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${worker.rightNow} · '
-                      '${worker.ordersToday.length} today',
-                      style: textTheme.bodySmall,
-                      overflow: TextOverflow.ellipsis,
-                    ),
                   ],
                 ),
               ),

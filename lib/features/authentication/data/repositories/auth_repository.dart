@@ -3,7 +3,6 @@ import 'dart:developer' as developer;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:mae_assignment/features/authentication/data/hardcoded_admin.dart';
 import 'package:mae_assignment/features/authentication/data/services/auth_service.dart';
 import 'package:mae_assignment/features/authentication/data/services/google_sign_in_service.dart';
 import 'package:mae_assignment/features/authentication/data/services/user_service.dart';
@@ -51,11 +50,7 @@ class AuthRepository {
   final UserService _userService;
   final GoogleSignInService _googleSignInService;
 
-  /// True while the hard-coded admin is signed in. Only kept in memory,
-  /// so restarting the app signs the admin out.
-  bool _isHardcodedAdminSignedIn = false;
-
-  bool get isSignedIn => _isHardcodedAdminSignedIn || _authService.isSignedIn;
+  bool get isSignedIn => _authService.isSignedIn;
 
   /// Creates a customer account. Public sign-up is for customers only;
   /// staff accounts are set up separately.
@@ -103,12 +98,6 @@ class AuthRepository {
     required String email,
     required String password,
   }) async {
-    // The hard-coded admin never touches Firebase.
-    if (HardcodedAdmin.matches(email, password)) {
-      _isHardcodedAdminSignedIn = true;
-      return HardcodedAdmin.user;
-    }
-
     final User account;
     try {
       account = await _authService.signIn(email: email, password: password);
@@ -131,6 +120,12 @@ class AuthRepository {
       await _authService.signOut();
       throw const AuthException(
         'Your account details are missing. Please contact support.',
+      );
+    }
+    if (!user.isActive) {
+      await _authService.signOut();
+      throw const AuthException(
+        'Your account was deactivated. Please contact your manager.',
       );
     }
     return user;
@@ -212,7 +207,6 @@ class AuthRepository {
   }
 
   Future<void> signOut() async {
-    _isHardcodedAdminSignedIn = false;
     await _authService.signOut();
     try {
       await _googleSignInService.signOut();
@@ -230,8 +224,6 @@ class AuthRepository {
 
   /// Profile of the signed-in user, or null if nobody is signed in.
   Future<AppUser?> getCurrentUser() async {
-    if (_isHardcodedAdminSignedIn) return HardcodedAdmin.user;
-
     final account = _authService.currentUser;
     if (account == null) return null;
     return await _userService.getUser(account.uid).timeout(_firestoreTimeout);
