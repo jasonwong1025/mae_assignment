@@ -19,9 +19,17 @@ class BranchService {
     return _firestore.collection(FirestoreCollections.branches);
   }
 
+  /// How long to wait for a Firestore read before giving up. Without this,
+  /// `get()` retries forever when the backend is unreachable, leaving any
+  /// screen that waits on branches loading indefinitely.
+  static const Duration _timeout = Duration(seconds: 15);
+
   /// Every branch, oldest first.
   Future<List<Branch>> getBranches() async {
-    final snapshot = await _branches.orderBy('createdAt').get();
+    final snapshot = await _branches
+        .orderBy('createdAt')
+        .get()
+        .timeout(_timeout);
     return [
       for (final doc in snapshot.docs) Branch.fromMap(doc.id, doc.data()),
     ];

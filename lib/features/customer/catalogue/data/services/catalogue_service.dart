@@ -12,8 +12,16 @@ final catalogueServiceProvider = Provider<CatalogueService>((ref) {
 ///
 /// Only reads; the catalogue is written by the Store Admin side. The
 /// documents are returned raw so the repository can join and map them.
+///
+/// Every read has a timeout: Firestore's `get()` retries forever when it
+/// cannot reach the backend (no connection, or an emulator that is not
+/// running), so without a limit the Home screen would load indefinitely.
+/// On timeout the repository turns this into a retryable error.
 class CatalogueService {
   CatalogueService(this._firestore);
+
+  /// How long to wait for a Firestore read before giving up.
+  static const Duration _timeout = Duration(seconds: 15);
 
   final FirebaseFirestore _firestore;
 
@@ -31,7 +39,7 @@ class CatalogueService {
 
   /// Every catalogue product, keyed by id.
   Future<Map<String, Map<String, dynamic>>> fetchProducts() async {
-    final snapshot = await _products.get();
+    final snapshot = await _products.get().timeout(_timeout);
     return {for (final doc in snapshot.docs) doc.id: doc.data()};
   }
 
@@ -39,13 +47,13 @@ class CatalogueService {
   Future<Map<String, Map<String, dynamic>>> fetchInventory(
     String branchId,
   ) async {
-    final snapshot = await _inventory(branchId).get();
+    final snapshot = await _inventory(branchId).get().timeout(_timeout);
     return {for (final doc in snapshot.docs) doc.id: doc.data()};
   }
 
   /// Every category, keyed by id.
   Future<Map<String, Map<String, dynamic>>> fetchCategories() async {
-    final snapshot = await _categories.get();
+    final snapshot = await _categories.get().timeout(_timeout);
     return {for (final doc in snapshot.docs) doc.id: doc.data()};
   }
 }
