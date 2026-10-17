@@ -239,6 +239,10 @@ void main() {
             builder: (context, state) => const CartView(),
           ),
           GoRoute(
+            path: '/shop/orders',
+            builder: (context, state) => const Text('Orders list'),
+          ),
+          GoRoute(
             path: '/shop/orders/:id',
             builder: (context, state) =>
                 CustomerOrderTrackingView(orderId: state.pathParameters['id']!),
@@ -334,6 +338,13 @@ void main() {
       // The cart was cleared on success.
       expect(container.read(cartViewModelProvider).isEmpty, isTrue);
       expect(tester.takeException(), isNull);
+
+      // The tracking screen is not a dead end: its back button returns to
+      // the Orders list (checkout replaced the stack, so there is nothing
+      // to pop; the button navigates to the orders route explicitly).
+      await tester.tap(find.byTooltip('Back to orders'));
+      await tester.pumpAndSettle();
+      expect(find.text('Orders list'), findsOneWidget);
     });
   });
 }

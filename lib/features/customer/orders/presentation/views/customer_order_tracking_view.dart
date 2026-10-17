@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
@@ -22,8 +23,20 @@ class CustomerOrderTrackingView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final orderAsync = ref.watch(customerOrderProvider(orderId));
 
+    // This screen can be reached by replacing the stack (right after
+    // checkout), so there may be nothing to pop. Send "back" to the Orders
+    // tab, which carries the bottom navigation, rather than relying on pop.
+    void goToOrders() => context.go(AppRoutes.customerOrders);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Order tracking')),
+      appBar: AppBar(
+        title: const Text('Order tracking'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: 'Back to orders',
+          onPressed: goToOrders,
+        ),
+      ),
       body: orderAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => ErrorState(
@@ -37,8 +50,8 @@ class CustomerOrderTrackingView extends ConsumerWidget {
               title: 'Order not found',
               message: 'This order may have been removed.',
               action: OutlinedButton(
-                onPressed: () => context.pop(),
-                child: const Text('Back'),
+                onPressed: goToOrders,
+                child: const Text('Back to orders'),
               ),
             );
           }
