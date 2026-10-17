@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:mae_assignment/core/firebase/firestore_paths.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 
@@ -89,8 +90,12 @@ abstract class Order with _$Order {
     required double total,
     required OrderStatus status,
 
-    /// Delivery address. Null/empty for pickup.
+    /// Delivery address as readable text. Null/empty for pickup.
     String? address,
+
+    /// Delivery location pin, so the driver can navigate and the fee can be
+    /// worked out by distance. Null for pickup.
+    LatLng? addressLocation,
 
     /// Message the customer left with the order.
     String? customerNote,
@@ -128,6 +133,7 @@ abstract class Order with _$Order {
       total: (map[OrderFields.total] as num?)?.toDouble() ?? 0,
       status: _statusFrom(map[OrderFields.status]),
       address: map[OrderFields.address] as String?,
+      addressLocation: _latLngFrom(map[OrderFields.addressLocation]),
       customerNote: map[OrderFields.customerNote] as String?,
       promoCode: map[OrderFields.promoCode] as String?,
       placedAt: _dateFrom(map[OrderFields.placedAt]),
@@ -152,6 +158,10 @@ abstract class Order with _$Order {
 
   static DateTime? _dateFrom(Object? value) {
     return value is Timestamp ? value.toDate() : null;
+  }
+
+  static LatLng? _latLngFrom(Object? value) {
+    return value is GeoPoint ? LatLng(value.latitude, value.longitude) : null;
   }
 
   /// Number of products, counting quantities.
@@ -185,6 +195,11 @@ abstract class Order with _$Order {
       OrderFields.total: total,
       OrderFields.status: status.name,
       if (address != null && address!.isNotEmpty) OrderFields.address: address,
+      if (addressLocation case final location?)
+        OrderFields.addressLocation: GeoPoint(
+          location.latitude,
+          location.longitude,
+        ),
       if (customerNote != null && customerNote!.isNotEmpty)
         OrderFields.customerNote: customerNote,
       if (promoCode != null && promoCode!.isNotEmpty)

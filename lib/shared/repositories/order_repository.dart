@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/features/customer/cart/data/models/cart.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
+import 'package:mae_assignment/shared/models/customer_address.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/services/order_service.dart';
@@ -34,11 +35,16 @@ class OrderRepository {
 
   /// Writes the customer's cart as a new order and returns it with its id
   /// and number. The caller clears the cart on success.
+  ///
+  /// For delivery, [address] (the chosen saved address) and [deliveryFee]
+  /// (the branch's distance-based quote) are required; the address's line
+  /// and location are stored on the order so a driver can navigate.
   Future<Order> placeOrder({
     required Cart cart,
     required AppUser customer,
     required Branch branch,
-    String? address,
+    CustomerAddress? address,
+    double deliveryFee = 0,
     String? customerNote,
   }) async {
     if (cart.isEmpty) {
@@ -46,10 +52,11 @@ class OrderRepository {
     }
 
     final isDelivery = cart.fulfilment == FulfilmentMethod.delivery;
-    if (isDelivery && (address == null || address.trim().isEmpty)) {
-      throw const OrderException('Please add a delivery address.');
+    if (isDelivery && address == null) {
+      throw const OrderException('Please choose a delivery address.');
     }
 
+    final fee = cart.deliveryFeeFor(deliveryFee);
     final nextNumber = await _run(
       () async => (await _service.highestOrderNumber()) + 1,
     );
@@ -79,11 +86,12 @@ class OrderRepository {
           ),
       ],
       subtotal: cart.subtotal,
-      deliveryFee: cart.deliveryFee,
+      deliveryFee: fee,
       discount: cart.discount,
-      total: cart.total,
+      total: cart.totalWith(deliveryFee),
       status: OrderStatus.pending,
-      address: isDelivery ? address?.trim() : null,
+      address: isDelivery ? address!.line : null,
+      addressLocation: isDelivery ? address!.location : null,
       customerNote: (customerNote?.trim().isEmpty ?? true)
           ? null
           : customerNote!.trim(),

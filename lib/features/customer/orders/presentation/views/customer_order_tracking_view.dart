@@ -8,6 +8,7 @@ import 'package:mae_assignment/features/customer/orders/presentation/view_models
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
+import 'package:mae_assignment/shared/ui/location_map.dart';
 
 /// Live tracking for one order (wireframe 3): a status timeline, the items,
 /// the price breakdown, and the fulfilment details. Pushed over the Orders
@@ -276,6 +277,10 @@ class _FulfilmentSummary extends StatelessWidget {
               order.address!.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.xs),
             Text(order.address!, style: textTheme.bodyMedium),
+          ],
+          if (order.isDelivery && order.addressLocation != null) ...[
+            const SizedBox(height: AppSpacing.s),
+            LocationMap(location: order.addressLocation!),
           ],
           if (order.customerNote != null && order.customerNote!.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.s),

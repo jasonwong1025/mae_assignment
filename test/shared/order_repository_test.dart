@@ -4,6 +4,7 @@ import 'package:mae_assignment/features/customer/cart/data/models/cart.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue_product.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
+import 'package:mae_assignment/shared/models/customer_address.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/repositories/order_repository.dart';
@@ -47,6 +48,13 @@ const _branch = Branch(
   feePerKm: 1,
 );
 
+const _address = CustomerAddress(
+  id: 'a1',
+  label: 'Home',
+  line: '12 Jalan Besar',
+  location: LatLng(3.001, 101.001),
+);
+
 Cart _cart({
   FulfilmentMethod fulfilment = FulfilmentMethod.delivery,
   String? promo,
@@ -88,7 +96,8 @@ void main() {
         cart: _cart(),
         customer: _customer,
         branch: _branch,
-        address: '12 Jalan Besar',
+        address: _address,
+        deliveryFee: 3,
       );
 
       expect(order.id, 'o-new');
@@ -98,23 +107,26 @@ void main() {
       expect(order.status, OrderStatus.pending);
       expect(order.items, hasLength(2));
       expect(order.itemCount, 3);
+      expect(order.address, '12 Jalan Besar');
+      expect(order.addressLocation, const LatLng(3.001, 101.001));
     },
   );
 
-  test('captures line prices and totals from the cart', () async {
+  test('captures line prices and the quoted delivery fee', () async {
     stubCreate();
 
     final order = await repository.placeOrder(
       cart: _cart(),
       customer: _customer,
       branch: _branch,
-      address: '12 Jalan Besar',
+      address: _address,
+      deliveryFee: 4.5,
     );
 
-    // Subtotal 8.9*2 + 6.8 = 24.6, + 3 delivery.
+    // Subtotal 8.9*2 + 6.8 = 24.6, + 4.5 quoted delivery.
     expect(order.subtotal, closeTo(24.6, 0.001));
-    expect(order.deliveryFee, 3);
-    expect(order.total, closeTo(27.6, 0.001));
+    expect(order.deliveryFee, 4.5);
+    expect(order.total, closeTo(29.1, 0.001));
     final milk = order.items.firstWhere((i) => i.productId == 'p1');
     expect(milk.unitPrice, 8.9);
     expect(milk.quantity, 2);
@@ -132,6 +144,7 @@ void main() {
 
     expect(order.isDelivery, isFalse);
     expect(order.address, isNull);
+    expect(order.addressLocation, isNull);
     expect(order.deliveryFee, 0);
   });
 
@@ -143,7 +156,8 @@ void main() {
         cart: const Cart(),
         customer: _customer,
         branch: _branch,
-        address: '12 Jalan Besar',
+        address: _address,
+        deliveryFee: 3,
       ),
       throwsA(isA<OrderException>()),
     );
@@ -158,7 +172,6 @@ void main() {
         cart: _cart(),
         customer: _customer,
         branch: _branch,
-        address: '   ',
       ),
       throwsA(
         isA<OrderException>().having(
@@ -179,7 +192,8 @@ void main() {
         cart: _cart(),
         customer: _customer,
         branch: _branch,
-        address: '12 Jalan Besar',
+        address: _address,
+        deliveryFee: 3,
       ),
       throwsA(
         isA<OrderException>().having(
@@ -198,7 +212,8 @@ void main() {
       cart: _cart(promo: Cart.promoFresh5),
       customer: _customer,
       branch: _branch,
-      address: '12 Jalan Besar',
+      address: _address,
+      deliveryFee: 3,
     );
 
     expect(order.promoCode, Cart.promoFresh5);

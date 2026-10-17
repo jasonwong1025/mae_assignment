@@ -48,6 +48,12 @@ service cloud.firestore {
             .hasAny(['email', 'createdAt', 'joinedAt']);
 
       allow delete: if false;
+
+      // A customer's saved delivery addresses. Private to the owner: nobody
+      // else, not even the admin, reads or writes them.
+      match /addresses/{addressId} {
+        allow read, write: if isOwner();
+      }
     }
 
     // Catalogue read access for the customer app.

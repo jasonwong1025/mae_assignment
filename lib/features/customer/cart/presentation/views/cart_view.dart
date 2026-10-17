@@ -5,12 +5,16 @@ import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/customer/account/presentation/views/saved_addresses_view.dart';
 import 'package:mae_assignment/features/customer/cart/data/models/cart.dart';
 import 'package:mae_assignment/features/customer/cart/presentation/view_models/cart_view_model.dart';
 import 'package:mae_assignment/features/customer/cart/presentation/view_models/checkout_view_model.dart';
+import 'package:mae_assignment/features/customer/cart/presentation/view_models/selected_address_view_model.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/ui/product_thumbnail.dart';
 import 'package:mae_assignment/features/customer/shell/customer_routes.dart';
 import 'package:mae_assignment/features/customer/shell/presentation/ui/customer_scaffold.dart';
+import 'package:mae_assignment/shared/models/customer_address.dart';
+import 'package:mae_assignment/shared/repositories/address_repository.dart';
 import 'package:mae_assignment/shared/repositories/order_repository.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
 
@@ -24,29 +28,21 @@ class CartView extends ConsumerStatefulWidget {
 }
 
 class _CartViewState extends ConsumerState<CartView> {
-  final _addressController = TextEditingController();
   final _noteController = TextEditingController();
 
   @override
   void dispose() {
-    _addressController.dispose();
     _noteController.dispose();
     super.dispose();
   }
 
   Future<void> _placeOrder() async {
-    final cart = ref.read(cartViewModelProvider);
     final messenger = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
     try {
       final order = await ref
           .read(checkoutViewModelProvider.notifier)
-          .placeOrder(
-            address: cart.fulfilment == FulfilmentMethod.delivery
-                ? _addressController.text
-                : null,
-            note: _noteController.text,
-          );
+          .placeOrder(note: _noteController.text);
       if (order == null || !mounted) return;
       router.go(AppRoutes.customerOrder(order.id));
     } on OrderException catch (error) {
@@ -69,7 +65,6 @@ class _CartViewState extends ConsumerState<CartView> {
           ? const _EmptyCart()
           : _CartContent(
               cart: cart,
-              addressController: _addressController,
               noteController: _noteController,
               isPlacing: isPlacing,
               onPlaceOrder: _placeOrder,
@@ -96,14 +91,12 @@ class _EmptyCart extends StatelessWidget {
 class _CartContent extends ConsumerWidget {
   const _CartContent({
     required this.cart,
-    required this.addressController,
     required this.noteController,
     required this.isPlacing,
     required this.onPlaceOrder,
   });
 
   final Cart cart;
-  final TextEditingController addressController;
   final TextEditingController noteController;
   final bool isPlacing;
   final VoidCallback onPlaceOrder;
@@ -112,6 +105,11 @@ class _CartContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
     final isDelivery = cart.fulfilment == FulfilmentMethod.delivery;
+    final quote = ref.watch(deliveryQuoteProvider).value;
+    // The fee shown and charged: the distance quote once ready, otherwise
+    // the flat fallback so the button has a sensible number.
+    final fee = quote?.fee ?? cart.deliveryFee;
+    final total = cart.totalWith(fee);
 
     return SafeArea(
       child: Column(
@@ -148,14 +146,14 @@ class _CartContent extends ConsumerWidget {
                 _FulfilmentPicker(selected: cart.fulfilment),
                 if (isDelivery) ...[
                   const SizedBox(height: AppSpacing.l),
-                  _AddressField(controller: addressController),
+                  const _DeliveryAddressSection(),
                 ],
                 const SizedBox(height: AppSpacing.l),
                 _NoteField(controller: noteController),
                 const SizedBox(height: AppSpacing.l),
                 _PromoRow(cart: cart),
                 const SizedBox(height: AppSpacing.l),
-                _Totals(cart: cart),
+                _Totals(cart: cart, deliveryFee: fee, quote: quote),
                 const SizedBox(height: AppSpacing.l),
               ],
             ),
@@ -170,7 +168,7 @@ class _CartContent extends ConsumerWidget {
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Text('Place order — ${Formatters.money(cart.total)}'),
+                  : Text('Place order — ${Formatters.money(total)}'),
             ),
           ),
         ],
@@ -179,37 +177,127 @@ class _CartContent extends ConsumerWidget {
   }
 }
 
-/// Delivery address, shown only for delivery orders.
-class _AddressField extends StatelessWidget {
-  const _AddressField({required this.controller});
+/// Delivery address picker, shown only for delivery orders. Shows the chosen
+/// (or default) saved address with a "Change" button, or a prompt to add one
+/// when the customer has none.
+class _DeliveryAddressSection extends ConsumerWidget {
+  const _DeliveryAddressSection();
 
-  final TextEditingController controller;
+  Future<void> _choose(BuildContext context, WidgetRef ref) async {
+    final selected = await Navigator.of(context).push<CustomerAddress>(
+      MaterialPageRoute(
+        builder: (_) => const SavedAddressesView(selectable: true),
+      ),
+    );
+    if (selected != null) {
+      ref.read(selectedAddressProvider.notifier).select(selected);
+    }
+    // A new address may have been added/edited inside the chooser.
+    ref.invalidate(savedAddressesProvider);
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
+    final addressAsync = ref.watch(effectiveDeliveryAddressProvider);
+    final quote = ref.watch(deliveryQuoteProvider).value;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'DELIVERY ADDRESS',
+          'DELIVER TO',
           style: textTheme.bodySmall?.copyWith(
             fontWeight: FontWeight.w700,
             letterSpacing: 0.4,
           ),
         ),
         const SizedBox(height: AppSpacing.s),
-        TextField(
-          controller: controller,
-          minLines: 2,
-          maxLines: 3,
-          textInputAction: TextInputAction.newline,
-          decoration: const InputDecoration(
-            hintText: 'Unit, street, postcode',
-            isDense: true,
+        addressAsync.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.all(AppSpacing.m),
+            child: Center(child: CircularProgressIndicator()),
           ),
+          error: (_, _) => _AddressPrompt(
+            message: 'Could not load your addresses.',
+            onTap: () => _choose(context, ref),
+          ),
+          data: (address) {
+            if (address == null) {
+              return _AddressPrompt(
+                message: 'Add a delivery address',
+                onTap: () => _choose(context, ref),
+              );
+            }
+            final outOfRange = quote != null && !quote.inRange;
+            return Container(
+              padding: const EdgeInsets.all(AppSpacing.m),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: outOfRange ? AppColors.error : AppColors.border,
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.location_on_outlined,
+                    color: AppColors.darkGreen,
+                  ),
+                  const SizedBox(width: AppSpacing.s),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(address.label, style: textTheme.titleMedium),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          address.line,
+                          style: textTheme.bodySmall,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (outOfRange) ...[
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            'Outside this store’s delivery area.',
+                            style: textTheme.bodySmall?.copyWith(
+                              color: AppColors.error,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => _choose(context, ref),
+                    child: const Text('Change'),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ],
+    );
+  }
+}
+
+class _AddressPrompt extends StatelessWidget {
+  const _AddressPrompt({required this.message, required this.onTap});
+
+  final String message;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: const Icon(Icons.add_location_alt_outlined),
+      label: Text(message),
     );
   }
 }
@@ -577,19 +665,33 @@ class _PromoRowState extends ConsumerState<_PromoRow> {
 
 /// Subtotal, delivery fee, discount and total.
 class _Totals extends StatelessWidget {
-  const _Totals({required this.cart});
+  const _Totals({
+    required this.cart,
+    required this.deliveryFee,
+    required this.quote,
+  });
 
   final Cart cart;
+
+  /// The fee being charged (distance quote if ready, else flat fallback).
+  final double deliveryFee;
+
+  /// The distance quote, for showing how far the delivery is. Null while it
+  /// is still being worked out.
+  final DeliveryQuote? quote;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final isDelivery = cart.fulfilment == FulfilmentMethod.delivery;
+    final feeLabel = isDelivery && quote != null && quote!.inRange
+        ? 'Delivery fee (${quote!.distanceKm.toStringAsFixed(1)} km)'
+        : 'Delivery fee';
 
     return Column(
       children: [
         _TotalRow(label: 'Subtotal', amount: cart.subtotal),
-        if (cart.fulfilment == FulfilmentMethod.delivery)
-          _TotalRow(label: 'Delivery fee', amount: cart.deliveryFee),
+        if (isDelivery) _TotalRow(label: feeLabel, amount: deliveryFee),
         if (cart.discount > 0)
           _TotalRow(label: 'Discount', amount: -cart.discount),
         const Divider(),
@@ -597,7 +699,10 @@ class _Totals extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('Total', style: textTheme.titleLarge),
-            Text(Formatters.money(cart.total), style: textTheme.titleLarge),
+            Text(
+              Formatters.money(cart.totalWith(deliveryFee)),
+              style: textTheme.titleLarge,
+            ),
           ],
         ),
       ],

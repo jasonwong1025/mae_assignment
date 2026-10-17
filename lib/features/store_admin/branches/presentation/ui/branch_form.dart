@@ -3,14 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/core/utilities/validators.dart';
-import 'package:mae_assignment/features/store_admin/branches/data/repositories/address_repository.dart';
 import 'package:mae_assignment/features/store_admin/branches/presentation/ui/branch_labels.dart';
-import 'package:mae_assignment/features/store_admin/branches/presentation/ui/branch_map.dart';
 import 'package:mae_assignment/features/store_admin/branches/presentation/view_models/branches_view_model.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
+import 'package:mae_assignment/shared/repositories/geocoding_repository.dart';
 import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
 import 'package:mae_assignment/shared/ui/labeled_text_field.dart';
+import 'package:mae_assignment/shared/ui/location_map.dart';
 
 /// Form to add a branch ([branch] is null) or edit one.
 class BranchForm extends ConsumerStatefulWidget {
@@ -245,7 +245,7 @@ class _BranchFormState extends ConsumerState<BranchForm> {
               onTap: () => _useResult(result),
             ),
           const SizedBox(height: 8),
-          BranchMap(
+          LocationMap(
             location: _location,
             onTap: (point) => setState(() => _location = point),
           ),

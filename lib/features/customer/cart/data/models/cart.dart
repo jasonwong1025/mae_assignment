@@ -75,9 +75,18 @@ abstract class Cart with _$Cart {
     return total;
   }
 
-  /// Delivery fee for the chosen method. Pickup is free.
+  /// A flat delivery fee used only as a fallback: before an address is
+  /// chosen, the real fee (distance-based, from the branch) is not known.
+  /// Pickup is always free. Prefer [deliveryFeeFor] / [totalWith] once a
+  /// quote is available.
   double get deliveryFee {
     return fulfilment == FulfilmentMethod.delivery ? _deliveryFee : 0;
+  }
+
+  /// The delivery fee to charge given a [quotedFee] from the branch's
+  /// distance-based pricing. Pickup is always free, so the quote is ignored.
+  double deliveryFeeFor(double quotedFee) {
+    return fulfilment == FulfilmentMethod.delivery ? quotedFee : 0;
   }
 
   /// Discount from the applied promo, never more than the subtotal.
@@ -86,10 +95,13 @@ abstract class Cart with _$Cart {
     return _fresh5Discount.clamp(0, subtotal).toDouble();
   }
 
-  /// What the customer pays: subtotal plus delivery, less any discount,
-  /// never below zero.
-  double get total {
-    final value = subtotal + deliveryFee - discount;
+  /// What the customer pays with the flat fallback fee. Prefer [totalWith].
+  double get total => totalWith(deliveryFee);
+
+  /// What the customer pays given a specific delivery fee: subtotal plus
+  /// that fee, less any discount, never below zero.
+  double totalWith(double fee) {
+    final value = subtotal + deliveryFeeFor(fee) - discount;
     return value < 0 ? 0 : value;
   }
 

@@ -1,13 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/customer/cart/presentation/view_models/cart_view_model.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue_product.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/repositories/catalogue_repository.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/views/catalogue_view.dart';
+import 'package:mae_assignment/shared/models/app_user.dart';
+import 'package:mae_assignment/shared/services/address_service.dart';
 import 'package:mae_assignment/shared/services/branch_service.dart';
 
+import '../../helpers/fake_address_service.dart';
+import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_branch_service.dart';
+
+/// A signed-in customer plus an empty address book, so the catalogue
+/// header's "deliver to" lookup resolves without touching real Firebase.
+List<Override> _customerOverrides() {
+  final auth = FakeAuthRepository()
+    ..signedIn = true
+    ..userToSignIn = const AppUser(
+      uid: 'u1',
+      name: 'Aisha',
+      email: 'aisha@example.com',
+      phone: '0123456789',
+      role: UserRole.customer,
+    );
+  return [
+    authRepositoryProvider.overrideWithValue(auth),
+    addressServiceProvider.overrideWithValue(FakeAddressService()),
+  ];
+}
 
 /// Serves a fixed catalogue, so the Home screen can be tested with no
 /// Firestore. Content is independent of the branch id.
@@ -48,6 +72,7 @@ Future<ProviderContainer> _pump(WidgetTester tester, CatalogueData data) async {
       catalogueRepositoryProvider.overrideWithValue(
         _FakeCatalogueRepository(data),
       ),
+      ..._customerOverrides(),
     ],
   );
   addTearDown(container.dispose);
@@ -184,6 +209,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           branchServiceProvider.overrideWithValue(FakeBranchService()),
+          ..._customerOverrides(),
           catalogueRepositoryProvider.overrideWithValue(
             _FakeCatalogueRepository(
               CatalogueData(

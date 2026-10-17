@@ -1,10 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mae_assignment/features/store_admin/branches/data/repositories/address_repository.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/repositories/inventory_repository.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
 import 'package:mae_assignment/shared/models/page_result.dart';
 import 'package:mae_assignment/shared/repositories/branch_repository.dart';
+import 'package:mae_assignment/shared/repositories/geocoding_repository.dart';
 
 final branchesFilterProvider =
     NotifierProvider.autoDispose<BranchesFilterViewModel, BranchesFilter>(
@@ -91,7 +91,7 @@ class BranchesViewModel extends AsyncNotifier<PageResult<Branch>> {
 
   /// Finds addresses for the form's search box.
   Future<List<AddressResult>> searchAddress(String text) {
-    return ref.read(addressRepositoryProvider).search(text);
+    return ref.read(geocodingRepositoryProvider).search(text);
   }
 
   /// Reloads this list and the sidebar's branch dropdown.

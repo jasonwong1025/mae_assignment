@@ -5,6 +5,7 @@ import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
+import 'package:mae_assignment/features/customer/account/presentation/views/saved_addresses_view.dart';
 import 'package:mae_assignment/features/customer/cart/presentation/view_models/cart_view_model.dart';
 import 'package:mae_assignment/features/customer/shell/customer_routes.dart';
 import 'package:mae_assignment/features/customer/shell/presentation/ui/customer_scaffold.dart';
@@ -84,7 +85,11 @@ class CustomerAccountView extends ConsumerWidget {
                 _MenuItem(
                   icon: Icons.location_on_outlined,
                   label: 'Saved addresses',
-                  onTap: () => _comingSoon(context, 'Saved addresses'),
+                  onTap: () => Navigator.of(context).push<void>(
+                    MaterialPageRoute(
+                      builder: (_) => const SavedAddressesView(),
+                    ),
+                  ),
                 ),
                 _MenuItem(
                   icon: Icons.credit_card_outlined,

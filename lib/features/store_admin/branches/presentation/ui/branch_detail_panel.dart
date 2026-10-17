@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/features/store_admin/branches/presentation/ui/branch_form.dart';
 import 'package:mae_assignment/features/store_admin/branches/presentation/ui/branch_labels.dart';
-import 'package:mae_assignment/features/store_admin/branches/presentation/ui/branch_map.dart';
 import 'package:mae_assignment/features/store_admin/branches/presentation/view_models/branches_view_model.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/ui/side_panel_frame.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
+import 'package:mae_assignment/shared/ui/location_map.dart';
 
 /// Details of one branch, with Edit and a temporarily closed switch.
 /// Edit shows the form in the same panel.
@@ -110,7 +110,7 @@ class _BranchDetailPanelState extends ConsumerState<BranchDetailPanel> {
             onChanged: (closed) => _setClosed(branch, closed),
           ),
           const SizedBox(height: 8),
-          BranchMap(location: branch.location),
+          LocationMap(location: branch.location),
 
           const _SectionTitle('Contact'),
           _InfoRow(icon: Icons.place_outlined, text: branch.address),

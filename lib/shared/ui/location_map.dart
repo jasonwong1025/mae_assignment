@@ -6,21 +6,21 @@ import 'package:mae_assignment/app/theme/app_colors.dart';
 
 /// Small map with a pin at [location].
 /// If [onTap] is given, tapping the map moves the pin there.
-class BranchMap extends StatefulWidget {
-  const BranchMap({required this.location, super.key, this.onTap});
+class LocationMap extends StatefulWidget {
+  const LocationMap({required this.location, super.key, this.onTap});
 
   final LatLng location;
   final ValueChanged<LatLng>? onTap;
 
   @override
-  State<BranchMap> createState() => _BranchMapState();
+  State<LocationMap> createState() => _LocationMapState();
 }
 
-class _BranchMapState extends State<BranchMap> {
+class _LocationMapState extends State<LocationMap> {
   final _controller = MapController();
 
   @override
-  void didUpdateWidget(BranchMap oldWidget) {
+  void didUpdateWidget(LocationMap oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Follow the pin when it moves, e.g. after an address search.
     if (oldWidget.location != widget.location) {

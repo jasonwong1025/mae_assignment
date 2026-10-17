@@ -11,10 +11,12 @@ import 'package:mae_assignment/features/customer/catalogue/presentation/ui/produ
 import 'package:mae_assignment/features/customer/orders/presentation/views/customer_order_tracking_view.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/models/order.dart';
+import 'package:mae_assignment/shared/services/address_service.dart';
 import 'package:mae_assignment/shared/services/branch_service.dart';
 import 'package:mae_assignment/shared/services/order_service.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../../helpers/fake_address_service.dart';
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_branch_service.dart';
 
@@ -47,7 +49,24 @@ Future<ProviderContainer> _pump(
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
-  final container = ProviderContainer();
+  final auth = FakeAuthRepository()
+    ..signedIn = true
+    ..userToSignIn = const AppUser(
+      uid: 'u1',
+      name: 'Aisha',
+      email: 'aisha@example.com',
+      phone: '0123456789',
+      role: UserRole.customer,
+    );
+  final container = ProviderContainer(
+    overrides: [
+      // The cart watches the delivery quote (saved addresses -> auth), so
+      // provide fakes to avoid real Firebase and its pending timers.
+      authRepositoryProvider.overrideWithValue(auth),
+      addressServiceProvider.overrideWithValue(FakeAddressService()),
+      branchServiceProvider.overrideWithValue(FakeBranchService()),
+    ],
+  );
   addTearDown(container.dispose);
   // Seed the cart before pumping.
   for (final line in lines) {
@@ -203,6 +222,7 @@ void main() {
         overrides: [
           branchServiceProvider.overrideWithValue(FakeBranchService()),
           authRepositoryProvider.overrideWithValue(auth),
+          addressServiceProvider.overrideWithValue(FakeAddressService()),
           orderServiceProvider.overrideWithValue(orderService),
         ],
       );
@@ -257,6 +277,7 @@ void main() {
         overrides: [
           branchServiceProvider.overrideWithValue(FakeBranchService()),
           authRepositoryProvider.overrideWithValue(auth),
+          addressServiceProvider.overrideWithValue(FakeAddressService()),
           orderServiceProvider.overrideWithValue(orderService),
         ],
       );
@@ -293,11 +314,14 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('placing an order resolves the branch and navigates to '
-        'tracking without "No store selected"', (tester) async {
+    testWidgets('placing a pickup order resolves the branch and navigates '
+        'to tracking without "No store selected"', (tester) async {
       final container = await pumpWithRouter(tester);
 
-      await tester.enterText(find.byType(TextField).first, '12 Jalan Besar');
+      // Self-pickup needs no delivery address, so this exercises the full
+      // checkout -> tracking path without the address picker.
+      await tester.tap(find.text('Self pickup'));
+      await tester.pumpAndSettle();
       await tester.tap(find.textContaining('Place order'));
       await tester.pumpAndSettle();
 

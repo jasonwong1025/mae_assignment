@@ -5,8 +5,10 @@ import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/repositories/catalogue_repository.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
+import 'package:mae_assignment/shared/services/address_service.dart';
 import 'package:mae_assignment/shared/services/branch_service.dart';
 
+import '../../helpers/fake_address_service.dart';
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_branch_service.dart';
 
@@ -37,6 +39,7 @@ void main() {
       overrides: [
         authRepositoryProvider.overrideWithValue(repository),
         branchServiceProvider.overrideWithValue(FakeBranchService()),
+        addressServiceProvider.overrideWithValue(FakeAddressService()),
         catalogueRepositoryProvider.overrideWithValue(
           _EmptyCatalogueRepository(),
         ),

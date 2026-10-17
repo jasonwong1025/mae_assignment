@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/customer/account/presentation/views/saved_addresses_view.dart';
 import 'package:mae_assignment/features/customer/cart/presentation/view_models/cart_view_model.dart';
+import 'package:mae_assignment/features/customer/cart/presentation/view_models/selected_address_view_model.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue_product.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/ui/product_card.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/ui/product_thumbnail.dart';
@@ -12,6 +14,8 @@ import 'package:mae_assignment/features/customer/catalogue/presentation/view_mod
 import 'package:mae_assignment/features/customer/shell/customer_routes.dart';
 import 'package:mae_assignment/features/customer/shell/presentation/ui/customer_scaffold.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
+import 'package:mae_assignment/shared/models/customer_address.dart';
+import 'package:mae_assignment/shared/repositories/address_repository.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
 
 /// Customer Home: the catalogue for the selected store. Deliver-to header,
@@ -140,25 +144,55 @@ class _Header extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'DELIVER TO',
-                      style: textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.4,
+                child: InkWell(
+                  onTap: () async {
+                    final selected = await Navigator.of(context)
+                        .push<CustomerAddress>(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const SavedAddressesView(selectable: true),
+                          ),
+                        );
+                    if (selected != null) {
+                      ref
+                          .read(selectedAddressProvider.notifier)
+                          .select(selected);
+                    }
+                    ref.invalidate(savedAddressesProvider);
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'DELIVER TO',
+                        style: textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.4,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      // A saved address will replace this in a later slice.
-                      'Choose a delivery address',
-                      style: textTheme.titleLarge,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                      const SizedBox(height: AppSpacing.xs),
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final address = ref
+                              .watch(effectiveDeliveryAddressProvider)
+                              .value;
+                          return Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  address?.line ?? 'Choose a delivery address',
+                                  style: textTheme.titleLarge,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const Icon(Icons.keyboard_arrow_down_rounded),
+                            ],
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: AppSpacing.m),
