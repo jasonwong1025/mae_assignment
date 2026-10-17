@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/mock_worker_orders.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_item_tile.dart';
@@ -258,10 +259,11 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Start packing'), findsNothing);
-      expect(find.text('Back to My Tasks'), findsOneWidget);
-
-      await _tapProduct(tester, 'Chocolate bar');
-      await _expectCount(tester, '0/1');
+      // Read-only: no action bar, only the app bar Back button, and the
+      // checklist stays unpacked (nothing can be ticked).
+      expect(find.byTooltip('Back'), findsOneWidget);
+      expect(find.text('Chocolate bar'), findsOneWidget);
+      expect(find.text('0/1'), findsOneWidget);
     });
 
     testWidgets('the packer sees when the driver collected the bag', (
@@ -272,20 +274,21 @@ void main() {
         'Hakim Roslan',
         location: AppRoutes.workerPackingOrder('ord-2308'),
       );
-      expect(find.text('Packed and waiting for Amir Hamzah.'), findsOneWidget);
+      expect(find.text('Waiting for the driver to collect.'), findsOneWidget);
 
+      // Manual verification matches the bag's collection code.
+      final code = seedWorkerOrders(
+        DateTime(2026, 10, 15, 12),
+      ).firstWhere((order) => order.id == 'ord-2308').collectionCode;
       await repository.verifyCollection(
         mockWorker('Amir Hamzah'),
         'ord-2308',
         method: VerificationMethod.manual,
-        code: '2308',
+        code: code,
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.textContaining('Collected by Amir Hamzah at'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Collected on'), findsOneWidget);
     });
 
     testWidgets('a ready order is read-only', (tester) async {
@@ -296,7 +299,7 @@ void main() {
       );
 
       expect(
-        find.text('Packed and waiting on the pickup shelf.'),
+        find.text('Waiting on the pickup shelf for the customer.'),
         findsOneWidget,
       );
       expect(find.text('Review & mark ready'), findsNothing);

@@ -110,7 +110,7 @@ void main() {
         );
 
         await _show(tester, container, AppRoutes.workerDelivery);
-        expect(find.text('READY TO COLLECT (1)'), findsOneWidget);
+        expect(find.text('Ready to collect (2)'), findsOneWidget);
         await _show(tester, container, AppRoutes.workerAccount);
 
         // Being packed.
@@ -139,8 +139,11 @@ void main() {
           AppRoutes.workerDeliveryOrder('ord-2309'),
         );
         await _tap(tester, 'Order items (2 products · 3 items)');
+        // Opens the proof-of-delivery sheet (checked for overflow), then
+        // closes it with the X; "Mark as delivered" no longer uses a dialog.
         await _tap(tester, 'Mark as delivered');
-        await _tap(tester, 'Cancel');
+        await tester.tap(find.byTooltip('Close'));
+        await tester.pumpAndSettle();
 
         // Delivered.
         await _show(

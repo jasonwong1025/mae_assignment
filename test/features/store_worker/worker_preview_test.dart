@@ -261,7 +261,9 @@ void main() {
 
       expect(_location(container), AppRoutes.workerDelivery);
       expect(find.byType(NavigationDestination), findsNWidgets(2));
-      expect(find.text('Grocerly · Bukit Jalil'), findsOneWidget);
+      // Drivers work across branches, so the header shows their coverage
+      // rather than a single home branch.
+      expect(find.text('Grocerly · Cross-branch delivery'), findsOneWidget);
     });
 
     testWidgets('an inactive worker is rejected with a reason', (tester) async {

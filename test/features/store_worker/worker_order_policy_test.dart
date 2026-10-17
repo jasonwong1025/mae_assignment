@@ -63,7 +63,8 @@ void main() {
             (worker) => worker.id == order.driverId,
           );
           expect(driver.isDeliveryDriver, isTrue, reason: order.id);
-          expect(driver.branchId, order.branchId, reason: order.id);
+          // Drivers now work across branches, so the driver's branch need
+          // not match the order's.
           expect(order.address, isNotNull, reason: order.id);
         }
       }
@@ -100,14 +101,20 @@ void main() {
     });
 
     test('completed samples stay "today" just after midnight', () {
-      // At 00:10, "35 minutes ago" would be yesterday.
+      // At 00:10, "35 minutes ago" would be yesterday. Only today's
+      // completed samples must stay on today's date; the mock also seeds
+      // older orders (yesterday, three days ago) for My history, which are
+      // expected to be on earlier days.
       final now = DateTime(2026, 10, 15, 0, 10);
-      final completed = seedWorkerOrders(
-        now,
-      ).where((order) => order.status == OrderStatus.completed);
+      final startOfDay = DateTime(now.year, now.month, now.day);
+      final completedToday = seedWorkerOrders(now).where(
+        (order) =>
+            order.status == OrderStatus.completed &&
+            !order.completedAt!.isBefore(startOfDay),
+      );
 
-      expect(completed, isNotEmpty);
-      for (final order in completed) {
+      expect(completedToday, isNotEmpty);
+      for (final order in completedToday) {
         final at = order.completedAt!;
         expect(at.day, now.day, reason: order.id);
         expect(at.isAfter(now), isFalse, reason: order.id);
@@ -159,7 +166,11 @@ void main() {
 
     test('packers see no packing tasks from another branch', () {
       final hafizTasks = _visible(_hafiz, WorkerOrderPolicy.canViewPackingTask);
-      expect(hafizTasks.every((id) => id.startsWith('ord-118')), isTrue);
+      expect(hafizTasks, isNotEmpty);
+      // Every task Hafiz can see is at his own branch.
+      for (final id in hafizTasks) {
+        expect(_order(id).branchId, _hafiz.branchId, reason: id);
+      }
     });
 
     test('every packer in the branch sees all ready pickup orders', () {
@@ -176,17 +187,24 @@ void main() {
     });
 
     test('drivers see only their own deliveries, including being packed', () {
+      // Drivers work across branches, so each sees the orders assigned to
+      // them regardless of branch (Amir's include Bukit Jalil's #1184).
       expect(_visible(_amir, WorkerOrderPolicy.canViewDelivery), {
-        'ord-2301',
         'ord-2303',
         'ord-2308',
         'ord-2309',
         'ord-2310',
+        'ord-1184',
+        // Completed deliveries Amir made, kept for My history.
+        'ord-2281',
+        'ord-2275',
       });
       expect(_visible(_weiJie, WorkerOrderPolicy.canViewDelivery), {
+        'ord-2301',
         'ord-1181',
-        'ord-1184',
         'ord-1185',
+        // Completed delivery Wei Jie made, kept for My history.
+        'ord-1170',
       });
       expect(_visible(_daniel, WorkerOrderPolicy.canViewDelivery), isEmpty);
     });
@@ -323,9 +341,10 @@ void main() {
 
     test('only the assigned driver can verify', () {
       final order = _order('ord-2308');
+      // Branch no longer matters for drivers; assignment does.
       expect(
         WorkerOrderPolicy.checkVerifyCollection(_weiJie, order),
-        'This order belongs to another branch.',
+        'This delivery is not assigned to you.',
       );
       expect(
         WorkerOrderPolicy.checkVerifyCollection(_daniel, order),
@@ -341,16 +360,23 @@ void main() {
       final order = _order('ord-2308');
       const manual = VerificationMethod.manual;
       const qr = VerificationMethod.qr;
+      // Manual verification matches the bag's collection code (spaces and
+      // letter case ignored), not the order number.
+      final code = order.collectionCode;
       expect(
-        WorkerOrderPolicy.checkCollectionCode(order, manual, '2308'),
+        WorkerOrderPolicy.checkCollectionCode(order, manual, code),
         isNull,
       );
       expect(
-        WorkerOrderPolicy.checkCollectionCode(order, manual, ' #2308 '),
+        WorkerOrderPolicy.checkCollectionCode(
+          order,
+          manual,
+          ' ${code.toLowerCase()} ',
+        ),
         isNull,
       );
       expect(
-        WorkerOrderPolicy.checkCollectionCode(order, manual, '2309'),
+        WorkerOrderPolicy.checkCollectionCode(order, manual, 'WRONGXX'),
         isNotNull,
       );
       expect(

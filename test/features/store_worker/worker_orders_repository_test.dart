@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,6 +20,9 @@ final WorkerProfile _amir = _worker('Amir Hamzah');
 final WorkerProfile _nadia = _worker('Nadia Yusof');
 final WorkerProfile _hafiz = _worker('Hafiz Zainal');
 final WorkerProfile _weiJie = _worker('Tan Wei Jie');
+
+/// A non-empty proof-of-delivery photo (content is not inspected).
+final Uint8List _proofPhoto = Uint8List.fromList([1, 2, 3]);
 
 /// A repository with a fixed clock and no delay.
 WorkerOrdersRepository _repository({Duration delay = Duration.zero}) {
@@ -81,16 +85,19 @@ void main() {
         'ord-1183',
       ]);
       expect(await repository.watchMyDeliveries(_amir).first.then(_ids), [
-        'ord-2309',
-        'ord-2308',
-        'ord-2303',
-        'ord-2301',
+        'ord-2309', // out for delivery
+        'ord-2308', // ready
+        'ord-1184', // ready (Bukit Jalil, cross-branch)
+        'ord-2303', // being packed
+        'ord-2275', // completed (history)
+        'ord-2281',
         'ord-2310',
       ]);
       expect(await repository.watchMyDeliveries(_weiJie).first.then(_ids), [
-        'ord-1185',
-        'ord-1184',
-        'ord-1181',
+        'ord-1185', // out for delivery
+        'ord-2301', // pending
+        'ord-1181', // pending
+        'ord-1170', // completed (history)
       ]);
     });
 
@@ -132,7 +139,8 @@ void main() {
       }
       await repository.markReady(_daniel, 'ord-2301');
 
-      final order = await repository.watchOrder(_amir, 'ord-2301').first;
+      // ord-2301 is a delivery for Wei Jie, who can view it in any status.
+      final order = await repository.watchOrder(_weiJie, 'ord-2301').first;
       expect(order!.status, OrderStatus.ready);
       expect(order.readyBy, _daniel.id);
       expect(order.readyAt, DateTime(2026, 10, 15, 12));
@@ -297,14 +305,17 @@ void main() {
       final repository = _repository();
       final deliveries = await _record(repository.watchMyDeliveries(_amir));
 
+      // Manual verification matches the bag's collection code, read from the
+      // order itself rather than hard-coded.
+      final toVerify = await repository.watchOrder(_amir, 'ord-2308').first;
       await repository.verifyCollection(
         _amir,
         'ord-2308',
         method: VerificationMethod.manual,
-        code: '#2308',
+        code: toVerify!.collectionCode,
       );
       await repository.startDelivery(_amir, 'ord-2308');
-      await repository.completeDelivery(_amir, 'ord-2308');
+      await repository.completeDelivery(_amir, 'ord-2308', photo: _proofPhoto);
       await _settle();
 
       final order = await repository.watchOrder(_amir, 'ord-2308').first;
@@ -315,13 +326,15 @@ void main() {
       expect(order.deliveredBy, _amir.id);
       expect(order.deliveredByName, 'Amir Hamzah');
 
-      // Started: 2308 joins 2309 on the way. Completed: it moves to the end.
+      // After completing, 2308 moves to the end of the completed group.
       expect(deliveries.last, [
-        'ord-2309',
-        'ord-2303',
-        'ord-2301',
+        'ord-2309', // out for delivery
+        'ord-1184', // ready
+        'ord-2303', // being packed
+        'ord-2275', // completed (history)
+        'ord-2281',
         'ord-2310',
-        'ord-2308',
+        'ord-2308', // just completed
       ]);
     });
 
@@ -371,10 +384,10 @@ void main() {
     test('a second completion fails', () async {
       final repository = _repository();
 
-      await repository.completeDelivery(_amir, 'ord-2309');
+      await repository.completeDelivery(_amir, 'ord-2309', photo: _proofPhoto);
 
       expect(
-        repository.completeDelivery(_amir, 'ord-2309'),
+        repository.completeDelivery(_amir, 'ord-2309', photo: _proofPhoto),
         _throwsMessage('This delivery is already completed.'),
       );
     });
@@ -383,15 +396,15 @@ void main() {
       final repository = _repository();
 
       expect(
-        repository.completeDelivery(_weiJie, 'ord-2309'),
+        repository.completeDelivery(_weiJie, 'ord-2309', photo: _proofPhoto),
         _throwsWorkerOrderException,
       );
       expect(
-        repository.completeDelivery(_daniel, 'ord-2309'),
+        repository.completeDelivery(_daniel, 'ord-2309', photo: _proofPhoto),
         _throwsWorkerOrderException,
       );
       expect(
-        repository.completeDelivery(_amir, 'ord-2305'),
+        repository.completeDelivery(_amir, 'ord-2305', photo: _proofPhoto),
         _throwsWorkerOrderException,
       );
     });
@@ -416,8 +429,9 @@ void main() {
           ['ord-2301', 'ord-2303', 'ord-2302'],
         ]);
 
-        // A screen that opens now still sees 2301 as being packed.
-        final order = await repository.watchOrder(_amir, 'ord-2301').first;
+        // A screen that opens now still sees 2301 as being packed. ord-2301
+        // is Wei Jie's delivery, so read it as him.
+        final order = await repository.watchOrder(_weiJie, 'ord-2301').first;
         expect(order!.status, OrderStatus.packing);
       },
     );
@@ -458,7 +472,9 @@ void main() {
       final order = await repository.watchOrder(amir, 'ord-2303').first;
       expect(order!.isFullyPacked, isTrue);
       expect(await repository.watchMyPackingTasks(amir).first, isEmpty);
-      expect(await repository.watchMyDeliveries(amir).first, hasLength(5));
+      // Amir's deliveries now include his Bukit Jalil order and completed
+      // history: 7 in total.
+      expect(await repository.watchMyDeliveries(amir).first, hasLength(7));
 
       // Back to Daniel: his change is still there.
       session.select(_daniel);

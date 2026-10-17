@@ -1,7 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/features/store_worker/delivery/data/services/camera_service.dart';
 import 'package:mae_assignment/features/store_worker/delivery/data/services/launcher_service.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/view_models/delivery_detail_view_model.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/mock_worker_orders.dart';
@@ -30,6 +34,29 @@ class _FakeLauncher extends LauncherService {
   }
 }
 
+/// A valid 1x1 transparent PNG, so widgets that decode the proof photo
+/// (ExpandablePhoto) can render it in a test.
+final Uint8List _onePixelPng = Uint8List.fromList(<int>[
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, //
+  0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+  0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+  0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4,
+  0x89, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x44, 0x41,
+  0x54, 0x78, 0x9c, 0x62, 0x00, 0x01, 0x00, 0x00,
+  0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00,
+  0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae,
+  0x42, 0x60, 0x82,
+]);
+
+/// Returns a fixed photo instead of opening the real camera, so the
+/// proof-of-delivery flow can be exercised in a widget test.
+class _FakeCamera extends CameraService {
+  _FakeCamera() : super(ImagePicker());
+
+  @override
+  Future<Uint8List?> takePhoto() async => _onePixelPng;
+}
+
 /// Opens the app as Amir (SS15 driver) at [location], with a fake
 /// launcher.
 Future<(ProviderContainer, WorkerOrdersRepository, _FakeLauncher)> _pumpAmir(
@@ -43,7 +70,10 @@ Future<(ProviderContainer, WorkerOrdersRepository, _FakeLauncher)> _pumpAmir(
     'Amir Hamzah',
     location: location,
     repository: repository,
-    overrides: [launcherServiceProvider.overrideWithValue(launcher)],
+    overrides: [
+      launcherServiceProvider.overrideWithValue(launcher),
+      cameraServiceProvider.overrideWithValue(_FakeCamera()),
+    ],
   );
   return (container, orders, launcher);
 }
@@ -59,31 +89,36 @@ void main() {
     testWidgets('groups my deliveries by stage', (tester) async {
       await _pumpAmir(tester);
 
-      expect(find.text('OUT FOR DELIVERY (1)'), findsOneWidget);
+      expect(find.text('Out for delivery (1)'), findsOneWidget);
       expect(find.text('#2309'), findsOneWidget);
-      expect(find.text('READY TO COLLECT (1)'), findsOneWidget);
+      // Drivers now work across branches, so Amir's Bukit Jalil order
+      // (#1184) joins his SS15 order (#2308) in Ready to collect.
+      expect(find.text('Ready to collect (2)'), findsOneWidget);
       expect(find.text('#2308'), findsOneWidget);
+      expect(find.text('#1184'), findsOneWidget);
 
-      await scrollIntoView(tester, find.text('BEING PACKED (2)'));
+      await scrollIntoView(tester, find.text('Being packed (1)'));
       await scrollIntoView(tester, find.text('#2303'));
-      expect(find.text('3 of 4 packed'), findsOneWidget);
-      await scrollIntoView(tester, find.text('COMPLETED TODAY (1)'));
-      await scrollIntoView(tester, find.text('#2310'));
 
-      // Pickup orders and another branch's deliveries are not listed.
+      // Pickup orders and other drivers' deliveries are not listed.
+      // Completed orders move to My history, not this list.
       expect(find.text('#2305'), findsNothing);
-      expect(find.text('#1184'), findsNothing);
+      expect(find.text('#2310'), findsNothing);
     });
 
-    testWidgets("another branch's driver sees only their own", (tester) async {
+    testWidgets('a driver sees only the deliveries assigned to them', (
+      tester,
+    ) async {
       await pumpWorkerApp(
         tester,
         'Tan Wei Jie',
         location: AppRoutes.workerDelivery,
       );
 
+      // Wei Jie's own deliveries.
       expect(find.text('#1185'), findsOneWidget);
-      expect(find.text('#1184'), findsOneWidget);
+      // Amir's deliveries (including the Bukit Jalil #1184) are not his.
+      expect(find.text('#1184'), findsNothing);
       expect(find.text('#2308'), findsNothing);
       expect(find.text('#2309'), findsNothing);
     });
@@ -97,8 +132,10 @@ void main() {
       await repository.markReady(daniel, 'ord-2303');
       await tester.pumpAndSettle();
 
-      expect(find.text('READY TO COLLECT (2)'), findsOneWidget);
-      expect(find.text('BEING PACKED (1)'), findsOneWidget);
+      // #2303 joins #2308 and #1184 in Ready to collect; nothing is left
+      // being packed for Amir, so that section disappears.
+      expect(find.text('Ready to collect (3)'), findsOneWidget);
+      expect(find.textContaining('Being packed'), findsNothing);
     });
   });
 
@@ -112,17 +149,27 @@ void main() {
       );
 
       expect(find.text('Delivery #2303'), findsOneWidget);
-      expect(find.text('3 of 4 packed'), findsOneWidget);
-      expect(find.textContaining('Still being packed'), findsOneWidget);
+      // The next step is explained but locked until the order is ready.
+      expect(
+        find.textContaining('You can verify the order once it is ready'),
+        findsOneWidget,
+      );
       expect(buttonWithText(tester, 'Verify order').enabled, isFalse);
       expect(find.text('Start delivery'), findsNothing);
     });
 
     testWidgets('verify, start, and complete a delivery', (tester) async {
-      final (container, _, _) = await _pumpAmir(
+      final (container, repository, _) = await _pumpAmir(
         tester,
         location: AppRoutes.workerDeliveryOrder('ord-2308'),
       );
+
+      // The bag's collection code, read from the seed order (computed from
+      // the order id, so it is stable).
+      final seedOrder = seedWorkerOrders(
+        DateTime(2026, 10, 15, 12),
+      ).firstWhere((order) => order.id == 'ord-2308');
+      final collectionCode = seedOrder.collectionCode;
 
       // Customer details are on the screen.
       expect(find.text('David Wong'), findsOneWidget);
@@ -130,42 +177,42 @@ void main() {
       expect(find.textContaining('Leave with the guard'), findsOneWidget);
       expect(find.text('Start delivery'), findsNothing);
 
-      // A wrong number is rejected with a reason.
+      // A wrong collection code is rejected with a reason.
       await tester.tap(find.text('Verify order'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), '2309');
+      await tester.enterText(find.byType(TextField), 'WRONGXX');
       await tester.tap(find.text('Verify'));
       await tester.pumpAndSettle();
-      expect(
-        find.text(
-          'That number does not match order #2308. Check the bag and try '
-          'again.',
-        ),
-        findsOneWidget,
-      );
+      expect(find.textContaining('does not match order #2308'), findsOneWidget);
 
-      // The right number verifies it and unlocks Start delivery.
-      await tester.enterText(find.byType(TextField), '2308');
+      // The right code verifies it, closes the sheet, and unlocks Start.
+      await tester.enterText(find.byType(TextField), collectionCode);
       await tester.tap(find.text('Verify'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('Order verified'), findsOneWidget);
+      expect(find.text('Verify the order'), findsNothing); // sheet closed
+      expect(find.text('Start delivery'), findsOneWidget);
 
       await tester.tap(find.text('Start delivery'));
       await tester.pumpAndSettle();
-      // ("On the way" alone is also a stepper label.)
-      expect(find.textContaining('On the way. Mark it'), findsOneWidget);
+      expect(find.text('Mark as delivered'), findsOneWidget);
 
+      // Completing opens the proof-of-delivery sheet; the fake camera
+      // supplies the photo, then Mark delivered finishes the order.
       await tester.tap(find.text('Mark as delivered'));
       await tester.pumpAndSettle();
-      expect(find.text('Mark order #2308 delivered?'), findsOneWidget);
+      expect(find.text('Proof of delivery'), findsOneWidget);
+      await tester.tap(find.text('Take photo'));
+      // pump (not pumpAndSettle) so the busy spinner does not stall settle.
+      await tester.pump();
+      await tester.pump();
       await tester.tap(find.text('Mark delivered'));
       await tester.pumpAndSettle();
 
-      // Back on My Deliveries with a success message.
+      // Back on My Deliveries with a success message. The completed order
+      // leaves the list (it moves to My history).
       expect(routerLocation(container), AppRoutes.workerDelivery);
       expect(find.text('Order #2308 delivered to David Wong.'), findsOneWidget);
-      expect(find.text('READY TO COLLECT (1)'), findsNothing);
-      await scrollIntoView(tester, find.text('COMPLETED TODAY (2)'));
+      expect(find.text('#2308'), findsNothing);
     });
 
     testWidgets('cancelling the confirmation keeps it on the way', (
@@ -176,11 +223,15 @@ void main() {
         location: AppRoutes.workerDeliveryOrder('ord-2309'),
       );
 
+      // Opens the proof-of-delivery sheet, then closes it without a photo.
       await tester.tap(find.text('Mark as delivered'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Cancel'));
+      expect(find.text('Proof of delivery'), findsOneWidget);
+      await tester.tap(find.byTooltip('Close'));
       await tester.pumpAndSettle();
 
+      // Sheet gone, still out for delivery.
+      expect(find.text('Proof of delivery'), findsNothing);
       expect(find.text('Mark as delivered'), findsOneWidget);
     });
 
@@ -223,7 +274,7 @@ void main() {
         location: AppRoutes.workerDeliveryOrder('ord-2310'),
       );
 
-      expect(find.textContaining('Delivered at'), findsOneWidget);
+      expect(find.textContaining('Delivered on'), findsOneWidget);
       expect(find.text('Mark as delivered'), findsNothing);
       expect(find.text('Back to My Deliveries'), findsOneWidget);
     });
@@ -255,9 +306,11 @@ void main() {
     });
 
     testWidgets("someone else's delivery is not available", (tester) async {
+      // ord-1185 is assigned to another driver (Tan Wei Jie), so Amir
+      // cannot open it even though drivers now work across branches.
       await _pumpAmir(
         tester,
-        location: AppRoutes.workerDeliveryOrder('ord-1184'),
+        location: AppRoutes.workerDeliveryOrder('ord-1185'),
       );
       expect(find.text('Delivery not available'), findsOneWidget);
     });
@@ -306,16 +359,22 @@ void main() {
       container.listen(provider, (previous, next) {});
       final viewModel = container.read(provider.notifier);
 
+      // The bag's collection code, read from the order itself.
+      final order = await repository
+          .watchOrder(mockWorker('Amir Hamzah'), 'ord-2308')
+          .first;
+      final photo = Uint8List.fromList([1, 2, 3]);
+
       expect(
         await viewModel.startDelivery(),
         'Verify the order before starting the delivery.',
       );
-      expect(await viewModel.verifyByNumber('1234'), isNotNull);
-      expect(await viewModel.verifyByNumber('#2308'), isNull);
+      expect(await viewModel.verifyByCode('WRONGXX'), isNotNull);
+      expect(await viewModel.verifyByCode(order!.collectionCode), isNull);
       expect(await viewModel.startDelivery(), isNull);
-      expect(await viewModel.completeDelivery(), isNull);
+      expect(await viewModel.completeDelivery(photo: photo), isNull);
       expect(
-        await viewModel.completeDelivery(),
+        await viewModel.completeDelivery(photo: photo),
         'This delivery is already completed.',
       );
     });

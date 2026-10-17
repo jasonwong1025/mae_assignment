@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/mock_worker_orders.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/view_models/pickup_handover_view_model.dart';
@@ -25,11 +26,10 @@ void main() {
       );
 
       expect(find.text('Waiting for pickup (2)'), findsOneWidget);
-      // 2305 was packed by Daniel; 2306 by Hakim and is still listed.
+      // 2305 was packed by Daniel; 2306 by Hakim and is still listed. The
+      // card no longer shows who packed it (that is on the order screen).
       expect(find.text('Siti Aminah'), findsOneWidget);
       expect(find.text('Kelvin Lim'), findsOneWidget);
-      expect(find.textContaining('Packed by you'), findsOneWidget);
-      expect(find.textContaining('Packed by Hakim Roslan'), findsWidgets);
       expect(
         tester.getTopLeft(find.text('#2305')).dy,
         lessThan(tester.getTopLeft(find.text('#2306')).dy),
@@ -125,16 +125,21 @@ void main() {
       expect(find.text('Driver: Amir Hamzah'), findsOneWidget);
 
       // Once Amir verifies the bag, it is collected and leaves the list.
+      // Manual verification matches the bag's collection code.
+      final code = seedWorkerOrders(
+        DateTime(2026, 10, 15, 12),
+      ).firstWhere((order) => order.id == 'ord-2308').collectionCode;
       await repository.verifyCollection(
         mockWorker('Amir Hamzah'),
         'ord-2308',
         method: VerificationMethod.manual,
-        code: '2308',
+        code: code,
       );
       await tester.pumpAndSettle();
-      // The section hides when nothing is waiting.
-      expect(find.textContaining('Waiting for drivers'), findsNothing);
+      // The section stays (always shown) but the collected order leaves it.
+      expect(find.text('Waiting for drivers (0)'), findsOneWidget);
       expect(find.text('David Wong'), findsNothing);
+      expect(find.text('#2308'), findsNothing);
     });
 
     testWidgets('shows only my branch', (tester) async {
@@ -178,9 +183,11 @@ void main() {
       await tester.tap(find.byTooltip('Close'));
       await tester.pumpAndSettle();
 
-      // Slide all the way to hand over.
+      // Slide all the way to hand over. The slider shows a tick for
+      // SlideToConfirm.tickDuration before it navigates back, so settle
+      // past that before checking the result.
       await tester.drag(find.byKey(SlideToConfirm.handleKey), _fullSlide);
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(SlideToConfirm.tickDuration);
 
       // Back on the list: success message, 2306 gone, now in my handovers.
       expect(
@@ -293,16 +300,21 @@ void main() {
     testWidgets('a delivery order cannot be handed over as a pickup', (
       tester,
     ) async {
-      // Daniel packed delivery 2309, so he may open it, but not hand it
-      // over at the counter.
+      // Daniel packed delivery 2309, so he may open it read-only, but there
+      // is no slide-to-hand-over control: the driver collects it.
       await pumpWorkerApp(
         tester,
         'Daniel Lee',
         location: AppRoutes.workerPickupOrder('ord-2309'),
       );
 
-      expect(find.text('Order not available'), findsOneWidget);
-      expect(find.textContaining('This is a delivery order'), findsOneWidget);
+      expect(find.text('Delivery #2309'), findsOneWidget);
+      expect(
+        find.textContaining('Amir Hamzah is delivering it'),
+        findsOneWidget,
+      );
+      expect(find.text('Slide to hand over'), findsNothing);
+      expect(find.text('Back to Ready for Pickup'), findsOneWidget);
     });
 
     testWidgets('drivers cannot open pickup screens', (tester) async {
