@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +11,7 @@ import 'package:mae_assignment/features/customer/cart/presentation/view_models/c
 import 'package:mae_assignment/features/customer/catalogue/presentation/ui/product_thumbnail.dart';
 import 'package:mae_assignment/features/customer/shell/customer_routes.dart';
 import 'package:mae_assignment/features/customer/shell/presentation/ui/customer_scaffold.dart';
+import 'package:mae_assignment/shared/repositories/order_repository.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
 
 /// Customer Cart tab (wireframe 2): the chosen items with quantity steppers,
@@ -35,42 +34,33 @@ class _CartViewState extends ConsumerState<CartView> {
     super.dispose();
   }
 
-  void _placeOrder() {
+  Future<void> _placeOrder() async {
     final cart = ref.read(cartViewModelProvider);
-    unawaited(
-      ref
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+    try {
+      final order = await ref
           .read(checkoutViewModelProvider.notifier)
           .placeOrder(
             address: cart.fulfilment == FulfilmentMethod.delivery
                 ? _addressController.text
                 : null,
             note: _noteController.text,
-          ),
-    );
+          );
+      if (order == null || !mounted) return;
+      router.go(AppRoutes.customerOrder(order.id));
+    } on OrderException catch (error) {
+      if (!mounted) return;
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(error.message)));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final cart = ref.watch(cartViewModelProvider);
-
-    // React to checkout outcomes: navigate on success, snackbar on failure.
-    ref.listen<CheckoutState>(checkoutViewModelProvider, (previous, next) {
-      switch (next) {
-        case CheckoutPlaced(:final order):
-          ref.read(checkoutViewModelProvider.notifier).reset();
-          context.go(AppRoutes.customerOrder(order.id));
-        case CheckoutFailure(:final message):
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(SnackBar(content: Text(message)));
-          ref.read(checkoutViewModelProvider.notifier).reset();
-        case CheckoutIdle():
-        case CheckoutPlacing():
-          break;
-      }
-    });
-
-    final isPlacing = ref.watch(checkoutViewModelProvider) is CheckoutPlacing;
+    final isPlacing = ref.watch(checkoutViewModelProvider);
 
     return CustomerScaffold(
       currentTab: CustomerTab.cart,
@@ -278,8 +268,18 @@ class _CartLineTile extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // A fixed 56x56 box. Both dimensions are set because the row uses
+          // CrossAxisAlignment.start, which hands the child an unbounded
+          // height; ProductThumbnail is an AspectRatio and would otherwise
+          // have no height to resolve against, collapsing the line (and the
+          // whole list) to nothing on a real device.
+          // A fixed 56x56 box. Both dimensions are set because the row uses
+          // CrossAxisAlignment.start, which hands the child an unbounded
+          // height; ProductThumbnail is an AspectRatio and would otherwise
+          // have no height to resolve against once a product has an image.
           SizedBox(
             width: 56,
+            height: 56,
             child: ProductThumbnail(
               imageUrl: product.coverImageUrl,
               borderRadius: 10,

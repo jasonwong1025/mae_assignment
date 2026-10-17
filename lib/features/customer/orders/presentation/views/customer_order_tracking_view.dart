@@ -83,23 +83,25 @@ class _OrderHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Order #${order.number}', style: textTheme.headlineSmall),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              order.placedAt == null
-                  ? 'Placing…'
-                  : 'Placed ${Formatters.dayMonth(order.placedAt!)}, '
-                        '${Formatters.time(order.placedAt!)}',
-              style: textTheme.bodyMedium,
-            ),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Order #${order.number}', style: textTheme.headlineSmall),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                order.placedAt == null
+                    ? 'Placing…'
+                    : 'Placed ${Formatters.dayMonth(order.placedAt!)}, '
+                          '${Formatters.time(order.placedAt!)}',
+                style: textTheme.bodyMedium,
+              ),
+            ],
+          ),
         ),
+        const SizedBox(width: AppSpacing.m),
         _StatusChip(status: order.status),
       ],
     );
