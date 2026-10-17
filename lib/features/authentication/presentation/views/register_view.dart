@@ -58,15 +58,16 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
           password: _passwordController.text,
         );
 
-    // go() instead of push() so the user cannot go "back" to sign-up.
-    if (created && mounted) context.go(AppRoutes.home);
+    // Registration is customer-only, so land on the catalogue. go()
+    // instead of push() so the user cannot go "back" to sign-up.
+    if (created && mounted) context.go(AppRoutes.customerCatalogue);
   }
 
   Future<void> _onGoogle() async {
     final signedIn = await ref
         .read(googleSignInViewModelProvider.notifier)
         .signIn();
-    if (signedIn && mounted) context.go(AppRoutes.home);
+    if (signedIn && mounted) context.go(AppRoutes.customerCatalogue);
   }
 
   void _showMessage(String text) {

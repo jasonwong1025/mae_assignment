@@ -65,12 +65,13 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
     if (!signedIn || !mounted) return;
 
-    // Store admins have their own dashboard. The other roles share the
-    // placeholder home until their pages are built.
-    // go() instead of push() so the user cannot go "back" to sign-in.
-    context.go(
-      role == UserRole.storeAdmin ? AppRoutes.adminDashboard : AppRoutes.home,
-    );
+    // Each role lands on its own home. go() instead of push() so the user
+    // cannot go "back" to sign-in.
+    context.go(switch (role) {
+      UserRole.storeAdmin => AppRoutes.adminDashboard,
+      UserRole.customer => AppRoutes.customerCatalogue,
+      UserRole.storeWorker => AppRoutes.home,
+    });
   }
 
   void _onForgotPassword() {
@@ -82,7 +83,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
     final signedIn = await ref
         .read(googleSignInViewModelProvider.notifier)
         .signIn();
-    if (signedIn && mounted) context.go(AppRoutes.home);
+    // Google sign-in is customer-only, so it lands on the catalogue.
+    if (signedIn && mounted) context.go(AppRoutes.customerCatalogue);
   }
 
   void _showMessage(String text) {
