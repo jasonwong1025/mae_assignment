@@ -226,6 +226,15 @@ async function seedTestCustomer() {
       createdAt: FieldValue.serverTimestamp(),
     });
 
+  // Start every run with an empty cart. The app saves carts, so a run that
+  // stopped midway would otherwise leave items for the next one.
+  await db
+    .collection("users")
+    .doc(E2E_CUSTOMER.uid)
+    .collection("cart")
+    .doc("current")
+    .delete();
+
   console.log(
     `Test customer ready: ${E2E_CUSTOMER.email} / ${E2E_CUSTOMER.password}`
   );

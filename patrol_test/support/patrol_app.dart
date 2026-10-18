@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/app/app.dart';
 import 'package:mae_assignment/core/firebase/firebase_emulators.dart';
@@ -25,8 +26,24 @@ Future<void> launchApp(PatrolIntegrationTester $) async {
   }
   FirebaseEmulators.connect();
 
-  // pumpWidget (not ...AndSettle): the catalogue's Firestore reads have
-  // their own timeouts, so settling here could block on pending async work
-  // before the test even starts. The individual steps wait as needed.
-  await $.pumpWidget(const ProviderScope(child: GrocerlyApp()));
+  await _pumpApp($);
+}
+
+/// Simulates the user closing and reopening the app.
+///
+/// Patrol cannot kill and relaunch the app process from inside a test, so
+/// this does what Patrol's maintainers suggest for resetting Dart-side
+/// state: attach a fresh root widget. The new [ProviderScope] has a new key,
+/// so every provider (cart, selected branch, router) starts from scratch,
+/// exactly as after a cold start. Firebase keeps its saved sign-in, as it
+/// does across real restarts.
+Future<void> restartApp(PatrolIntegrationTester $) => _pumpApp($);
+
+// pumpWidget (not ...AndSettle): the catalogue's Firestore reads have their
+// own timeouts, so settling here could block on pending async work before
+// the test even starts. The individual steps wait as needed.
+Future<void> _pumpApp(PatrolIntegrationTester $) {
+  return $.pumpWidget(
+    ProviderScope(key: UniqueKey(), child: const GrocerlyApp()),
+  );
 }

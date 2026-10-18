@@ -45,6 +45,13 @@ class AuthService {
 
   Future<void> signOut() => _auth.signOut();
 
+  /// Asks the backend to refresh the signed-in account. Throws a
+  /// [FirebaseAuthException] such as `user-token-expired` when the saved
+  /// session is no longer valid. Does nothing when signed out.
+  Future<void> reloadCurrentUser() async {
+    await _auth.currentUser?.reload();
+  }
+
   /// Deletes the signed-in account. Used to undo a sign-up that failed
   /// halfway, so the same email can be used again.
   Future<void> deleteCurrentUser() async {

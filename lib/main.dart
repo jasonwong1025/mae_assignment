@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:mae_assignment/app/app.dart';
 import 'package:mae_assignment/core/firebase/firebase_emulators.dart';
+import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/firebase_options.dart';
 
 Future<void> main() async {
@@ -15,6 +16,14 @@ Future<void> main() async {
   // --dart-define=USE_FIREBASE_EMULATOR=true. Does nothing otherwise.
   FirebaseEmulators.connect();
 
-  // ProviderScope holds all Riverpod providers (ViewModels, repositories).
-  runApp(const ProviderScope(child: GrocerlyApp()));
+  // The container holds all Riverpod providers (ViewModels, repositories).
+  final container = ProviderContainer();
+
+  // Sign out a saved session the backend no longer accepts, before the
+  // router decides which page to open.
+  await container.read(authRepositoryProvider).endDeadSession();
+
+  runApp(
+    UncontrolledProviderScope(container: container, child: const GrocerlyApp()),
+  );
 }

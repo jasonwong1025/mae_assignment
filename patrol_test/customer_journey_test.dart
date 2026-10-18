@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart' show find;
+import 'package:mae_assignment/features/customer/catalogue/presentation/ui/product_card.dart';
 import 'package:patrol/patrol.dart';
 
 import 'support/patrol_app.dart';
 import 'support/waits.dart';
 
 /// End-to-end customer journey against the Firebase emulators:
-/// sign in -> browse the catalogue -> add a product -> open the cart ->
+/// sign in -> browse the catalogue -> add a product -> open its details and
+/// add more -> restart the app and find the cart restored -> open the cart ->
 /// confirm a delivery address -> place the order -> see live tracking ->
 /// go back to the orders list.
 ///
@@ -50,6 +52,30 @@ void main() {
     // auto-scroll).
     await $(Icons.add_rounded).first.scrollTo().tap();
     await $.pumpAndSettle();
+
+    // --- Product details ---------------------------------------------
+    // The first card is the product just added, so its details page shows
+    // the one already in the cart.
+    await $(CustomerProductCard).first.scrollTo().tap();
+    await waitForWidget($, $('Product details'));
+    await waitForWidget($, $('In your cart: 1'));
+
+    // Choose a quantity of 2 and add it: 1 + 2 = 3 in the cart.
+    await $(find.byTooltip('Increase quantity')).tap();
+    await $(find.textContaining('Add to cart')).tap();
+    await waitForWidget($, $('In your cart: 3'));
+
+    // --- Cart survives an app restart --------------------------------
+    // The cart is saved per user in Firestore, so after a restart (a fresh
+    // app state, still signed in) the same product is back in the cart.
+    await restartApp($);
+    await waitForWidget($, $('DELIVER TO'), timeout: catalogueTimeout);
+    await waitForWidget($, $(Icons.add_rounded), timeout: catalogueTimeout);
+    await $(CustomerProductCard).first.scrollTo().tap();
+    await waitForWidget($, $('Product details'));
+    await waitForWidget($, $('In your cart: 3'), timeout: catalogueTimeout);
+    await $(find.byTooltip('Back')).tap();
+    await waitForWidget($, $('DELIVER TO'));
 
     // --- Cart --------------------------------------------------------
     // Open the Cart tab from the bottom navigation.

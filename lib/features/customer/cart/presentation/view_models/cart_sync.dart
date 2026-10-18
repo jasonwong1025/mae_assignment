@@ -3,18 +3,13 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
+
 import 'package:mae_assignment/features/customer/cart/data/models/stored_cart.dart';
 import 'package:mae_assignment/features/customer/cart/data/repositories/cart_repository.dart';
 import 'package:mae_assignment/features/customer/cart/presentation/view_models/cart_view_model.dart';
 import 'package:mae_assignment/features/customer/cart/presentation/view_models/selected_address_view_model.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/repositories/catalogue_repository.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/view_models/selected_branch_view_model.dart';
-
-/// The signed-in uid (null when signed out), following every sign-in and
-/// sign-out.
-final StreamProvider<String?> authUidProvider = StreamProvider<String?>((ref) {
-  return ref.watch(authRepositoryProvider).uidChanges;
-});
 
 /// Keeps the in-memory cart and the saved cart in step. Watched once from
 /// the app root so it lives for the whole session.

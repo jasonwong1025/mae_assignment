@@ -121,12 +121,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final workerPreviewEnabled = ref.watch(workerPreviewEnabledProvider);
 
   // Re-runs the redirect when the preview worker changes, so switching or
-  // leaving a worker immediately applies the new role's pages.
+  // leaving a worker immediately applies the new role's pages. It also runs
+  // when the user becomes signed out (for example the backend ended the
+  // session), so they are sent to onboarding at once. Sign-in is left out on
+  // purpose: the sign-in and sign-up screens navigate themselves once the
+  // profile is ready.
   // listen (not watch), so the router is not rebuilt and history is kept.
   final workerSessionChanges = ValueNotifier<int>(0);
   ref
     ..listen(workerSessionProvider, (previous, next) {
       workerSessionChanges.value++;
+    })
+    ..listen(authUidProvider, (previous, next) {
+      if (previous?.value != null && next.hasValue && next.value == null) {
+        workerSessionChanges.value++;
+      }
     })
     ..onDispose(workerSessionChanges.dispose);
 

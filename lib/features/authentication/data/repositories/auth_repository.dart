@@ -22,6 +22,12 @@ final FutureProvider<AppUser?> currentUserProvider =
       return ref.watch(authRepositoryProvider).getCurrentUser();
     });
 
+/// The signed-in uid (null when signed out), following every sign-in and
+/// sign-out.
+final StreamProvider<String?> authUidProvider = StreamProvider<String?>((ref) {
+  return ref.watch(authRepositoryProvider).uidChanges;
+});
+
 /// Error with a message that is safe to show on screen.
 class AuthException implements Exception {
   const AuthException(this.message);
@@ -221,6 +227,38 @@ class AuthRepository {
         name: 'grocerly.auth',
         error: error,
         stackTrace: stackTrace,
+      );
+    }
+  }
+
+  /// Error codes that mean the saved session can never work again (account
+  /// deleted or disabled, tokens revoked, or the session came from another
+  /// backend such as the emulator).
+  static const Set<String> _deadSessionCodes = {
+    'user-token-expired',
+    'invalid-user-token',
+    'user-not-found',
+    'user-disabled',
+  };
+
+  /// Firebase keeps a user signed in on the device until the backend
+  /// rejects their refresh token, and does not tell the app when that
+  /// happens. Call this on app start: it asks the backend to refresh the
+  /// account and signs out if the session is dead.
+  ///
+  /// Offline or slow connections are not a reason to sign out, so any other
+  /// failure leaves the user signed in.
+  Future<void> endDeadSession() async {
+    if (!_authService.isSignedIn) return;
+    try {
+      await _authService.reloadCurrentUser().timeout(_firestoreTimeout);
+    } on FirebaseAuthException catch (error) {
+      if (_deadSessionCodes.contains(error.code)) await signOut();
+    } on Object catch (error) {
+      developer.log(
+        'Could not check the saved session; keeping the user signed in.',
+        name: 'grocerly.auth',
+        error: error,
       );
     }
   }
