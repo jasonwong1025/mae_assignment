@@ -5,9 +5,17 @@
 # deliberate exceptions documented below.
 include: package:very_good_analysis/analysis_options.yaml
 
+# Official Riverpod lint rules (installed as an analyzer plugin, see
+# https://pub.dev/packages/riverpod_lint). They run with `flutter analyze`
+# and in the editor, so provider mistakes fail CI like any other lint.
+plugins:
+  riverpod_lint: ^3.1.9
 analyzer:
   exclude:
     - build/**
+    # Mason templates contain {{ }} placeholders, so they are not valid Dart
+    # until a feature is generated from them.
+    - bricks/**
     - android/**
     - ios/**
     - web/**
@@ -15,9 +23,8 @@ analyzer:
     # Node project for the Firestore rules tests; its node_modules ships
     # stray Dart template files that are not ours to analyze.
     - test_firebase/**
-    # Generated code (Freezed / json_serializable) is not ours to lint.
+    # Generated code (Freezed) is not ours to lint.
     - "**/*.freezed.dart"
-    - "**/*.g.dart"
 
 linter:
   rules:

@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
+
+part 'inventory_filter_view_model.freezed.dart';
 
 final NotifierProvider<InventoryFilterViewModel, InventoryFilter>
 inventoryFilterViewModelProvider =
@@ -20,22 +23,19 @@ enum VisibilityFilter {
 
 /// Which products the Inventory tab asks for: search text, filters and
 /// page. A filter that is null is not applied.
-class InventoryFilter {
-  const InventoryFilter({
-    this.searchText = '',
-    this.categoryId,
-    this.stockStatus,
-    this.visibility,
-    this.page = 1,
-  });
+@freezed
+abstract class InventoryFilter with _$InventoryFilter {
+  const factory InventoryFilter({
+    @Default('') String searchText,
+    String? categoryId,
+    StockStatus? stockStatus,
+    VisibilityFilter? visibility,
 
-  final String searchText;
-  final String? categoryId;
-  final StockStatus? stockStatus;
-  final VisibilityFilter? visibility;
+    /// The first page is 1.
+    @Default(1) int page,
+  }) = _InventoryFilter;
 
-  /// The first page is 1.
-  final int page;
+  const InventoryFilter._();
 
   /// True if a search or filter is narrowing the list.
   bool get isNarrowing {
@@ -61,48 +61,22 @@ class InventoryFilterViewModel extends Notifier<InventoryFilter> {
   }
 
   void setSearchText(String text) {
-    state = InventoryFilter(
-      searchText: text,
-      categoryId: state.categoryId,
-      stockStatus: state.stockStatus,
-      visibility: state.visibility,
-    );
+    state = state.copyWith(searchText: text, page: 1);
   }
 
   void setCategory(String? categoryId) {
-    state = InventoryFilter(
-      searchText: state.searchText,
-      categoryId: categoryId,
-      stockStatus: state.stockStatus,
-      visibility: state.visibility,
-    );
+    state = state.copyWith(categoryId: categoryId, page: 1);
   }
 
   void setStockStatus(StockStatus? stockStatus) {
-    state = InventoryFilter(
-      searchText: state.searchText,
-      categoryId: state.categoryId,
-      stockStatus: stockStatus,
-      visibility: state.visibility,
-    );
+    state = state.copyWith(stockStatus: stockStatus, page: 1);
   }
 
   void setVisibility(VisibilityFilter? visibility) {
-    state = InventoryFilter(
-      searchText: state.searchText,
-      categoryId: state.categoryId,
-      stockStatus: state.stockStatus,
-      visibility: visibility,
-    );
+    state = state.copyWith(visibility: visibility, page: 1);
   }
 
   void setPage(int page) {
-    state = InventoryFilter(
-      searchText: state.searchText,
-      categoryId: state.categoryId,
-      stockStatus: state.stockStatus,
-      visibility: state.visibility,
-      page: page,
-    );
+    state = state.copyWith(page: page);
   }
 }

@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/core/errors/app_exception.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/shared/models/customer_address.dart';
 import 'package:mae_assignment/shared/services/address_service.dart';
@@ -13,13 +13,8 @@ final Provider<AddressRepository> addressRepositoryProvider =
     });
 
 /// Error with a message that is safe to show on screen.
-class AddressException implements Exception {
-  const AddressException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
+class AddressException extends AppException {
+  const AddressException(super.message);
 }
 
 /// A customer's saved delivery addresses. Resolves the signed-in user's uid
@@ -82,18 +77,13 @@ class AddressRepository {
     });
   }
 
-  Future<T> _run<T>(Future<T> Function() call) async {
-    try {
-      return await call();
-    } on AddressException {
-      rethrow;
-    } on Object catch (error) {
-      debugPrint('Address request failed: $error');
-      throw const AddressException(
-        'Could not reach the server. Please check your connection and '
-        'try again.',
-      );
-    }
+  /// Runs a Firestore call through the shared [guard].
+  Future<T> _run<T>(Future<T> Function() call) {
+    return guard(
+      call,
+      label: 'address',
+      onError: () => const AddressException(kNetworkErrorMessage),
+    );
   }
 }
 

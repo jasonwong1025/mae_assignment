@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/core/errors/app_exception.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/mock_worker_orders.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/worker_order_policy.dart';
@@ -20,13 +21,8 @@ final workerOrdersRepositoryProvider = Provider<WorkerOrdersRepository>((ref) {
 });
 
 /// Error with a message that is safe to show on screen.
-class WorkerOrderException implements Exception {
-  const WorkerOrderException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
+class WorkerOrderException extends AppException {
+  const WorkerOrderException(super.message);
 }
 
 /// Orders for every Store Worker screen: packing, pickup and delivery.

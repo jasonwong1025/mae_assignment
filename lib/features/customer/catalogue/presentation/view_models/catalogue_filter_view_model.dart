@@ -1,4 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'catalogue_filter_view_model.freezed.dart';
 
 final NotifierProvider<CatalogueFilterViewModel, CatalogueFilter>
 catalogueFilterViewModelProvider =
@@ -8,12 +11,15 @@ catalogueFilterViewModelProvider =
 
 /// How the customer is narrowing the catalogue on the Home screen: the
 /// selected category (null means "all") and the search text.
-class CatalogueFilter {
-  const CatalogueFilter({this.categoryId, this.searchText = ''});
+@freezed
+abstract class CatalogueFilter with _$CatalogueFilter {
+  const factory CatalogueFilter({
+    /// Selected category id, or null for every category.
+    String? categoryId,
+    @Default('') String searchText,
+  }) = _CatalogueFilter;
 
-  /// Selected category id, or null for every category.
-  final String? categoryId;
-  final String searchText;
+  const CatalogueFilter._();
 }
 
 /// State for the Home screen's category tabs and search box.
@@ -22,13 +28,10 @@ class CatalogueFilterViewModel extends Notifier<CatalogueFilter> {
   CatalogueFilter build() => const CatalogueFilter();
 
   void setCategory(String? categoryId) {
-    state = CatalogueFilter(
-      categoryId: categoryId,
-      searchText: state.searchText,
-    );
+    state = state.copyWith(categoryId: categoryId);
   }
 
   void setSearchText(String text) {
-    state = CatalogueFilter(categoryId: state.categoryId, searchText: text);
+    state = state.copyWith(searchText: text);
   }
 }

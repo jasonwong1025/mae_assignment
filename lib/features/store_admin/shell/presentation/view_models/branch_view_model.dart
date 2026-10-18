@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
 import 'package:mae_assignment/shared/repositories/branch_repository.dart';
+
+part 'branch_view_model.freezed.dart';
 
 /// Not autoDispose on purpose: the chosen branch should stay the same
 /// while the admin moves between pages.
@@ -9,11 +11,14 @@ final branchViewModelProvider =
     AsyncNotifierProvider<BranchViewModel, BranchState>(BranchViewModel.new);
 
 /// The admin's branches and the one they are looking at.
-class BranchState {
-  const BranchState({required this.branches, required this.selected});
+@freezed
+abstract class BranchState with _$BranchState {
+  const factory BranchState({
+    required List<Branch> branches,
+    required Branch selected,
+  }) = _BranchState;
 
-  final List<Branch> branches;
-  final Branch selected;
+  const BranchState._();
 }
 
 /// State for the branch switcher at the top of the sidebar.

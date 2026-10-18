@@ -133,14 +133,145 @@ Patrol uninstalls the app after each run. It generates
 `patrol_test/test_bundle.dart`, which is git-ignored and must not be
 committed.
 
+## Code conventions
+
+Everyone writes code the same way, and the rules are enforced by tools (see
+"Continuous integration"), not by memory. The reference for the shapes below is
+`lib/core/reference/freezed_example.dart`; the database is described in
+[`DATABASE/FIRESTORE.md`](DATABASE/FIRESTORE.md).
+
+### Layout and layers
+
+```
+lib/features/<role>/<feature>/
+  data/{models, services, repositories}
+  presentation/{views, ui, view_models}
+lib/shared/{models, services, repositories, ui}     used by more than one role
+lib/core/                                            app-wide infrastructure
+```
+
+Data flows one way: **view -> view model -> repository -> service -> Firestore**.
+
+- **Views and widgets** (`presentation/views`, `presentation/ui`, `shared/ui`)
+  show state and call view-model methods. They never import a Firebase package
+  or a service. Device-only services (camera, launcher, printing, image picker)
+  are the one exception.
+- **View models** are Riverpod notifiers. They hold screen state and call
+  repositories.
+- **Repositories** turn failures into friendly errors and combine services.
+- **Services** are the only code that talks to Firebase. One service per
+  collection or SDK.
+- **Models** hold data and small derived values. They never import Firebase.
+
+### Models and state: always Freezed
+
+Every class in a `models/` folder, and every view-model state or filter, is a
+Freezed class (`@freezed abstract class`), so equality, `copyWith` and
+`toString` behave the same everywhere. Update state with `copyWith`:
+
+```dart
+state = state.copyWith(searchText: text, page: 1);
+```
+
+A model stored in Firestore also has its mapping written by hand, the way
+Firebase's own documentation shows it, so the field names come from
+`firestore_paths.dart`, the single schema, instead of being implied by property
+names:
+
+- A document with an id has `fromFirestore(id, data)` and `toFirestore()`. A
+  nested value (an array entry) or a document with no id of its own has
+  `fromMap(map)` and `toMap()`.
+- Read fields with the `FieldReaders` extension
+  (`lib/core/firebase/field_readers.dart`): `data.string(...)`,
+  `data.dateTime(...)`, `data.latLng(...)`. Plain readers fall back to a default
+  so an older document still loads; `required...` readers throw, so a broken
+  document is skipped instead of shown half empty.
+- The document id is never written as a field. Server times are read but never
+  written by the model; the service adds `FieldValue.serverTimestamp()`.
+- Every document model gets a round-trip test (see
+  `test/core/model_mapping_test.dart`).
+
+### Firestore access
+
+- Collection and field names live in `lib/core/firebase/firestore_paths.dart`.
+- **Every path is built in `FirestoreRefs`** (`firestore_refs.dart`). Services
+  call `_refs.orders`, `_refs.address(uid, id)`; they never chain
+  `.collection().doc()` or read `FirebaseFirestore.instance`.
+- Read documents with `snapshot.toModel(fromFirestore: Model.fromFirestore)` and
+  `querySnapshot.toModels(fromFirestore: ...)`. They pass the document id and
+  skip malformed documents. Write `{...model.toFirestore(), 'createdAt':
+  FieldValue.serverTimestamp()}`; never write a server time from the client.
+- Apply `FirestoreConfig.readTimeout` to every `get()`.
+- Changing a collection means changing `firestore.rules`, its test and
+  `DATABASE/FIRESTORE.md` together.
+
+### Errors
+
+A repository declares one exception per feature, extending `AppException`
+(`lib/core/errors/app_exception.dart`), and wraps its backend calls in the
+shared `guard(...)` instead of writing its own try/catch:
+
+```dart
+class OrderException extends AppException {
+  const OrderException(super.message);
+}
+
+Future<T> _run<T>(Future<T> Function() call) => guard(
+  call,
+  label: 'order',
+  onError: () => const OrderException(kNetworkErrorMessage),
+);
+```
+
+The message is always safe to show on screen. Raw errors are logged, never
+shown.
+
+### Riverpod
+
+- Providers that must outlive a tab (selected branch, cart, session) are not
+  `autoDispose`; screen-scoped state is.
+- A provider that reads Firestore and can fail sets `retry: (_, _) => null`, so
+  the screen shows its "Try again" button instead of retrying silently.
+- No side effects in `build`, and no navigation from `ref.listen`; await the
+  action, then navigate.
+- `riverpod_lint` runs with the analyzer (see "Continuous integration").
+
+### Tests
+
+A change that adds behaviour adds tests next to the existing ones: a
+Firestore model gets a round-trip test, a service gets a test on
+`fake_cloud_firestore`, a repository or view model gets a test with fakes or
+`mocktail`, and a rule change gets a rules test in `test_firebase/`.
+`test/core/model_mapping_test.dart` fails if a model writes a field that
+`firestore_paths.dart` does not name, or does not read back what it writes.
+
+### Adding a feature
+
+Use the Mason brick instead of copying a neighbouring feature, so the new code
+starts in the right shape. One-time setup:
+
+```bash
+dart pub global activate mason_cli
+mason get
+```
+
+1. Add the collection to `FirestoreCollections` and a getter to `FirestoreRefs`.
+2. Generate the model, service, repository, view model and service test:
+
+   ```bash
+   mason make feature --name review --feature reviews --role customer --collection reviews
+   ```
+
+   (`--role` is `customer`, `store_admin` or `store_worker`; `--collection` is
+   the `FirestoreRefs` getter. Omit the flags to be prompted.)
+3. Generate the model code and format: `fvm dart run build_runner build`.
+4. Add the field names to `firestore_paths.dart`, the rules (and their test),
+   and `DATABASE/FIRESTORE.md`.
+
 ## Code generation
 
-New immutable models and sealed view-model states use
-[Freezed](https://pub.dev/packages/freezed). Annotated files have a
-`part '<name>.freezed.dart';` line; the generator fills it in. See
-`lib/core/reference/freezed_example.dart` for the two patterns (data class and
-sealed union) to copy. Existing hand-written models are left as they are; we do
-not retrofit them.
+Freezed generates the model code. Annotated files have
+`part '<name>.freezed.dart';`; the generator fills it in.
 
 After editing an annotated file, regenerate:
 
@@ -149,11 +280,10 @@ fvm dart run build_runner build        # one-off
 fvm dart run build_runner watch        # while developing
 ```
 
-Generated `*.freezed.dart` (and later `*.g.dart`) files are committed, so the
-app builds straight after a checkout without anyone needing to run the
-generator first. Regenerate and commit the result whenever you change an
-annotated file. The analyzer ignores generated files (see
-`analysis_options.yaml`).
+Generated `*.freezed.dart` files are committed, so the app builds straight after
+a checkout without anyone needing to run the generator first. Regenerate and
+commit the result whenever you change an annotated file; CI fails if it is
+stale. The analyzer ignores generated files (see `analysis_options.yaml`).
 
 ## Continuous integration
 
@@ -162,9 +292,11 @@ Every push and pull request to `main` runs the quality gate in
 the change follows the team guidelines:
 
 - **flutter** job: pins the Flutter version from `.fvmrc`, then
-  `pub get --enforce-lockfile`, the Firestore paths check (see below),
-  `dart format --set-exit-if-changed`, `flutter analyze --fatal-infos`, a
-  check that committed Freezed output is up to date, and `flutter test`.
+  `pub get --enforce-lockfile`, the Firestore paths check and the architecture
+  check (see below), `dart format --set-exit-if-changed`,
+  `dart analyze --fatal-infos` (this also runs the `riverpod_lint` plugin, which
+  `flutter analyze` does not), a check that committed generated code is up to
+  date, and `flutter test`.
 - **firestore-rules** job: runs the `test_firebase` rules tests against the
   Firestore emulator (self-managed by `firebase-tools`, no device).
 - **e2e** job (pushes to `main` and manual runs only, not pull requests):
@@ -176,19 +308,23 @@ the change follows the team guidelines:
   (`free-disk-space`, `.github/ci-gradle.properties`, `setup-gradle`). On
   failure it uploads the Android test reports as the `e2e-reports` artifact.
 
-Firestore collection and document paths must go through the constants in
-`lib/core/firebase/firestore_paths.dart`, so each path lives in one place and
-stays in step with `firestore.rules`. `tool/check_firestore_paths.dart` fails
-if any file under `lib/` passes a string literal to `.collection()` or
-`.doc()`. It is written in Dart so it runs the same on macOS, Windows and
-Linux.
+Two Dart scripts in `tool/` (cross-platform, no shell) guard the conventions
+above:
+
+- `tool/check_firestore_paths.dart` fails if a Firestore path is built anywhere
+  except `FirestoreRefs`: a `.collection(...)` call, a string-literal `.doc('x')`
+  or `FirebaseFirestore.instance` outside `firestore_refs.dart`.
+- `tool/check_architecture.dart` fails if UI code imports a Firebase package or
+  a service, if a class in a `models/` folder or a view-model state/filter is
+  not Freezed, or if a repository exception does not extend `AppException`.
 
 Before pushing, you can run the same checks locally:
 
 ```bash
 fvm dart run tool/check_firestore_paths.dart
-fvm dart format .
-fvm flutter analyze --fatal-infos
+fvm dart run tool/check_architecture.dart
+fvm dart format --output=none --set-exit-if-changed lib test tool patrol_test
+fvm dart analyze --fatal-infos
 fvm dart run build_runner build
 fvm flutter test
 (cd test_firebase && npm test)

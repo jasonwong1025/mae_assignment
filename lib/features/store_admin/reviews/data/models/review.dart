@@ -1,38 +1,33 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'review.freezed.dart';
+
 /// A customer's rating of one completed order.
-class Review {
-  const Review({
-    required this.id,
-    required this.orderNumber,
-    required this.branchId,
-    required this.customerName,
-    required this.createdAt,
-    required this.shoppingScore,
-    required this.productScore,
-    this.deliveryScore,
-    this.driverId,
-    this.driverName,
-    this.comment,
-  });
+@freezed
+abstract class Review with _$Review {
+  const factory Review({
+    required String id,
+    required int orderNumber,
+    required String branchId,
+    required String customerName,
+    required DateTime createdAt,
 
-  final String id;
-  final int orderNumber;
-  final String branchId;
-  final String customerName;
-  final DateTime createdAt;
+    /// Scores from 1 to 5.
+    required int shoppingScore,
+    required int productScore,
 
-  /// Scores from 1 to 5.
-  final int shoppingScore;
-  final int productScore;
+    /// Null for pickup orders.
+    int? deliveryScore,
 
-  /// Null for pickup orders.
-  final int? deliveryScore;
+    /// Driver who delivered it. Null for pickup orders.
+    String? driverId,
+    String? driverName,
 
-  /// Driver who delivered it. Null for pickup orders.
-  final String? driverId;
-  final String? driverName;
+    /// Written feedback. Null if the customer left none.
+    String? comment,
+  }) = _Review;
 
-  /// Written feedback. Null if the customer left none.
-  final String? comment;
+  const Review._();
 
   bool get isDelivery => deliveryScore != null;
 

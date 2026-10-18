@@ -1,12 +1,15 @@
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/repositories/inventory_repository.dart';
 import 'package:mae_assignment/features/store_admin/inventory/presentation/view_models/inventory_filter_view_model.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 import 'package:mae_assignment/shared/models/page_result.dart';
+
+part 'inventory_view_model.freezed.dart';
 
 final AsyncNotifierProvider<InventoryViewModel, InventoryState>
 inventoryViewModelProvider =
@@ -15,13 +18,16 @@ inventoryViewModelProvider =
     );
 
 /// What the Inventory tab shows.
-class InventoryState {
-  const InventoryState({required this.page, required this.categories});
+@freezed
+abstract class InventoryState with _$InventoryState {
+  const factory InventoryState({
+    /// One page of the selected branch's products.
+    /// Only the page being shown is loaded.
+    required PageResult<InventoryItem> page,
+    required List<ProductCategory> categories,
+  }) = _InventoryState;
 
-  /// One page of the selected branch's products.
-  /// Only the page being shown is loaded.
-  final PageResult<InventoryItem> page;
-  final List<ProductCategory> categories;
+  const InventoryState._();
 
   String categoryName(String categoryId) {
     for (final category in categories) {

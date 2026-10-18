@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:mae_assignment/core/firebase/field_readers.dart';
 import 'package:mae_assignment/core/firebase/firestore_paths.dart';
 
 part 'catalogue_product.freezed.dart';
@@ -7,7 +7,9 @@ part 'catalogue_product.freezed.dart';
 /// A product in the customer catalogue, with the price and stock for the
 /// branch the customer is shopping from.
 ///
-/// This is the customer's read-only view of a product. Images are URLs
+/// This is a read model: it joins the shared products/{id} document with the
+/// branch's branches/{branchId}/inventory/{id} document, so it is built by
+/// [CatalogueProduct.fromFirestore] and never written back. Images are URLs
 /// (Firebase Storage), not raw bytes like the admin's editing model.
 @freezed
 abstract class CatalogueProduct with _$CatalogueProduct {
@@ -42,31 +44,21 @@ abstract class CatalogueProduct with _$CatalogueProduct {
     required Map<String, dynamic> inventory,
   }) {
     if (inventory[InventoryFields.isHidden] == true) return null;
-
-    final name = product[ProductFields.name] as String?;
-    final price = (inventory[InventoryFields.price] as num?)?.toDouble();
-    final stock = (inventory[InventoryFields.stock] as num?)?.toInt();
-    if (name == null || price == null || stock == null) return null;
-
-    return CatalogueProduct(
-      id: id,
-      name: name,
-      brand: product[ProductFields.brand] as String? ?? '',
-      categoryId: product[ProductFields.categoryId] as String? ?? '',
-      packSize: product[ProductFields.packSize] as String? ?? '',
-      price: price,
-      stock: stock,
-      description: product[ProductFields.description] as String? ?? '',
-      imageUrls: _stringList(product[ProductFields.imageUrls]),
-    );
-  }
-
-  static List<String> _stringList(Object? value) {
-    if (value is! List) return const [];
-    return [
-      for (final item in value)
-        if (item is String && item.isNotEmpty) item,
-    ];
+    try {
+      return CatalogueProduct(
+        id: id,
+        name: product.requiredString(ProductFields.name),
+        brand: product.string(ProductFields.brand),
+        categoryId: product.string(ProductFields.categoryId),
+        packSize: product.string(ProductFields.packSize),
+        price: inventory.requiredDecimal(InventoryFields.price),
+        stock: inventory.requiredInteger(InventoryFields.stock),
+        description: product.string(ProductFields.description),
+        imageUrls: product.strings(ProductFields.imageUrls),
+      );
+    } on FormatException {
+      return null;
+    }
   }
 
   /// The cover image URL, or null if the product has no images.
@@ -80,7 +72,8 @@ abstract class CatalogueProduct with _$CatalogueProduct {
   int? get lowStockRemaining => stock > 0 && stock <= 10 ? stock : null;
 }
 
-/// A catalogue category, e.g. "Fresh produce".
+/// A catalogue category, e.g. "Fresh produce", stored at
+/// categories/{categoryId}.
 @freezed
 abstract class CatalogueCategory with _$CatalogueCategory {
   const factory CatalogueCategory({
@@ -93,22 +86,20 @@ abstract class CatalogueCategory with _$CatalogueCategory {
 
   const CatalogueCategory._();
 
+  /// Reads categories/{id}. Returns null when the name is missing, so a
+  /// malformed document is skipped.
   static CatalogueCategory? fromFirestore(
     String id,
     Map<String, dynamic> data,
   ) {
-    final name = data[CategoryFields.name] as String?;
-    if (name == null) return null;
-    return CatalogueCategory(
-      id: id,
-      name: name,
-      sortOrder: (data[CategoryFields.sortOrder] as num?)?.toInt() ?? 0,
-    );
+    try {
+      return CatalogueCategory(
+        id: id,
+        name: data.requiredString(CategoryFields.name),
+        sortOrder: data.integer(CategoryFields.sortOrder),
+      );
+    } on FormatException {
+      return null;
+    }
   }
-}
-
-/// Converts a Firestore timestamp field if present (reserved for future
-/// catalogue fields like createdAt).
-DateTime? timestampToDate(Object? value) {
-  return value is Timestamp ? value.toDate() : null;
 }

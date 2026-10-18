@@ -1,29 +1,31 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:mae_assignment/core/errors/app_exception.dart';
 import 'package:mae_assignment/core/firebase/firestore_paths.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue_product.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/services/catalogue_service.dart';
+
+part 'catalogue_repository.freezed.dart';
 
 final catalogueRepositoryProvider = Provider<CatalogueRepository>((ref) {
   return CatalogueRepository(ref.watch(catalogueServiceProvider));
 });
 
 /// Error with a message that is safe to show on screen.
-class CatalogueException implements Exception {
-  const CatalogueException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
+class CatalogueException extends AppException {
+  const CatalogueException(super.message);
 }
 
 /// The whole catalogue for one branch: its categories and the products a
 /// customer can buy there, already joined with the branch's price and stock.
-class CatalogueData {
-  const CatalogueData({required this.categories, required this.products});
+@freezed
+abstract class CatalogueData with _$CatalogueData {
+  const factory CatalogueData({
+    required List<CatalogueCategory> categories,
+    required List<CatalogueProduct> products,
+  }) = _CatalogueData;
 
-  final List<CatalogueCategory> categories;
-  final List<CatalogueProduct> products;
+  const CatalogueData._();
 
   /// Products in [categoryId], or every product when it is null.
   List<CatalogueProduct> productsIn(String? categoryId) {
@@ -48,37 +50,26 @@ class CatalogueRepository {
   /// inventory entry in stock. One cheap read of the branch's inventory, used
   /// to avoid defaulting a customer to an empty store. Throws
   /// [CatalogueException] if Firestore cannot be reached.
-  Future<bool> hasProducts(String branchId) async {
-    try {
+  Future<bool> hasProducts(String branchId) {
+    return _run(() async {
       final inventory = await _service.fetchInventory(branchId);
       return inventory.values.any((item) {
         final stock = (item[InventoryFields.stock] as num?)?.toInt() ?? 0;
         return item[InventoryFields.isHidden] != true && stock > 0;
       });
-    } on Object {
-      throw const CatalogueException(
-        'Could not load the store. Please check your connection and try '
-        'again.',
-      );
-    }
+    });
   }
 
   /// Loads the catalogue for [branchId]. Throws [CatalogueException] with a
   /// friendly message if Firestore cannot be reached.
   Future<CatalogueData> loadCatalogue(String branchId) async {
-    final Map<String, Map<String, dynamic>> products;
-    final Map<String, Map<String, dynamic>> inventory;
-    final Map<String, Map<String, dynamic>> categories;
-    try {
-      products = await _service.fetchProducts();
-      inventory = await _service.fetchInventory(branchId);
-      categories = await _service.fetchCategories();
-    } on Object {
-      throw const CatalogueException(
-        'Could not load the store. Please check your connection and try '
-        'again.',
+    final (products, inventory, categories) = await _run(() async {
+      return (
+        await _service.fetchProducts(),
+        await _service.fetchInventory(branchId),
+        await _service.fetchCategories(),
       );
-    }
+    });
 
     final items = <CatalogueProduct>[
       for (final entry in products.entries)
@@ -100,5 +91,17 @@ class CatalogueRepository {
         });
 
     return CatalogueData(categories: sortedCategories, products: items);
+  }
+
+  /// Runs a Firestore read through the shared [guard].
+  Future<T> _run<T>(Future<T> Function() call) {
+    return guard(
+      call,
+      label: 'catalogue',
+      onError: () => const CatalogueException(
+        'Could not load the store. Please check your connection and try '
+        'again.',
+      ),
+    );
   }
 }

@@ -1,34 +1,31 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'dashboard_summary.freezed.dart';
+
 /// Everything the dashboard shows for one branch, for today.
-class DashboardSummary {
-  const DashboardSummary({
-    required this.ordersToday,
-    required this.ordersYesterday,
-    required this.ordersByHour,
-    required this.revenue,
-    required this.driversOnRoad,
-    required this.totalDrivers,
-    required this.liveOrders,
-    required this.activity,
-  });
+@freezed
+abstract class DashboardSummary with _$DashboardSummary {
+  const factory DashboardSummary({
+    required int ordersToday,
+    required int ordersYesterday,
 
-  final int ordersToday;
-  final int ordersYesterday;
+    /// Order count for each hour since the branch opened.
+    /// The last number is the current hour.
+    required List<int> ordersByHour,
 
-  /// Order count for each hour since the branch opened.
-  /// The last number is the current hour.
-  final List<int> ordersByHour;
+    /// Today's revenue in whole ringgit.
+    required int revenue,
+    required int driversOnRoad,
+    required int totalDrivers,
 
-  /// Today's revenue in whole ringgit.
-  final int revenue;
+    /// Orders that are not finished yet.
+    required List<LiveOrder> liveOrders,
 
-  final int driversOnRoad;
-  final int totalDrivers;
+    /// Latest staff actions, newest first.
+    required List<ActivityEntry> activity,
+  }) = _DashboardSummary;
 
-  /// Orders that are not finished yet.
-  final List<LiveOrder> liveOrders;
-
-  /// Latest staff actions, newest first.
-  final List<ActivityEntry> activity;
+  const DashboardSummary._();
 }
 
 /// Where an unfinished order is right now.
@@ -45,30 +42,30 @@ enum LiveOrderStatus {
 }
 
 /// One row of the "Right now" list.
-class LiveOrder {
-  const LiveOrder({
-    required this.number,
-    required this.customerName,
-    required this.status,
-    required this.isDelivery,
-    required this.minutesInStatus,
-  });
+@freezed
+abstract class LiveOrder with _$LiveOrder {
+  const factory LiveOrder({
+    required int number,
+    required String customerName,
+    required LiveOrderStatus status,
 
-  final int number;
-  final String customerName;
-  final LiveOrderStatus status;
+    /// True for delivery, false for pickup at the store.
+    required bool isDelivery,
 
-  /// True for delivery, false for pickup at the store.
-  final bool isDelivery;
+    /// How long the order has been in its current status.
+    required int minutesInStatus,
+  }) = _LiveOrder;
 
-  /// How long the order has been in its current status.
-  final int minutesInStatus;
+  const LiveOrder._();
 }
 
 /// One line of the activity list, e.g. "Amir marked #2286 delivered".
-class ActivityEntry {
-  const ActivityEntry({required this.message, required this.minutesAgo});
+@freezed
+abstract class ActivityEntry with _$ActivityEntry {
+  const factory ActivityEntry({
+    required String message,
+    required int minutesAgo,
+  }) = _ActivityEntry;
 
-  final String message;
-  final int minutesAgo;
+  const ActivityEntry._();
 }

@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:mae_assignment/core/firebase/field_readers.dart';
 import 'package:mae_assignment/core/firebase/firestore_paths.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 
@@ -32,23 +32,25 @@ abstract class OrderItem with _$OrderItem {
 
   const OrderItem._();
 
+  /// Reads one entry of orders/{id}.items.
   factory OrderItem.fromMap(Map<String, dynamic> map) {
     return OrderItem(
-      lineId: map[OrderItemFields.lineId] as String? ?? '',
-      productId: map[OrderItemFields.productId] as String? ?? '',
-      name: map[OrderItemFields.name] as String? ?? '',
-      brand: map[OrderItemFields.brand] as String? ?? '',
-      packSize: map[OrderItemFields.packSize] as String? ?? '',
-      quantity: (map[OrderItemFields.quantity] as num?)?.toInt() ?? 0,
-      unitPrice: (map[OrderItemFields.unitPrice] as num?)?.toDouble() ?? 0,
-      imageUrl: map[OrderItemFields.imageUrl] as String?,
+      lineId: map.string(OrderItemFields.lineId),
+      productId: map.string(OrderItemFields.productId),
+      name: map.string(OrderItemFields.name),
+      brand: map.string(OrderItemFields.brand),
+      packSize: map.string(OrderItemFields.packSize),
+      quantity: map.integer(OrderItemFields.quantity),
+      unitPrice: map.decimal(OrderItemFields.unitPrice),
+      imageUrl: map.stringOrNull(OrderItemFields.imageUrl),
     );
   }
 
   /// Price for this line: unit price times quantity.
   double get lineTotal => unitPrice * quantity;
 
-  /// Fields for the orders/{orderId}.items array.
+  /// Fields for the orders/{orderId}.items array. A missing image is left
+  /// out.
   Map<String, dynamic> toMap() {
     return {
       OrderItemFields.lineId: lineId,
@@ -109,58 +111,38 @@ abstract class Order with _$Order {
 
   const Order._();
 
-  /// Reads orders/{id}. Returns null if required fields are missing, so a
-  /// malformed document is skipped rather than crashing a list.
-  static Order? fromFirestore(String id, Map<String, dynamic> map) {
-    final number = (map[OrderFields.number] as num?)?.toInt();
-    final customerId = map[OrderFields.customerId] as String?;
-    if (number == null || customerId == null) return null;
-
+  /// Reads orders/{id}. A document without a number or customer is
+  /// malformed and throws, so it is skipped when reading a list.
+  factory Order.fromFirestore(String id, Map<String, dynamic> data) {
     return Order(
       id: id,
-      number: number,
-      customerId: customerId,
-      customerName: map[OrderFields.customerName] as String? ?? '',
-      customerPhone: map[OrderFields.customerPhone] as String? ?? '',
-      branchId: map[OrderFields.branchId] as String? ?? '',
-      branchName: map[OrderFields.branchName] as String? ?? '',
-      isDelivery: map[OrderFields.isDelivery] as bool? ?? true,
-      items: _itemsFrom(map[OrderFields.items]),
-      subtotal: (map[OrderFields.subtotal] as num?)?.toDouble() ?? 0,
-      deliveryFee: (map[OrderFields.deliveryFee] as num?)?.toDouble() ?? 0,
-      discount: (map[OrderFields.discount] as num?)?.toDouble() ?? 0,
-      total: (map[OrderFields.total] as num?)?.toDouble() ?? 0,
-      status: _statusFrom(map[OrderFields.status]),
-      address: map[OrderFields.address] as String?,
-      addressLocation: _latLngFrom(map[OrderFields.addressLocation]),
-      customerNote: map[OrderFields.customerNote] as String?,
-      promoCode: map[OrderFields.promoCode] as String?,
-      placedAt: _dateFrom(map[OrderFields.placedAt]),
-      statusSince: _dateFrom(map[OrderFields.statusSince]),
+      number: data.requiredInteger(OrderFields.number),
+      customerId: data.requiredString(OrderFields.customerId),
+      customerName: data.string(OrderFields.customerName),
+      customerPhone: data.string(OrderFields.customerPhone),
+      branchId: data.string(OrderFields.branchId),
+      branchName: data.string(OrderFields.branchName),
+      isDelivery: data.boolean(OrderFields.isDelivery, fallback: true),
+      items: [
+        for (final item in data.maps(OrderFields.items))
+          OrderItem.fromMap(item),
+      ],
+      subtotal: data.decimal(OrderFields.subtotal),
+      deliveryFee: data.decimal(OrderFields.deliveryFee),
+      discount: data.decimal(OrderFields.discount),
+      total: data.decimal(OrderFields.total),
+      status: data.enumValue(
+        OrderFields.status,
+        OrderStatus.values,
+        fallback: OrderStatus.pending,
+      ),
+      address: data.stringOrNull(OrderFields.address),
+      addressLocation: data.latLng(OrderFields.addressLocation),
+      customerNote: data.stringOrNull(OrderFields.customerNote),
+      promoCode: data.stringOrNull(OrderFields.promoCode),
+      placedAt: data.dateTime(OrderFields.placedAt),
+      statusSince: data.dateTime(OrderFields.statusSince),
     );
-  }
-
-  static List<OrderItem> _itemsFrom(Object? value) {
-    if (value is! List) return const [];
-    return [
-      for (final item in value)
-        if (item is Map<String, dynamic>) OrderItem.fromMap(item),
-    ];
-  }
-
-  static OrderStatus _statusFrom(Object? value) {
-    for (final status in OrderStatus.values) {
-      if (status.name == value) return status;
-    }
-    return OrderStatus.pending;
-  }
-
-  static DateTime? _dateFrom(Object? value) {
-    return value is Timestamp ? value.toDate() : null;
-  }
-
-  static LatLng? _latLngFrom(Object? value) {
-    return value is GeoPoint ? LatLng(value.latitude, value.longitude) : null;
   }
 
   /// Number of products, counting quantities.
@@ -174,11 +156,10 @@ abstract class Order with _$Order {
 
   bool get isPickup => !isDelivery;
 
-  /// Fields for a new orders/{id} document. The id is the document id, so
-  /// it is not saved as a field. Server timestamps are set here, not from
-  /// the client clock, so [placedAt]/[statusSince] on this instance are
-  /// ignored on write.
-  Map<String, dynamic> toCreateMap() {
+  /// Fields for a new orders/{id} document. The id is the document id, so it
+  /// is not saved as a field. `placedAt` and `statusSince` are added by the
+  /// service with the server time, never the client clock.
+  Map<String, dynamic> toFirestore() {
     return {
       OrderFields.number: number,
       OrderFields.customerId: customerId,
@@ -195,16 +176,11 @@ abstract class Order with _$Order {
       OrderFields.status: status.name,
       if (address != null && address!.isNotEmpty) OrderFields.address: address,
       if (addressLocation case final location?)
-        OrderFields.addressLocation: GeoPoint(
-          location.latitude,
-          location.longitude,
-        ),
+        OrderFields.addressLocation: toGeoPoint(location),
       if (customerNote != null && customerNote!.isNotEmpty)
         OrderFields.customerNote: customerNote,
       if (promoCode != null && promoCode!.isNotEmpty)
         OrderFields.promoCode: promoCode,
-      OrderFields.placedAt: FieldValue.serverTimestamp(),
-      OrderFields.statusSince: FieldValue.serverTimestamp(),
     };
   }
 }

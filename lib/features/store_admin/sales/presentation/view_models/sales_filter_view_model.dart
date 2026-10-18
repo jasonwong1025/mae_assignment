@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:mae_assignment/features/store_admin/sales/data/models/sales_period.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
+
+part 'sales_filter_view_model.freezed.dart';
 
 final NotifierProvider<SalesFilterViewModel, SalesFilter>
 salesFilterViewModelProvider =
@@ -9,13 +12,16 @@ salesFilterViewModelProvider =
     );
 
 /// What the Sales tab shows: the period and the top products page.
-class SalesFilter {
-  const SalesFilter({required this.period, this.page = 1});
+@freezed
+abstract class SalesFilter with _$SalesFilter {
+  const factory SalesFilter({
+    required SalesPeriod period,
 
-  final SalesPeriod period;
+    /// Page of the top products table. The first page is 1.
+    @Default(1) int page,
+  }) = _SalesFilter;
 
-  /// Page of the top products table. The first page is 1.
-  final int page;
+  const SalesFilter._();
 }
 
 /// State for the period picker and the top products page buttons.
@@ -44,6 +50,6 @@ class SalesFilterViewModel extends Notifier<SalesFilter> {
   }
 
   void setPage(int page) {
-    state = SalesFilter(period: state.period, page: page);
+    state = state.copyWith(page: page);
   }
 }

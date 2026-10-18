@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/core/errors/app_exception.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
 import 'package:mae_assignment/shared/models/page_result.dart';
 import 'package:mae_assignment/shared/repositories/sample_branches.dart';
@@ -11,13 +11,8 @@ final Provider<BranchRepository> branchRepositoryProvider =
     });
 
 /// Error with a message to show on screen.
-class BranchException implements Exception {
-  const BranchException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
+class BranchException extends AppException {
+  const BranchException(super.message);
 }
 
 /// The retailer's branches, saved in Firestore. Used by every role.
@@ -84,15 +79,12 @@ class BranchRepository {
     }
   }
 
-  /// Runs a Firestore call and turns any error into a BranchException.
-  Future<T> _run<T>(Future<T> Function() call) async {
-    try {
-      return await call();
-    } on Object catch (error) {
-      debugPrint('Branch request failed: $error');
-      throw const BranchException(
-        'Could not reach the server. Please check your connection.',
-      );
-    }
+  /// Runs a Firestore call through the shared [guard].
+  Future<T> _run<T>(Future<T> Function() call) {
+    return guard(
+      call,
+      label: 'branch',
+      onError: () => const BranchException(kNetworkErrorMessage),
+    );
   }
 }

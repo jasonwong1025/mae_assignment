@@ -212,8 +212,8 @@ return $default(_that.productId,_that.quantity);case _:
 /// @nodoc
 
 
-class _StoredCartLine implements StoredCartLine {
-  const _StoredCartLine({required this.productId, required this.quantity});
+class _StoredCartLine extends StoredCartLine {
+  const _StoredCartLine({required this.productId, required this.quantity}): super._();
   
 
 @override final  String productId;
@@ -282,7 +282,8 @@ as int,
 /// @nodoc
 mixin _$StoredCart {
 
- List<StoredCartLine> get lines; FulfilmentMethod get fulfilment; String? get promoCode;
+ List<StoredCartLine> get lines; FulfilmentMethod get fulfilment;/// Promo code applied, uppercased. Null when none.
+ String? get promoCode;
 /// Create a copy of StoredCart
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -492,6 +493,7 @@ class _StoredCart extends StoredCart {
 }
 
 @override@JsonKey() final  FulfilmentMethod fulfilment;
+/// Promo code applied, uppercased. Null when none.
 @override final  String? promoCode;
 
 /// Create a copy of StoredCart

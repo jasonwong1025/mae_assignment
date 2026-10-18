@@ -1,17 +1,19 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:mae_assignment/features/store_admin/sales/data/models/sales_period.dart';
 
-/// Totals for one period.
-class SalesTotals {
-  const SalesTotals({
-    required this.itemSales,
-    required this.deliveryFees,
-    required this.orderCount,
-  });
+part 'sales_report.freezed.dart';
 
-  /// In ringgit.
-  final double itemSales;
-  final double deliveryFees;
-  final int orderCount;
+/// Totals for one period.
+@freezed
+abstract class SalesTotals with _$SalesTotals {
+  const factory SalesTotals({
+    /// In ringgit.
+    required double itemSales,
+    required double deliveryFees,
+    required int orderCount,
+  }) = _SalesTotals;
+
+  const SalesTotals._();
 
   double get revenue => itemSales + deliveryFees;
 
@@ -20,63 +22,59 @@ class SalesTotals {
 }
 
 /// One bar of the revenue chart.
-class SalesPoint {
-  const SalesPoint({required this.start, required this.revenue});
+@freezed
+abstract class SalesPoint with _$SalesPoint {
+  const factory SalesPoint({
+    /// Start of the hour, day or week.
+    required DateTime start,
+    required double revenue,
+  }) = _SalesPoint;
 
-  /// Start of the hour, day or week.
-  final DateTime start;
-  final double revenue;
+  const SalesPoint._();
 }
 
 /// Revenue of one category in the period.
-class CategorySales {
-  const CategorySales({
-    required this.categoryId,
-    required this.name,
-    required this.revenue,
-  });
+@freezed
+abstract class CategorySales with _$CategorySales {
+  const factory CategorySales({
+    required String categoryId,
+    required String name,
+    required double revenue,
+  }) = _CategorySales;
 
-  final String categoryId;
-  final String name;
-  final double revenue;
+  const CategorySales._();
 }
 
 /// Everything above the top products table.
-class SalesReport {
-  const SalesReport({
-    required this.period,
-    required this.totals,
-    required this.previousTotals,
-    required this.points,
-    required this.categories,
-  });
+@freezed
+abstract class SalesReport with _$SalesReport {
+  const factory SalesReport({
+    required SalesPeriod period,
+    required SalesTotals totals,
 
-  final SalesPeriod period;
-  final SalesTotals totals;
+    /// The period of the same length just before, for "+12%" labels.
+    required SalesTotals previousTotals,
 
-  /// The period of the same length just before, for "+12%" labels.
-  final SalesTotals previousTotals;
+    /// Chart bars, oldest first. Grouped by [SalesPeriod.grouping].
+    required List<SalesPoint> points,
 
-  /// Chart bars, oldest first. Grouped by [SalesPeriod.grouping].
-  final List<SalesPoint> points;
+    /// Categories with sales, highest revenue first.
+    required List<CategorySales> categories,
+  }) = _SalesReport;
 
-  /// Categories with sales, highest revenue first.
-  final List<CategorySales> categories;
+  const SalesReport._();
 }
 
 /// How much of one product was sold in the period.
-class ProductSales {
-  const ProductSales({
-    required this.productId,
-    required this.name,
-    required this.categoryName,
-    required this.quantity,
-    required this.revenue,
-  });
+@freezed
+abstract class ProductSales with _$ProductSales {
+  const factory ProductSales({
+    required String productId,
+    required String name,
+    required String categoryName,
+    required int quantity,
+    required double revenue,
+  }) = _ProductSales;
 
-  final String productId;
-  final String name;
-  final String categoryName;
-  final int quantity;
-  final double revenue;
+  const ProductSales._();
 }

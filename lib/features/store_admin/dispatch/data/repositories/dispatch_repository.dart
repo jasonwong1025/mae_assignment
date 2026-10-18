@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/core/errors/app_exception.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver_location.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/sample_drivers.dart';
@@ -21,13 +22,8 @@ final dispatchRepositoryProvider = Provider<DispatchRepository>((ref) {
 });
 
 /// Error with a message to show on screen.
-class DispatchException implements Exception {
-  const DispatchException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
+class DispatchException extends AppException {
+  const DispatchException(super.message);
 }
 
 /// Data for the Dispatch tab: delivery orders, drivers and where they are.

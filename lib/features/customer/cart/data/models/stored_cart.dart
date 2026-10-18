@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:mae_assignment/core/firebase/field_readers.dart';
 import 'package:mae_assignment/core/firebase/firestore_paths.dart';
 import 'package:mae_assignment/features/customer/cart/data/models/cart.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue_product.dart';
@@ -14,6 +14,23 @@ abstract class StoredCartLine with _$StoredCartLine {
     required String productId,
     required int quantity,
   }) = _StoredCartLine;
+
+  const StoredCartLine._();
+
+  /// Reads one entry of the cart's `lines` array.
+  factory StoredCartLine.fromMap(Map<String, dynamic> map) {
+    return StoredCartLine(
+      productId: map.string(CartLineFields.productId),
+      quantity: map.integer(CartLineFields.quantity),
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      CartLineFields.productId: productId,
+      CartLineFields.quantity: quantity,
+    };
+  }
 }
 
 /// The cart as saved in Firestore at users/{uid}/cart/current.
@@ -22,6 +39,8 @@ abstract class StoredCart with _$StoredCart {
   const factory StoredCart({
     @Default(<StoredCartLine>[]) List<StoredCartLine> lines,
     @Default(FulfilmentMethod.delivery) FulfilmentMethod fulfilment,
+
+    /// Promo code applied, uppercased. Null when none.
     String? promoCode,
   }) = _StoredCart;
 
@@ -39,50 +58,34 @@ abstract class StoredCart with _$StoredCart {
     );
   }
 
-  /// Reads a saved cart. Malformed lines are skipped, so one bad entry
-  /// never blocks the rest of the cart from loading.
-  factory StoredCart.fromFirestore(Map<String, dynamic> data) {
-    final rawLines = data[CartFields.lines];
-    final lines = <StoredCartLine>[];
-    if (rawLines is List) {
-      for (final raw in rawLines) {
-        if (raw is! Map) continue;
-        final productId = raw[CartLineFields.productId];
-        final quantity = raw[CartLineFields.quantity];
-        if (productId is String && productId.isNotEmpty && quantity is num) {
-          final whole = quantity.toInt();
-          if (whole > 0) {
-            lines.add(StoredCartLine(productId: productId, quantity: whole));
-          }
-        }
-      }
-    }
-
-    final fulfilmentName = data[CartFields.fulfilment];
+  /// Reads users/{uid}/cart/current (the document has no id of its own).
+  /// Lines without a product or quantity are skipped, so one bad line never
+  /// blocks the rest of the cart from loading.
+  factory StoredCart.fromMap(Map<String, dynamic> map) {
     return StoredCart(
-      lines: lines,
-      fulfilment: FulfilmentMethod.values.firstWhere(
-        (method) => method.name == fulfilmentName,
-        orElse: () => FulfilmentMethod.delivery,
+      lines: [
+        for (final raw in map.maps(CartFields.lines))
+          if (StoredCartLine.fromMap(raw) case final line
+              when line.productId.isNotEmpty && line.quantity > 0)
+            line,
+      ],
+      fulfilment: map.enumValue(
+        CartFields.fulfilment,
+        FulfilmentMethod.values,
+        fallback: FulfilmentMethod.delivery,
       ),
-      promoCode: data[CartFields.promoCode] as String?,
+      promoCode: map.stringOrNull(CartFields.promoCode),
     );
   }
 
-  /// The Firestore map. [CartFields.promoCode] is left out when there is no
-  /// promo, so it is removed from the saved document too.
+  /// Fields saved in the cart document. A missing promo is left out, so it
+  /// is removed from the saved document too. `updatedAt` is added by the
+  /// service with the server time.
   Map<String, dynamic> toMap() {
     return {
-      CartFields.lines: [
-        for (final line in lines)
-          {
-            CartLineFields.productId: line.productId,
-            CartLineFields.quantity: line.quantity,
-          },
-      ],
+      CartFields.lines: [for (final line in lines) line.toMap()],
       CartFields.fulfilment: fulfilment.name,
-      CartFields.promoCode: ?promoCode,
-      CartFields.updatedAt: FieldValue.serverTimestamp(),
+      if (promoCode != null) CartFields.promoCode: promoCode,
     };
   }
 

@@ -134,12 +134,11 @@ void main() {
       joinedAt: DateTime(2025, 3, 12),
     );
 
-    test('saves the fields the rules expect', () {
-      final map = packer.toMap();
-      expect(map['role'], 'storeWorker');
+    test('saves the worker fields', () {
+      final map = packer.toFirestore();
       expect(map['workerRole'], 'packingStaff');
       expect(map['branchId'], 'ss15');
-      expect(Worker.fromMap('w1', map).name, 'Daniel Lee');
+      expect(Worker.fromFirestore('w1', map).name, 'Daniel Lee');
     });
 
     test('becoming a driver removes the branch', () {

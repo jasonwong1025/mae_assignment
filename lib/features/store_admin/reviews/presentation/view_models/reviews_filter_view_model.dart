@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:mae_assignment/features/store_admin/reviews/data/models/review.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
+
+part 'reviews_filter_view_model.freezed.dart';
 
 final NotifierProvider<ReviewsFilterViewModel, ReviewsFilter>
 reviewsFilterViewModelProvider =
@@ -10,26 +13,22 @@ reviewsFilterViewModelProvider =
 
 /// Which reviews the Reviews tab asks for: search text, filters and page.
 /// A filter that is null (or false) is not applied.
-class ReviewsFilter {
-  const ReviewsFilter({
-    this.searchText = '',
-    this.stars,
-    this.driverId,
-    this.period,
-    this.commentsOnly = false,
-    this.page = 1,
-  });
+@freezed
+abstract class ReviewsFilter with _$ReviewsFilter {
+  const factory ReviewsFilter({
+    @Default('') String searchText,
 
-  final String searchText;
+    /// Overall star rating, 1 to 5.
+    int? stars,
+    String? driverId,
+    ReviewPeriod? period,
+    @Default(false) bool commentsOnly,
 
-  /// Overall star rating, 1 to 5.
-  final int? stars;
-  final String? driverId;
-  final ReviewPeriod? period;
-  final bool commentsOnly;
+    /// The first page is 1.
+    @Default(1) int page,
+  }) = _ReviewsFilter;
 
-  /// The first page is 1.
-  final int page;
+  const ReviewsFilter._();
 
   /// True if a search or filter is narrowing the list.
   bool get isNarrowing {
@@ -58,63 +57,26 @@ class ReviewsFilterViewModel extends Notifier<ReviewsFilter> {
   }
 
   void setSearchText(String text) {
-    state = ReviewsFilter(
-      searchText: text,
-      stars: state.stars,
-      driverId: state.driverId,
-      period: state.period,
-      commentsOnly: state.commentsOnly,
-    );
+    state = state.copyWith(searchText: text, page: 1);
   }
 
   void setStars(int? stars) {
-    state = ReviewsFilter(
-      searchText: state.searchText,
-      stars: stars,
-      driverId: state.driverId,
-      period: state.period,
-      commentsOnly: state.commentsOnly,
-    );
+    state = state.copyWith(stars: stars, page: 1);
   }
 
   void setDriver(String? driverId) {
-    state = ReviewsFilter(
-      searchText: state.searchText,
-      stars: state.stars,
-      driverId: driverId,
-      period: state.period,
-      commentsOnly: state.commentsOnly,
-    );
+    state = state.copyWith(driverId: driverId, page: 1);
   }
 
   void setPeriod(ReviewPeriod? period) {
-    state = ReviewsFilter(
-      searchText: state.searchText,
-      stars: state.stars,
-      driverId: state.driverId,
-      period: period,
-      commentsOnly: state.commentsOnly,
-    );
+    state = state.copyWith(period: period, page: 1);
   }
 
   void setCommentsOnly({required bool commentsOnly}) {
-    state = ReviewsFilter(
-      searchText: state.searchText,
-      stars: state.stars,
-      driverId: state.driverId,
-      period: state.period,
-      commentsOnly: commentsOnly,
-    );
+    state = state.copyWith(commentsOnly: commentsOnly, page: 1);
   }
 
   void setPage(int page) {
-    state = ReviewsFilter(
-      searchText: state.searchText,
-      stars: state.stars,
-      driverId: state.driverId,
-      period: state.period,
-      commentsOnly: state.commentsOnly,
-      page: page,
-    );
+    state = state.copyWith(page: page);
   }
 }

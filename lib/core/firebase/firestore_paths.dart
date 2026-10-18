@@ -111,6 +111,43 @@ class UserFields {
 
   /// Store Workers only. False if HQ deactivated them.
   static const String isActive = 'isActive';
+
+  /// Store Workers only: "packingStaff" or "deliveryDriver".
+  static const String workerRole = 'workerRole';
+
+  /// Store Workers only: the packer's branch (absent/null for drivers).
+  static const String branchId = 'branchId';
+
+  /// Store Workers only: server time HQ created the account.
+  static const String joinedAt = 'joinedAt';
+}
+
+/// Field keys in branches/{branchId}.
+class BranchFields {
+  BranchFields._();
+
+  static const String name = 'name';
+  static const String address = 'address';
+  static const String phone = 'phone';
+  static const String location = 'location';
+  static const String weeklyHours = 'weeklyHours';
+  static const String maxDeliveryKm = 'maxDeliveryKm';
+  static const String baseDeliveryFee = 'baseDeliveryFee';
+  static const String feePerKm = 'feePerKm';
+  static const String isTemporarilyClosed = 'isTemporarilyClosed';
+
+  /// Server time the branch was created; branches are listed oldest first.
+  static const String createdAt = 'createdAt';
+}
+
+/// Field keys for one entry in branches/{branchId}.weeklyHours.
+class DayHoursFields {
+  DayHoursFields._();
+
+  /// Minutes after midnight.
+  static const String opensAt = 'opensAt';
+  static const String closesAt = 'closesAt';
+  static const String isClosed = 'isClosed';
 }
 
 /// Field keys in products/{productId}.

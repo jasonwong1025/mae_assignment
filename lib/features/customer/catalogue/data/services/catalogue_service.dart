@@ -1,9 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mae_assignment/core/firebase/firestore_paths.dart';
+import 'package:mae_assignment/core/firebase/firestore_config.dart';
+import 'package:mae_assignment/core/firebase/firestore_refs.dart';
 
 final catalogueServiceProvider = Provider<CatalogueService>((ref) {
-  return CatalogueService(FirebaseFirestore.instance);
+  return CatalogueService(ref.watch(firebaseFirestoreProvider));
 });
 
 /// Reads the catalogue from Firestore: the shared `products` collection,
@@ -18,28 +19,16 @@ final catalogueServiceProvider = Provider<CatalogueService>((ref) {
 /// running), so without a limit the Home screen would load indefinitely.
 /// On timeout the repository turns this into a retryable error.
 class CatalogueService {
-  CatalogueService(this._firestore);
+  CatalogueService(FirebaseFirestore firestore)
+    : _refs = FirestoreRefs(firestore);
 
-  /// How long to wait for a Firestore read before giving up.
-  static const Duration _timeout = Duration(seconds: 15);
-
-  final FirebaseFirestore _firestore;
-
-  CollectionReference<Map<String, dynamic>> get _products =>
-      _firestore.collection(FirestoreCollections.products);
-
-  CollectionReference<Map<String, dynamic>> get _categories =>
-      _firestore.collection(FirestoreCollections.categories);
-
-  CollectionReference<Map<String, dynamic>> _inventory(String branchId) =>
-      _firestore
-          .collection(FirestoreCollections.branches)
-          .doc(branchId)
-          .collection(FirestoreCollections.inventory);
+  final FirestoreRefs _refs;
 
   /// Every catalogue product, keyed by id.
   Future<Map<String, Map<String, dynamic>>> fetchProducts() async {
-    final snapshot = await _products.get().timeout(_timeout);
+    final snapshot = await _refs.products.get().timeout(
+      FirestoreConfig.readTimeout,
+    );
     return {for (final doc in snapshot.docs) doc.id: doc.data()};
   }
 
@@ -47,13 +36,18 @@ class CatalogueService {
   Future<Map<String, Map<String, dynamic>>> fetchInventory(
     String branchId,
   ) async {
-    final snapshot = await _inventory(branchId).get().timeout(_timeout);
+    final snapshot = await _refs
+        .inventory(branchId)
+        .get()
+        .timeout(FirestoreConfig.readTimeout);
     return {for (final doc in snapshot.docs) doc.id: doc.data()};
   }
 
   /// Every category, keyed by id.
   Future<Map<String, Map<String, dynamic>>> fetchCategories() async {
-    final snapshot = await _categories.get().timeout(_timeout);
+    final snapshot = await _refs.categories.get().timeout(
+      FirestoreConfig.readTimeout,
+    );
     return {for (final doc in snapshot.docs) doc.id: doc.data()};
   }
 }

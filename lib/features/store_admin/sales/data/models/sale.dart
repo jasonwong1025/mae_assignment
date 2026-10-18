@@ -1,23 +1,23 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'sale.freezed.dart';
+
 /// One paid order, as Sales sees it. Orders are paid from the wallet at
 /// checkout and cannot be cancelled, so every sale is final.
-class Sale {
-  const Sale({
-    required this.orderNumber,
-    required this.branchId,
-    required this.paidAt,
-    required this.isDelivery,
-    required this.deliveryFee,
-    required this.items,
-  });
+@freezed
+abstract class Sale with _$Sale {
+  const factory Sale({
+    required int orderNumber,
+    required String branchId,
+    required DateTime paidAt,
+    required bool isDelivery,
 
-  final int orderNumber;
-  final String branchId;
-  final DateTime paidAt;
-  final bool isDelivery;
+    /// In ringgit. 0 for pickup orders.
+    required double deliveryFee,
+    required List<SaleItem> items,
+  }) = _Sale;
 
-  /// In ringgit. 0 for pickup orders.
-  final double deliveryFee;
-  final List<SaleItem> items;
+  const Sale._();
 
   double get itemsTotal {
     var sum = 0.0;
@@ -31,22 +31,19 @@ class Sale {
 }
 
 /// One product line of a sale.
-class SaleItem {
-  const SaleItem({
-    required this.productId,
-    required this.productName,
-    required this.categoryId,
-    required this.quantity,
-    required this.unitPrice,
-  });
+@freezed
+abstract class SaleItem with _$SaleItem {
+  const factory SaleItem({
+    required String productId,
+    required String productName,
+    required String categoryId,
+    required int quantity,
 
-  final String productId;
-  final String productName;
-  final String categoryId;
-  final int quantity;
+    /// Price of one when it was sold, in ringgit.
+    required double unitPrice,
+  }) = _SaleItem;
 
-  /// Price of one when it was sold, in ringgit.
-  final double unitPrice;
+  const SaleItem._();
 
   double get lineTotal => unitPrice * quantity;
 }

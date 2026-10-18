@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:mae_assignment/core/firebase/field_readers.dart';
 import 'package:mae_assignment/core/firebase/firestore_paths.dart';
 
 part 'customer_address.freezed.dart';
@@ -33,35 +33,27 @@ abstract class CustomerAddress with _$CustomerAddress {
 
   const CustomerAddress._();
 
-  /// Reads users/{uid}/addresses/{id}. Returns null when required fields are
-  /// missing, so a malformed document is skipped rather than crashing a list.
-  static CustomerAddress? fromFirestore(String id, Map<String, dynamic> map) {
-    final label = map[AddressFields.label] as String?;
-    final line = map[AddressFields.line] as String?;
-    final location = map[AddressFields.location];
-    if (label == null || line == null || location is! GeoPoint) return null;
-
+  /// Reads users/{uid}/addresses/{id}. A document missing its label, line or
+  /// location is malformed and throws, so it is skipped when reading a list.
+  factory CustomerAddress.fromFirestore(String id, Map<String, dynamic> data) {
     return CustomerAddress(
       id: id,
-      label: label,
-      line: line,
-      location: LatLng(location.latitude, location.longitude),
-      note: map[AddressFields.note] as String? ?? '',
-      isDefault: map[AddressFields.isDefault] as bool? ?? false,
-      createdAt: switch (map[AddressFields.createdAt]) {
-        final Timestamp t => t.toDate(),
-        _ => null,
-      },
+      label: data.requiredString(AddressFields.label),
+      line: data.requiredString(AddressFields.line),
+      location: data.requiredLatLng(AddressFields.location),
+      note: data.string(AddressFields.note),
+      isDefault: data.boolean(AddressFields.isDefault, fallback: false),
+      createdAt: data.dateTime(AddressFields.createdAt),
     );
   }
 
   /// Fields for a new or updated address document. The id is the document
   /// id, so it is not stored as a field; createdAt is set by the service.
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toFirestore() {
     return {
       AddressFields.label: label,
       AddressFields.line: line,
-      AddressFields.location: GeoPoint(location.latitude, location.longitude),
+      AddressFields.location: toGeoPoint(location),
       AddressFields.note: note,
       AddressFields.isDefault: isDefault,
     };

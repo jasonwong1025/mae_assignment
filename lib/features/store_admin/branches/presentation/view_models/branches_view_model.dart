@@ -1,10 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/repositories/inventory_repository.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
 import 'package:mae_assignment/shared/models/page_result.dart';
 import 'package:mae_assignment/shared/repositories/branch_repository.dart';
 import 'package:mae_assignment/shared/repositories/geocoding_repository.dart';
+
+part 'branches_view_model.freezed.dart';
 
 final branchesFilterProvider =
     NotifierProvider.autoDispose<BranchesFilterViewModel, BranchesFilter>(
@@ -17,11 +20,14 @@ final branchesViewModelProvider =
     );
 
 /// Search text and page of the Branches tab.
-class BranchesFilter {
-  const BranchesFilter({this.searchText = '', this.page = 1});
+@freezed
+abstract class BranchesFilter with _$BranchesFilter {
+  const factory BranchesFilter({
+    @Default('') String searchText,
+    @Default(1) int page,
+  }) = _BranchesFilter;
 
-  final String searchText;
-  final int page;
+  const BranchesFilter._();
 }
 
 class BranchesFilterViewModel extends Notifier<BranchesFilter> {
@@ -30,11 +36,11 @@ class BranchesFilterViewModel extends Notifier<BranchesFilter> {
 
   /// A new search starts again from page 1.
   void setSearchText(String text) {
-    state = BranchesFilter(searchText: text);
+    state = state.copyWith(searchText: text, page: 1);
   }
 
   void setPage(int page) {
-    state = BranchesFilter(searchText: state.searchText, page: page);
+    state = state.copyWith(page: page);
   }
 }
 

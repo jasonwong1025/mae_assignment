@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/core/errors/app_exception.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/sample_inventory.dart';
@@ -11,13 +12,8 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>((ref) {
 });
 
 /// Error with a message to show on screen.
-class InventoryException implements Exception {
-  const InventoryException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
+class InventoryException extends AppException {
+  const InventoryException(super.message);
 }
 
 /// Data for the Inventory tab.

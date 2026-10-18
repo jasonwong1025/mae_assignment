@@ -42,16 +42,22 @@ jobs:
       - name: Install dependencies
         run: flutter pub get --enforce-lockfile
 
-      # Fail fast if a Firestore path is hard-coded instead of using the
-      # constants in lib/core/firebase/firestore_paths.dart.
+      # Fail fast if a Firestore path is built outside FirestoreRefs
+      # (lib/core/firebase/firestore_refs.dart).
       - name: Check Firestore paths are centralized
         run: dart run tool/check_firestore_paths.dart
+      # Layering and model rules: UI never imports Firebase or services,
+      # models and state are Freezed, errors extend AppException.
+      - name: Check architecture rules
+        run: dart run tool/check_architecture.dart
 
       - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed .
+        run: dart format --output=none --set-exit-if-changed lib test tool patrol_test
 
+      # `dart analyze` (not `flutter analyze`) so the riverpod_lint analyzer
+      # plugin from analysis_options.yaml runs too.
       - name: Analyze (infos are fatal)
-        run: flutter analyze --fatal-infos
+        run: dart analyze --fatal-infos
 
       # Regenerate Freezed/build_runner output and fail if it differs from
       # what was committed, so generated code can never go stale. Checks both

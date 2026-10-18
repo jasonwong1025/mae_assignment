@@ -1,0 +1,5 @@
+# Mason registers the project's code templates ("bricks"). See the README,
+# section "Adding a feature", for how to use them.
+bricks:
+  feature:
+    path: bricks/feature

@@ -68,3 +68,6 @@ node_modules/
 # and .patrol.env may hold secrets. Neither is committed.
 **/test_bundle.dart
 .patrol.env
+
+# Mason's local brick cache (mason-lock.json is committed).
+.mason/

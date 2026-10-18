@@ -1,11 +1,13 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:latlong2/latlong.dart';
-
 import 'package:mae_assignment/shared/models/order_status.dart';
 
 // OrderStatus (the columns of the orders board) now lives in shared/ so the
 // Store Worker app uses the same statuses. Re-exported so files that import
 // this one keep working.
 export '../../../../../shared/models/order_status.dart';
+
+part 'order.freezed.dart';
 
 /// Columns of the admin orders board. Orders are paid at checkout and
 /// cannot be cancelled, so there is no Cancelled column.
@@ -19,58 +21,44 @@ const List<OrderStatus> adminBoardStatuses = [
 ];
 
 /// One customer order, as the store admin sees it.
-class Order {
-  const Order({
-    required this.number,
-    required this.customerName,
-    required this.customerPhone,
-    required this.status,
-    required this.statusSince,
-    required this.isDelivery,
-    required this.items,
-    required this.deliveryFee,
-    required this.timeline,
-    this.address,
-    this.location,
-    this.customerNote,
-    this.assignedWorker,
-    this.driverId,
-  });
+@freezed
+abstract class Order with _$Order {
+  const factory Order({
+    required int number,
+    required String customerName,
+    required String customerPhone,
+    required OrderStatus status,
 
-  final int number;
-  final String customerName;
-  final String customerPhone;
+    /// When the order entered its current status.
+    required DateTime statusSince,
 
-  final OrderStatus status;
+    /// Delivery/Pickup order
+    required bool isDelivery,
+    required List<OrderItem> items,
 
-  /// When the order entered its current status.
-  final DateTime statusSince;
+    /// Delivery fee
+    required double deliveryFee,
 
-  /// Delivery/Pickup order
-  final bool isDelivery;
+    /// What has happened to the order so far, oldest first
+    required List<OrderEvent> timeline,
 
-  /// Address of the customer
-  final String? address;
+    /// Address of the customer
+    String? address,
 
-  /// Where the address is on the map. Delivery orders only.
-  final LatLng? location;
+    /// Where the address is on the map. Delivery orders only.
+    LatLng? location,
 
-  /// Message the customer left with the order
-  final String? customerNote;
+    /// Message the customer left with the order
+    String? customerNote,
 
-  final List<OrderItem> items;
+    /// Staff member packing or delivering the order
+    String? assignedWorker,
 
-  /// Delivery fee
-  final double deliveryFee;
+    /// Id of the driver delivering it. Null until a driver is assigned.
+    String? driverId,
+  }) = _Order;
 
-  /// Staff member packing or delivering the order
-  final String? assignedWorker;
-
-  /// Id of the driver delivering it. Null until a driver is assigned.
-  final String? driverId;
-
-  /// What has happened to the order so far, oldest first
-  final List<OrderEvent> timeline;
+  const Order._();
 
   /// Number of products, counting quantities
   int get itemCount {
@@ -128,29 +116,31 @@ class Order {
 }
 
 /// One product line of an order.
-class OrderItem {
-  const OrderItem({
-    required this.name,
-    required this.quantity,
-    required this.unitPrice,
-  });
+@freezed
+abstract class OrderItem with _$OrderItem {
+  const factory OrderItem({
+    required String name,
+    required int quantity,
 
-  final String name;
-  final int quantity;
+    /// Price of one, in ringgit.
+    required double unitPrice,
+  }) = _OrderItem;
 
-  /// Price of one, in ringgit.
-  final double unitPrice;
+  const OrderItem._();
 
   double get lineTotal => unitPrice * quantity;
 }
 
 /// One step in an order's history, e.g. "Packing started" by Daniel.
-class OrderEvent {
-  const OrderEvent({required this.title, required this.time, this.by});
+@freezed
+abstract class OrderEvent with _$OrderEvent {
+  const factory OrderEvent({
+    required String title,
+    required DateTime time,
 
-  final String title;
-  final DateTime time;
+    /// Staff member who did it. Null for things the customer did.
+    String? by,
+  }) = _OrderEvent;
 
-  /// Staff member who did it. Null for things the customer did.
-  final String? by;
+  const OrderEvent._();
 }

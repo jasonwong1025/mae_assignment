@@ -1,8 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
+
+part 'delivery_tasks_view_model.freezed.dart';
 
 final StreamNotifierProvider<DeliveryTasksViewModel, DeliveryGroups>
 deliveryTasksViewModelProvider =
@@ -11,12 +14,20 @@ deliveryTasksViewModelProvider =
     );
 
 /// The driver's deliveries, split into the sections of My Deliveries.
-class DeliveryGroups {
-  const DeliveryGroups({
-    this.outForDelivery = const [],
-    this.readyToCollect = const [],
-    this.beingPacked = const [],
-  });
+@freezed
+abstract class DeliveryGroups with _$DeliveryGroups {
+  const factory DeliveryGroups({
+    /// On the way now; the driver's current job.
+    @Default(<WorkerOrder>[]) List<WorkerOrder> outForDelivery,
+
+    /// Packed and waiting at the branch for this driver.
+    @Default(<WorkerOrder>[]) List<WorkerOrder> readyToCollect,
+
+    /// Assigned but still being packed; visible, but cannot be collected yet.
+    @Default(<WorkerOrder>[]) List<WorkerOrder> beingPacked,
+  }) = _DeliveryGroups;
+
+  const DeliveryGroups._();
 
   /// From the repository's list. Only active deliveries: completed ones
   /// are in My history (Account), and cancelled ones are left out.
@@ -72,15 +83,6 @@ class DeliveryGroups {
     if (dueB == null) return -1;
     return dueA.compareTo(dueB);
   }
-
-  /// On the way now; the driver's current job.
-  final List<WorkerOrder> outForDelivery;
-
-  /// Packed and waiting at the branch for this driver.
-  final List<WorkerOrder> readyToCollect;
-
-  /// Assigned but still being packed; visible, but cannot be collected yet.
-  final List<WorkerOrder> beingPacked;
 
   bool get isEmpty =>
       outForDelivery.isEmpty && readyToCollect.isEmpty && beingPacked.isEmpty;

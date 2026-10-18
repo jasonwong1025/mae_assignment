@@ -1,43 +1,41 @@
 import 'dart:typed_data';
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'product.freezed.dart';
 
 /// Product category, e.g. "Dairy & Eggs".
-class ProductCategory {
-  const ProductCategory({required this.id, required this.name});
+@freezed
+abstract class ProductCategory with _$ProductCategory {
+  const factory ProductCategory({required String id, required String name}) =
+      _ProductCategory;
 
-  final String id;
-  final String name;
+  const ProductCategory._();
 }
 
 /// A product. Shared by every branch.
-class Product {
-  const Product({
-    required this.id,
-    required this.name,
-    required this.brand,
-    required this.categoryId,
-    required this.packSize,
-    required this.description,
-    required this.lowStockLevel,
-    this.photos = const [],
-  });
+@freezed
+abstract class Product with _$Product {
+  const factory Product({
+    required String id,
+    required String name,
+    required String brand,
+    required String categoryId,
 
-  final String id;
-  final String name;
-  final String brand;
-  final String categoryId;
+    /// E.g. "1L" or "500g".
+    required String packSize,
 
-  /// E.g. "1L" or "500g".
-  final String packSize;
+    /// Can be empty.
+    required String description,
 
-  /// Can be empty.
-  final String description;
+    /// Stock at or below this counts as low.
+    required int lowStockLevel,
 
-  /// Stock at or below this counts as low.
-  final int lowStockLevel;
+    /// Up to [maxPhotos]. The first is the cover.
+    /// Image data for now. Firebase Storage links later.
+    @Default(<Uint8List>[]) List<Uint8List> photos,
+  }) = _Product;
 
-  /// Up to [maxPhotos]. The first is the cover.
-  /// Image data for now. Firebase Storage links later.
-  final List<Uint8List> photos;
+  const Product._();
 
   static const int maxPhotos = 5;
 

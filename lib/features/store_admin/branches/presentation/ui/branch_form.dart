@@ -350,7 +350,7 @@ class _BranchFormState extends ConsumerState<BranchForm> {
           onChanged: (open) => setState(() {
             _hours[day] = open
                 ? const DayHours(opensAt: 8 * 60, closesAt: 21 * 60)
-                : const DayHours.closed();
+                : DayHours.closed;
           }),
         ),
         const SizedBox(width: 8),

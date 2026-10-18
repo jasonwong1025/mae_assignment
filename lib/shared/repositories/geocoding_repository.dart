@@ -1,18 +1,24 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:mae_assignment/shared/services/geocoding_service.dart';
+
+part 'geocoding_repository.freezed.dart';
 
 final geocodingRepositoryProvider = Provider<GeocodingRepository>((ref) {
   return GeocodingRepository(ref.watch(geocodingServiceProvider));
 });
 
 /// One search result: a full address and where it is.
-class AddressResult {
-  const AddressResult({required this.address, required this.location});
+@freezed
+abstract class AddressResult with _$AddressResult {
+  const factory AddressResult({
+    required String address,
+    required LatLng location,
+  }) = _AddressResult;
 
-  final String address;
-  final LatLng location;
+  const AddressResult._();
 }
 
 /// Turns typed addresses into map locations and map points into addresses,

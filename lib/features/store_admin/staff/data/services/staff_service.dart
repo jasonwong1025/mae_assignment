@@ -2,28 +2,36 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/core/firebase/firestore_models.dart';
 import 'package:mae_assignment/core/firebase/firestore_paths.dart';
+import 'package:mae_assignment/core/firebase/firestore_refs.dart';
 import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
+import 'package:mae_assignment/shared/models/app_user.dart';
 
 final staffServiceProvider = Provider<StaffService>((ref) {
-  return StaffService(FirebaseFirestore.instance);
+  return StaffService(ref.watch(firebaseFirestoreProvider));
 });
 
 /// Reads and writes Store Workers in Firestore, and creates their logins.
 class StaffService {
-  StaffService(this._firestore);
+  StaffService(FirebaseFirestore firestore) : _refs = FirestoreRefs(firestore);
 
-  final FirebaseFirestore _firestore;
+  final FirestoreRefs _refs;
 
-  CollectionReference<Map<String, dynamic>> get _users {
-    return _firestore.collection(FirestoreCollections.users);
+  /// The fields of a worker's users/{id} document: the worker's own fields
+  /// plus the constant `role`.
+  Map<String, dynamic> _document(Worker worker) {
+    return {
+      ...worker.toFirestore(),
+      UserFields.role: UserRole.storeWorker.name,
+    };
   }
 
   Future<List<Worker>> getWorkers() async {
-    final snapshot = await _users.where('role', isEqualTo: 'storeWorker').get();
-    return [
-      for (final doc in snapshot.docs) Worker.fromMap(doc.id, doc.data()),
-    ];
+    final snapshot = await _refs.users
+        .where(UserFields.role, isEqualTo: UserRole.storeWorker.name)
+        .get();
+    return snapshot.toModels(fromFirestore: Worker.fromFirestore);
   }
 
   /// Creates the worker's Firebase login and returns its id.
@@ -54,16 +62,16 @@ class StaffService {
 
   /// Saves a new worker's profile, with the server time as joinedAt.
   Future<void> createWorker(Worker worker) {
-    return _users.doc(worker.id).set({
-      ...worker.toMap(),
-      'joinedAt': FieldValue.serverTimestamp(),
-      'createdAt': FieldValue.serverTimestamp(),
+    return _refs.user(worker.id).set({
+      ..._document(worker),
+      UserFields.joinedAt: FieldValue.serverTimestamp(),
+      UserFields.createdAt: FieldValue.serverTimestamp(),
     });
   }
 
   /// Saves changed details. Email and joinedAt are never changed here.
   Future<void> updateWorker(Worker worker) {
-    final data = worker.toMap()..remove('email');
-    return _users.doc(worker.id).update(data);
+    final data = _document(worker)..remove(UserFields.email);
+    return _refs.user(worker.id).update(data);
   }
 }

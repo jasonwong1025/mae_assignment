@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
+
+part 'staff_filter_view_model.freezed.dart';
 
 final NotifierProvider<StaffFilterViewModel, StaffFilter>
 staffFilterViewModelProvider =
@@ -9,13 +11,16 @@ staffFilterViewModelProvider =
     );
 
 /// Which workers the Staff tab asks for: the search text and the page.
-class StaffFilter {
-  const StaffFilter({this.searchText = '', this.page = 1});
+@freezed
+abstract class StaffFilter with _$StaffFilter {
+  const factory StaffFilter({
+    @Default('') String searchText,
 
-  final String searchText;
+    /// The first page is 1.
+    @Default(1) int page,
+  }) = _StaffFilter;
 
-  /// The first page is 1.
-  final int page;
+  const StaffFilter._();
 }
 
 /// State for the search box and page buttons of the Staff tab.
@@ -33,10 +38,10 @@ class StaffFilterViewModel extends Notifier<StaffFilter> {
 
   /// A new search starts again from page 1.
   void setSearchText(String text) {
-    state = StaffFilter(searchText: text);
+    state = state.copyWith(searchText: text, page: 1);
   }
 
   void setPage(int page) {
-    state = StaffFilter(searchText: state.searchText, page: page);
+    state = state.copyWith(page: page);
   }
 }

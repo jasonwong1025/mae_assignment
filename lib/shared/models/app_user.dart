@@ -1,5 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:mae_assignment/core/firebase/field_readers.dart';
 import 'package:mae_assignment/core/firebase/firestore_paths.dart';
+
+part 'app_user.freezed.dart';
 
 /// The three kinds of user in Grocerly.
 /// Saved in Firestore by name, e.g. "storeAdmin".
@@ -12,66 +15,56 @@ enum UserRole {
 
   /// Name shown to the user, e.g. "Store Admin".
   final String label;
-
-  /// Turns the saved text back into a role. Unknown text counts as customer,
-  /// the role with the fewest permissions.
-  static UserRole fromName(String? name) {
-    for (final role in UserRole.values) {
-      if (role.name == name) return role;
-    }
-    return UserRole.customer;
-  }
 }
 
 /// A user's profile, stored in Firestore at users/{uid}.
 /// The password is not here; Firebase Authentication keeps that.
-class AppUser {
-  const AppUser({
-    required this.uid,
-    required this.name,
-    required this.email,
-    required this.phone,
-    required this.role,
-    this.isActive = true,
-    this.createdAt,
-  });
+@freezed
+abstract class AppUser with _$AppUser {
+  const factory AppUser({
+    /// Same id as the Firebase Authentication account.
+    required String uid,
+    required String name,
+    required String email,
+    required String phone,
+    required UserRole role,
 
-  factory AppUser.fromMap(String uid, Map<String, dynamic> map) {
-    final createdAt = map[UserFields.createdAt];
+    /// False if HQ deactivated this Store Worker. They cannot sign in.
+    @Default(true) bool isActive,
 
+    /// Null until Firestore has saved the server time.
+    DateTime? createdAt,
+  }) = _AppUser;
+
+  const AppUser._();
+
+  /// Reads users/{uid}. An unknown or missing role counts as customer, the
+  /// role with the fewest permissions.
+  factory AppUser.fromFirestore(String uid, Map<String, dynamic> data) {
     return AppUser(
       uid: uid,
-      name: map[UserFields.name] as String? ?? '',
-      email: map[UserFields.email] as String? ?? '',
-      phone: map[UserFields.phone] as String? ?? '',
-      role: UserRole.fromName(map[UserFields.role] as String?),
-      isActive: map[UserFields.isActive] as bool? ?? true,
-      createdAt: createdAt is Timestamp ? createdAt.toDate() : null,
+      name: data.string(UserFields.name),
+      email: data.string(UserFields.email),
+      phone: data.string(UserFields.phone),
+      role: data.enumValue(
+        UserFields.role,
+        UserRole.values,
+        fallback: UserRole.customer,
+      ),
+      isActive: data.boolean(UserFields.isActive, fallback: true),
+      createdAt: data.dateTime(UserFields.createdAt),
     );
   }
 
-  /// Same id as the Firebase Authentication account.
-  final String uid;
-  final String name;
-  final String email;
-  final String phone;
-  final UserRole role;
-
-  /// False if HQ deactivated this Store Worker. They cannot sign in.
-  final bool isActive;
-
-  /// Null until Firestore has saved the server time.
-  final DateTime? createdAt;
-
-  /// Data for a new users/{uid} document. The uid is the document id,
-  /// so it is not saved as a field.
-  Map<String, dynamic> toMap() {
+  /// The fields of a new profile. The uid is the document id, so it is not a
+  /// field. `isActive` and `createdAt` are set by HQ and the server, so
+  /// `firestore.rules` does not accept them from a sign-up.
+  Map<String, dynamic> toFirestore() {
     return {
       UserFields.name: name,
       UserFields.email: email,
       UserFields.phone: phone,
       UserFields.role: role.name,
-      UserFields.createdAt: FieldValue.serverTimestamp(),
     };
   }
 }

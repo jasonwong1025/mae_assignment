@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/core/errors/app_exception.dart';
 import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
 import 'package:mae_assignment/features/store_admin/staff/data/services/staff_service.dart';
 import 'package:mae_assignment/shared/models/page_result.dart';
@@ -10,13 +10,8 @@ final staffRepositoryProvider = Provider<StaffRepository>((ref) {
 });
 
 /// Error with a message to show on screen.
-class StaffException implements Exception {
-  const StaffException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
+class StaffException extends AppException {
+  const StaffException(super.message);
 }
 
 /// Store Workers for the Staff tab, saved in Firestore.
@@ -85,16 +80,13 @@ class StaffRepository {
     return _run(() => _service.updateWorker(worker));
   }
 
-  /// Runs a Firestore call and turns any error into a StaffException.
-  Future<T> _run<T>(Future<T> Function() call) async {
-    try {
-      return await call();
-    } on Object catch (error) {
-      debugPrint('Staff request failed: $error');
-      throw const StaffException(
-        'Could not reach the server. Please check your connection.',
-      );
-    }
+  /// Runs a Firestore call through the shared [guard].
+  Future<T> _run<T>(Future<T> Function() call) {
+    return guard(
+      call,
+      label: 'staff',
+      onError: () => const StaffException(kNetworkErrorMessage),
+    );
   }
 
   String _messageFor(FirebaseAuthException e) {

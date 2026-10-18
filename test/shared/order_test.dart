@@ -1,11 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:mae_assignment/core/firebase/firestore_paths.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 
 void main() {
-  group('Order.toCreateMap', () {
+  group('Order.toFirestore', () {
     const order = Order(
       id: 'o1',
       number: 2301,
@@ -33,26 +34,33 @@ void main() {
       total: 15.8,
       status: OrderStatus.pending,
       address: '12 Jalan Besar',
+      addressLocation: LatLng(3.1, 101.6),
       customerNote: 'Leave at the door',
       promoCode: 'FRESH5',
     );
 
     test('does not store the document id as a field', () {
-      expect(order.toCreateMap().containsKey('id'), isFalse);
+      expect(order.toFirestore().containsKey('id'), isFalse);
     });
 
     test('stores the status as the enum name', () {
-      expect(order.toCreateMap()[OrderFields.status], 'pending');
+      expect(order.toFirestore()[OrderFields.status], 'pending');
     });
 
-    test('uses server timestamps for placedAt and statusSince', () {
-      final map = order.toCreateMap();
-      expect(map[OrderFields.placedAt], isA<FieldValue>());
-      expect(map[OrderFields.statusSince], isA<FieldValue>());
+    test('leaves the server times to the service', () {
+      final json = order.toFirestore();
+      expect(json.containsKey(OrderFields.placedAt), isFalse);
+      expect(json.containsKey(OrderFields.statusSince), isFalse);
     });
 
-    test('serialises each item under the items array', () {
-      final items = order.toCreateMap()[OrderFields.items] as List;
+    test('stores the delivery location as a GeoPoint', () {
+      final point = order.toFirestore()[OrderFields.addressLocation];
+      expect(point, isA<GeoPoint>());
+      expect((point! as GeoPoint).latitude, 3.1);
+    });
+
+    test('serialises each item as a map under the items array', () {
+      final items = order.toFirestore()[OrderFields.items] as List;
       expect(items, hasLength(1));
       final item = items.first as Map<String, dynamic>;
       expect(item[OrderItemFields.productId], 'p-milk');
@@ -60,9 +68,19 @@ void main() {
       expect(item[OrderItemFields.unitPrice], 8.9);
     });
 
-    test('omits an empty address for pickup orders', () {
-      final pickup = order.copyWith(isDelivery: false, address: null);
-      expect(pickup.toCreateMap().containsKey(OrderFields.address), isFalse);
+    test('omits absent optional fields for pickup orders', () {
+      final pickup = order.copyWith(
+        isDelivery: false,
+        address: null,
+        addressLocation: null,
+        customerNote: null,
+        promoCode: null,
+      );
+      final json = pickup.toFirestore();
+      expect(json.containsKey(OrderFields.address), isFalse);
+      expect(json.containsKey(OrderFields.addressLocation), isFalse);
+      expect(json.containsKey(OrderFields.customerNote), isFalse);
+      expect(json.containsKey(OrderFields.promoCode), isFalse);
     });
   });
 
@@ -97,8 +115,8 @@ void main() {
 
     test('reads a well-formed document', () {
       final order = Order.fromFirestore('o1', validMap());
-      expect(order, isNotNull);
-      expect(order!.id, 'o1');
+
+      expect(order.id, 'o1');
       expect(order.number, 2301);
       expect(order.status, OrderStatus.packing);
       expect(order.items.single.quantity, 2);
@@ -106,63 +124,66 @@ void main() {
       expect(order.isPickup, isTrue);
     });
 
-    test('round-trips through toCreateMap for the non-timestamp fields', () {
-      final order = Order.fromFirestore('o1', validMap())!;
-      // Re-serialise and read back; the status and totals must survive.
-      final map = order.toCreateMap()..['status'] = order.status.name;
-      final again = Order.fromFirestore('o1', map)!;
-      expect(again.number, order.number);
-      expect(again.total, order.total);
-      expect(again.status, order.status);
-      expect(again.items.single.productId, 'p-milk');
+    test('round-trips through toFirestore', () {
+      final order = Order.fromFirestore('o1', validMap());
+      final again = Order.fromFirestore('o1', order.toFirestore());
+
+      expect(again, order);
     });
 
-    test('returns null when the number is missing', () {
+    test('is malformed when the number is missing', () {
       final map = validMap()..remove(OrderFields.number);
-      expect(Order.fromFirestore('o1', map), isNull);
+      expect(
+        () => Order.fromFirestore('o1', map),
+        throwsA(isA<FormatException>()),
+      );
     });
 
-    test('returns null when the customer id is missing', () {
+    test('is malformed when the customer id is missing', () {
       final map = validMap()..remove(OrderFields.customerId);
-      expect(Order.fromFirestore('o1', map), isNull);
+      expect(
+        () => Order.fromFirestore('o1', map),
+        throwsA(isA<FormatException>()),
+      );
     });
 
     test('falls back to pending for an unknown status', () {
       final map = validMap()..[OrderFields.status] = 'nonsense';
-      expect(Order.fromFirestore('o1', map)!.status, OrderStatus.pending);
+      expect(Order.fromFirestore('o1', map).status, OrderStatus.pending);
     });
 
     test('reads a Firestore Timestamp into placedAt', () {
       final when = DateTime(2026, 3, 12, 18, 48);
       final map = validMap()..[OrderFields.placedAt] = Timestamp.fromDate(when);
-      expect(Order.fromFirestore('o1', map)!.placedAt, when);
+      expect(Order.fromFirestore('o1', map).placedAt, when);
+    });
+
+    test('reads a GeoPoint into the delivery location', () {
+      final map = validMap()
+        ..[OrderFields.addressLocation] = const GeoPoint(3.1, 101.6);
+      expect(
+        Order.fromFirestore('o1', map).addressLocation,
+        const LatLng(3.1, 101.6),
+      );
     });
   });
 
   group('OrderItem', () {
+    const item = OrderItem(
+      lineId: 'l1',
+      productId: 'p1',
+      name: 'Rice',
+      brand: 'Jasmine',
+      packSize: '5kg',
+      quantity: 3,
+      unitPrice: 20,
+    );
+
     test('lineTotal multiplies unit price by quantity', () {
-      const item = OrderItem(
-        lineId: 'l1',
-        productId: 'p1',
-        name: 'Rice',
-        brand: 'Jasmine',
-        packSize: '5kg',
-        quantity: 3,
-        unitPrice: 20,
-      );
       expect(item.lineTotal, 60);
     });
 
-    test('omits an empty image url when serialising', () {
-      const item = OrderItem(
-        lineId: 'l1',
-        productId: 'p1',
-        name: 'Rice',
-        brand: 'Jasmine',
-        packSize: '5kg',
-        quantity: 1,
-        unitPrice: 20,
-      );
+    test('omits a missing image url when saving', () {
       expect(item.toMap().containsKey(OrderItemFields.imageUrl), isFalse);
     });
   });

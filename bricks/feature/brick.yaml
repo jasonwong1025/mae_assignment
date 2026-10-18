@@ -1,0 +1,29 @@
+name: feature
+description: >-
+  One Firestore-backed slice in the Grocerly layout: Freezed model, service,
+  repository and view model, plus tests. Follows the README "Code
+  conventions" so every feature is written the same way.
+version: 0.1.0+1
+vars:
+  name:
+    type: string
+    description: The thing stored, singular, snake_case (for example review).
+    prompt: What is the model called (snake_case, singular)?
+  feature:
+    type: string
+    description: Feature folder, snake_case (for example reviews).
+    prompt: Which feature folder (snake_case)?
+  role:
+    type: enum
+    description: Which app the feature belongs to.
+    prompt: Which app is this for?
+    values:
+      - customer
+      - store_admin
+      - store_worker
+  collection:
+    type: string
+    description: >-
+      The FirestoreRefs getter for the collection, camelCase (for example
+      reviews). Add it to FirestoreRefs and FirestoreCollections first.
+    prompt: Name of the FirestoreRefs collection getter (camelCase)?

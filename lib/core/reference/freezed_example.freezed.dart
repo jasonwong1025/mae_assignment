@@ -657,4 +657,280 @@ as String,
 
 }
 
+/// @nodoc
+mixin _$ExampleDocument {
+
+ String get id; String get title; int get count; String? get note; DateTime? get createdAt;
+/// Create a copy of ExampleDocument
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ExampleDocumentCopyWith<ExampleDocument> get copyWith => _$ExampleDocumentCopyWithImpl<ExampleDocument>(this as ExampleDocument, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  final _this = this as ExampleDocument;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ExampleDocument&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.title, _this.title) || other.title == _this.title)&&(identical(other.count, _this.count) || other.count == _this.count)&&(identical(other.note, _this.note) || other.note == _this.note)&&(identical(other.createdAt, _this.createdAt) || other.createdAt == _this.createdAt));
+}
+
+
+@override
+int get hashCode {
+  final _this = this as ExampleDocument;
+  return Object.hash(runtimeType,_this.id,_this.title,_this.count,_this.note,_this.createdAt);
+}
+
+@override
+String toString() {
+  final _this = this as ExampleDocument;
+  return 'ExampleDocument(id: ${_this.id}, title: ${_this.title}, count: ${_this.count}, note: ${_this.note}, createdAt: ${_this.createdAt})';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ExampleDocumentCopyWith<$Res>  {
+  factory $ExampleDocumentCopyWith(ExampleDocument value, $Res Function(ExampleDocument) _then) = _$ExampleDocumentCopyWithImpl;
+@useResult
+$Res call({
+ String id, String title, int count, String? note, DateTime? createdAt
+});
+
+
+
+
+}
+/// @nodoc
+class _$ExampleDocumentCopyWithImpl<$Res>
+    implements $ExampleDocumentCopyWith<$Res> {
+  _$ExampleDocumentCopyWithImpl(this._self, this._then);
+
+  final ExampleDocument _self;
+  final $Res Function(ExampleDocument) _then;
+
+/// Create a copy of ExampleDocument
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? count = null,Object? note = freezed,Object? createdAt = freezed,}) {
+  return _then(ExampleDocument(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as String,count: null == count ? _self.count : count // ignore: cast_nullable_to_non_nullable
+as int,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
+as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [ExampleDocument].
+extension ExampleDocumentPatterns on ExampleDocument {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ExampleDocument value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ExampleDocument() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ExampleDocument value)  $default,){
+final _that = this;
+switch (_that) {
+case _ExampleDocument():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ExampleDocument value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ExampleDocument() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title,  int count,  String? note,  DateTime? createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ExampleDocument() when $default != null:
+return $default(_that.id,_that.title,_that.count,_that.note,_that.createdAt);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title,  int count,  String? note,  DateTime? createdAt)  $default,) {final _that = this;
+switch (_that) {
+case _ExampleDocument():
+return $default(_that.id,_that.title,_that.count,_that.note,_that.createdAt);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title,  int count,  String? note,  DateTime? createdAt)?  $default,) {final _that = this;
+switch (_that) {
+case _ExampleDocument() when $default != null:
+return $default(_that.id,_that.title,_that.count,_that.note,_that.createdAt);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class _ExampleDocument extends ExampleDocument {
+  const _ExampleDocument({required this.id, required this.title, required this.count, this.note, this.createdAt}): super._();
+  
+
+@override final  String id;
+@override final  String title;
+@override final  int count;
+@override final  String? note;
+@override final  DateTime? createdAt;
+
+/// Create a copy of ExampleDocument
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ExampleDocumentCopyWith<_ExampleDocument> get copyWith => __$ExampleDocumentCopyWithImpl<_ExampleDocument>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ExampleDocument&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.count, count) || other.count == count)&&(identical(other.note, note) || other.note == note)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+}
+
+
+@override
+int get hashCode {
+    return Object.hash(runtimeType,id,title,count,note,createdAt);
+}
+
+@override
+String toString() {
+    return 'ExampleDocument(id: $id, title: $title, count: $count, note: $note, createdAt: $createdAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ExampleDocumentCopyWith<$Res> implements $ExampleDocumentCopyWith<$Res> {
+  factory _$ExampleDocumentCopyWith(_ExampleDocument value, $Res Function(_ExampleDocument) _then) = __$ExampleDocumentCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String title, int count, String? note, DateTime? createdAt
+});
+
+
+
+
+}
+/// @nodoc
+class __$ExampleDocumentCopyWithImpl<$Res>
+    implements _$ExampleDocumentCopyWith<$Res> {
+  __$ExampleDocumentCopyWithImpl(this._self, this._then);
+
+  final _ExampleDocument _self;
+  final $Res Function(_ExampleDocument) _then;
+
+/// Create a copy of ExampleDocument
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? count = null,Object? note = freezed,Object? createdAt = freezed,}) {
+  return _then(_ExampleDocument(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
+as String,count: null == count ? _self.count : count // ignore: cast_nullable_to_non_nullable
+as int,note: freezed == note ? _self.note : note // ignore: cast_nullable_to_non_nullable
+as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
+  ));
+}
+
+
+}
+
 // dart format on

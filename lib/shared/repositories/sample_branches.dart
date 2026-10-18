@@ -41,10 +41,7 @@ List<Branch> sampleBranches() => [
     address: '21, Jalan Puteri 1/2, 47100 Bandar Puteri Puchong, Selangor',
     phone: '03-8061 7720',
     location: const LatLng(3.0235, 101.6170),
-    weeklyHours: [
-      ..._everyDay(8 * 60, 20 * 60).take(6),
-      const DayHours.closed(),
-    ],
+    weeklyHours: [..._everyDay(8 * 60, 20 * 60).take(6), DayHours.closed],
     maxDeliveryKm: 6,
     baseDeliveryFee: 4,
     feePerKm: 0.6,

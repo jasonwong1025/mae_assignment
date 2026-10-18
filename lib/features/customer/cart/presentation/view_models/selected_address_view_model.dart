@@ -1,9 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/view_models/selected_branch_view_model.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
 import 'package:mae_assignment/shared/models/customer_address.dart';
 import 'package:mae_assignment/shared/repositories/address_repository.dart';
+
+part 'selected_address_view_model.freezed.dart';
 
 /// The delivery address the customer picked for this order, or null if they
 /// have not chosen one yet. The cart sets it; checkout reads it.
@@ -48,22 +51,21 @@ final FutureProvider<CustomerAddress?> effectiveDeliveryAddressProvider =
 /// distance and the branch's fee for it, or an out-of-range flag. The real
 /// app would use road distance; straight-line is a reasonable stand-in and
 /// keeps the fee deterministic for this slice.
-class DeliveryQuote {
-  const DeliveryQuote({
-    required this.distanceKm,
-    required this.fee,
-    required this.inRange,
-  });
+@freezed
+abstract class DeliveryQuote with _$DeliveryQuote {
+  const factory DeliveryQuote({
+    /// Distance from the branch to the address, in kilometres.
+    required double distanceKm,
 
-  /// Distance from the branch to the address, in kilometres.
-  final double distanceKm;
+    /// Delivery fee in ringgit. Zero when out of range (then [inRange] is
+    /// false and checkout is blocked).
+    required double fee,
 
-  /// Delivery fee in ringgit. Zero when out of range (then [inRange] is
-  /// false and checkout is blocked).
-  final double fee;
+    /// False when the address is beyond the branch's delivery radius.
+    required bool inRange,
+  }) = _DeliveryQuote;
 
-  /// False when the address is beyond the branch's delivery radius.
-  final bool inRange;
+  const DeliveryQuote._();
 }
 
 /// Works out the delivery fee for the selected branch and address. Null

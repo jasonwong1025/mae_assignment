@@ -1,16 +1,30 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:mae_assignment/features/store_admin/reviews/data/models/review.dart';
 
+part 'review_summary.freezed.dart';
+
 /// Averages and counts over all of a branch's reviews.
-class ReviewSummary {
-  const ReviewSummary({
-    required this.reviewCount,
-    required this.deliveryCount,
-    required this.shoppingAverage,
-    required this.productAverage,
-    required this.deliveryAverage,
-    required this.starCounts,
-    required this.drivers,
-  });
+@freezed
+abstract class ReviewSummary with _$ReviewSummary {
+  const factory ReviewSummary({
+    required int reviewCount,
+
+    /// Reviews of delivery orders (pickup orders have no delivery score).
+    required int deliveryCount,
+
+    /// Averages out of 5. 0 if there are no reviews.
+    required double shoppingAverage,
+    required double productAverage,
+    required double deliveryAverage,
+
+    /// Reviews per overall star rating. Index 0 is 1 star.
+    required List<int> starCounts,
+
+    /// Drivers who delivered for the branch, best rated first.
+    required List<DriverRating> drivers,
+  }) = _ReviewSummary;
+
+  const ReviewSummary._();
 
   /// Works out the summary from [reviews].
   factory ReviewSummary.from(List<Review> reviews) {
@@ -56,35 +70,17 @@ class ReviewSummary {
       drivers: drivers,
     );
   }
-
-  final int reviewCount;
-
-  /// Reviews of delivery orders (pickup orders have no delivery score).
-  final int deliveryCount;
-
-  /// Averages out of 5. 0 if there are no reviews.
-  final double shoppingAverage;
-  final double productAverage;
-  final double deliveryAverage;
-
-  /// Reviews per overall star rating. Index 0 is 1 star.
-  final List<int> starCounts;
-
-  /// Drivers who delivered for the branch, best rated first.
-  final List<DriverRating> drivers;
 }
 
 /// A driver's average delivery score at one branch.
-class DriverRating {
-  const DriverRating({
-    required this.driverId,
-    required this.name,
-    required this.average,
-    required this.reviewCount,
-  });
+@freezed
+abstract class DriverRating with _$DriverRating {
+  const factory DriverRating({
+    required String driverId,
+    required String name,
+    required double average,
+    required int reviewCount,
+  }) = _DriverRating;
 
-  final String driverId;
-  final String name;
-  final double average;
-  final int reviewCount;
+  const DriverRating._();
 }

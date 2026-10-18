@@ -1,9 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:mae_assignment/features/store_admin/sales/data/models/sales_report.dart';
 import 'package:mae_assignment/features/store_admin/sales/data/repositories/sales_repository.dart';
 import 'package:mae_assignment/features/store_admin/sales/presentation/view_models/sales_filter_view_model.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 import 'package:mae_assignment/shared/models/page_result.dart';
+
+part 'sales_view_model.freezed.dart';
 
 final AsyncNotifierProvider<SalesViewModel, SalesState> salesViewModelProvider =
     AsyncNotifierProvider.autoDispose<SalesViewModel, SalesState>(
@@ -11,13 +14,16 @@ final AsyncNotifierProvider<SalesViewModel, SalesState> salesViewModelProvider =
     );
 
 /// What the Sales tab shows.
-class SalesState {
-  const SalesState({required this.report, required this.topProducts});
+@freezed
+abstract class SalesState with _$SalesState {
+  const factory SalesState({
+    required SalesReport report,
 
-  final SalesReport report;
+    /// One page of the best-selling products.
+    required PageResult<ProductSales> topProducts,
+  }) = _SalesState;
 
-  /// One page of the best-selling products.
-  final PageResult<ProductSales> topProducts;
+  const SalesState._();
 }
 
 /// State for the Sales & revenue tab of the selected branch. Read only.

@@ -1,10 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:mae_assignment/features/store_admin/reviews/data/models/review.dart';
 import 'package:mae_assignment/features/store_admin/reviews/data/models/review_summary.dart';
 import 'package:mae_assignment/features/store_admin/reviews/data/repositories/reviews_repository.dart';
 import 'package:mae_assignment/features/store_admin/reviews/presentation/view_models/reviews_filter_view_model.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 import 'package:mae_assignment/shared/models/page_result.dart';
+
+part 'reviews_view_model.freezed.dart';
 
 final AsyncNotifierProvider<ReviewsViewModel, ReviewsState>
 reviewsViewModelProvider =
@@ -13,14 +16,17 @@ reviewsViewModelProvider =
     );
 
 /// What the Reviews tab shows.
-class ReviewsState {
-  const ReviewsState({required this.summary, required this.page});
+@freezed
+abstract class ReviewsState with _$ReviewsState {
+  const factory ReviewsState({
+    /// Averages over all of the branch's reviews (not filtered).
+    required ReviewSummary summary,
 
-  /// Averages over all of the branch's reviews (not filtered).
-  final ReviewSummary summary;
+    /// One page of the filtered reviews.
+    required PageResult<Review> page,
+  }) = _ReviewsState;
 
-  /// One page of the filtered reviews.
-  final PageResult<Review> page;
+  const ReviewsState._();
 }
 
 /// State for the Reviews tab. Read only: reviews cannot be changed here.

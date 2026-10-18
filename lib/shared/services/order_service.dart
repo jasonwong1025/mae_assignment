@@ -2,13 +2,16 @@
 // which clashes with the app's order model; hide it so `Order` means ours.
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/core/firebase/firestore_config.dart';
+import 'package:mae_assignment/core/firebase/firestore_models.dart';
 import 'package:mae_assignment/core/firebase/firestore_paths.dart';
+import 'package:mae_assignment/core/firebase/firestore_refs.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 
 final Provider<OrderService> orderServiceProvider = Provider<OrderService>((
   ref,
 ) {
-  return OrderService(FirebaseFirestore.instance);
+  return OrderService(ref.watch(firebaseFirestoreProvider));
 });
 
 /// Reads and writes the shared "orders" collection in Firestore.
@@ -18,23 +21,20 @@ final Provider<OrderService> orderServiceProvider = Provider<OrderService>((
 /// currently use sample data. Writes are plain client writes, allowed by
 /// `firestore.rules` (a customer may create and read their own orders).
 class OrderService {
-  OrderService(this._firestore);
+  OrderService(this._firestore) : _refs = FirestoreRefs(_firestore);
 
   final FirebaseFirestore _firestore;
-
-  /// How long to wait for a Firestore read before giving up. Without this,
-  /// `get()` retries forever when the backend is unreachable.
-  static const Duration _timeout = Duration(seconds: 15);
-
-  CollectionReference<Map<String, dynamic>> get _orders {
-    return _firestore.collection(FirestoreCollections.orders);
-  }
+  final FirestoreRefs _refs;
 
   /// Creates [order] with a fresh document id and returns that id. The
   /// server sets placedAt/statusSince, so the stored times are authoritative.
   Future<String> createOrder(Order order) async {
-    final doc = _orders.doc();
-    await doc.set(order.toCreateMap());
+    final doc = _refs.orders.doc();
+    await doc.set({
+      ...order.toFirestore(),
+      OrderFields.placedAt: FieldValue.serverTimestamp(),
+      OrderFields.statusSince: FieldValue.serverTimestamp(),
+    });
     return doc.id;
   }
 
@@ -47,9 +47,7 @@ class OrderService {
   /// concurrent checkouts never get the same number. The first order starts
   /// at 1001 so numbers look like real order ids.
   Future<int> nextOrderNumber() {
-    final counter = _firestore
-        .collection(FirestoreCollections.counters)
-        .doc(CounterDocs.orders);
+    final counter = _refs.counter(CounterDocs.orders);
     return _firestore
         .runTransaction((transaction) async {
           final snapshot = await transaction.get(counter);
@@ -60,38 +58,35 @@ class OrderService {
           transaction.set(counter, {CounterFields.value: next});
           return next;
         })
-        .timeout(_timeout);
+        .timeout(FirestoreConfig.readTimeout);
   }
 
   /// One order by id, or null if it does not exist.
   Future<Order?> getOrder(String id) async {
-    final doc = await _orders.doc(id).get().timeout(_timeout);
-    final data = doc.data();
-    if (!doc.exists || data == null) return null;
-    return Order.fromFirestore(doc.id, data);
+    final doc = await _refs
+        .order(id)
+        .get()
+        .timeout(FirestoreConfig.readTimeout);
+    return doc.toModel(fromFirestore: Order.fromFirestore);
   }
 
   /// Live stream of one customer's orders, newest first. Emits on every
   /// change (status updates from workers show up without a refresh).
   Stream<List<Order>> watchCustomerOrders(String customerId) {
-    return _orders
+    return _refs.orders
         .where(OrderFields.customerId, isEqualTo: customerId)
         .orderBy(OrderFields.placedAt, descending: true)
         .snapshots()
-        .map((snapshot) {
-          return [
-            for (final doc in snapshot.docs)
-              ?Order.fromFirestore(doc.id, doc.data()),
-          ];
-        });
+        .map(
+          (snapshot) => snapshot.toModels(fromFirestore: Order.fromFirestore),
+        );
   }
 
   /// Live stream of one order by id, or null if it is deleted/missing.
   Stream<Order?> watchOrder(String id) {
-    return _orders.doc(id).snapshots().map((doc) {
-      final data = doc.data();
-      if (!doc.exists || data == null) return null;
-      return Order.fromFirestore(doc.id, data);
-    });
+    return _refs
+        .order(id)
+        .snapshots()
+        .map((doc) => doc.toModel(fromFirestore: Order.fromFirestore));
   }
 }

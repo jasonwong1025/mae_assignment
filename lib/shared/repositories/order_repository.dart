@@ -1,5 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/core/errors/app_exception.dart';
 import 'package:mae_assignment/features/customer/cart/data/models/cart.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
@@ -14,13 +14,8 @@ final Provider<OrderRepository> orderRepositoryProvider =
     });
 
 /// Error with a message that is safe to show on screen.
-class OrderException implements Exception {
-  const OrderException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
+class OrderException extends AppException {
+  const OrderException(super.message);
 }
 
 /// Places and reads orders through the shared "orders" collection.
@@ -118,19 +113,13 @@ class OrderRepository {
   /// Live stream of one order by id.
   Stream<Order?> watchOrder(String id) => _service.watchOrder(id);
 
-  /// Runs a Firestore call and turns any error into an OrderException.
-  /// [label] names the operation in logs so a denied call is easy to spot.
-  Future<T> _run<T>(Future<T> Function() call, {String label = 'order'}) async {
-    try {
-      return await call();
-    } on OrderException {
-      rethrow;
-    } on Object catch (error) {
-      debugPrint('Order request failed [$label]: $error');
-      throw const OrderException(
-        'Could not reach the server. Please check your connection and '
-        'try again.',
-      );
-    }
+  /// Runs a Firestore call through the shared [guard]. [label] names the
+  /// operation in logs so a denied call is easy to spot.
+  Future<T> _run<T>(Future<T> Function() call, {String label = 'order'}) {
+    return guard(
+      call,
+      label: label,
+      onError: () => const OrderException(kNetworkErrorMessage),
+    );
   }
 }

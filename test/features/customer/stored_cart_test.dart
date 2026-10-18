@@ -15,9 +15,9 @@ CatalogueProduct _product(String id, {int stock = 20}) => CatalogueProduct(
 );
 
 void main() {
-  group('fromFirestore', () {
+  group('fromMap', () {
     test('reads lines, fulfilment and promo', () {
-      final cart = StoredCart.fromFirestore({
+      final cart = StoredCart.fromMap({
         CartFields.lines: [
           {CartLineFields.productId: 'p1', CartLineFields.quantity: 2},
         ],
@@ -31,7 +31,7 @@ void main() {
     });
 
     test('skips malformed lines and defaults an unknown fulfilment', () {
-      final cart = StoredCart.fromFirestore({
+      final cart = StoredCart.fromMap({
         CartFields.lines: [
           'junk',
           {CartLineFields.productId: '', CartLineFields.quantity: 1},

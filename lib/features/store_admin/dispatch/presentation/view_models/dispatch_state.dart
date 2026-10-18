@@ -1,8 +1,11 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver_location.dart';
 import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
+
+part 'dispatch_state.freezed.dart';
 
 const _distance = Distance();
 
@@ -10,16 +13,19 @@ const _distance = Distance();
 const _metresPerMinute = 500.0;
 
 /// A driver with their live location and this branch's order they handle.
-class DispatchDriver {
-  const DispatchDriver({required this.worker, this.location, this.order});
+@freezed
+abstract class DispatchDriver with _$DispatchDriver {
+  const factory DispatchDriver({
+    required Driver worker,
 
-  final Driver worker;
+    /// Null if the driver shares no location.
+    DriverLocation? location,
 
-  /// Null if the driver shares no location.
-  final DriverLocation? location;
+    /// Null if free or busy with another branch's order.
+    Order? order,
+  }) = _DispatchDriver;
 
-  /// Null if free or busy with another branch's order.
-  final Order? order;
+  const DispatchDriver._();
 
   String get id => worker.id;
   String get firstName => worker.name.split(' ').first;
@@ -79,12 +85,19 @@ class DispatchDriver {
 }
 
 /// Everything the Dispatch tab shows for one branch.
-class DispatchState {
-  const DispatchState({
-    required this.branch,
-    required this.deliveries,
-    required this.drivers,
-  });
+@freezed
+abstract class DispatchState with _$DispatchState {
+  const factory DispatchState({
+    required Branch branch,
+
+    /// This branch's delivery orders that are ready or on the road.
+    required List<Order> deliveries,
+
+    /// All active drivers.
+    required List<DispatchDriver> drivers,
+  }) = _DispatchState;
+
+  const DispatchState._();
 
   /// Joins the data together and sorts it.
   factory DispatchState.from({
@@ -135,14 +148,6 @@ class DispatchState {
       drivers: dispatchDrivers,
     );
   }
-
-  final Branch branch;
-
-  /// This branch's delivery orders that are ready or on the road.
-  final List<Order> deliveries;
-
-  /// All active drivers.
-  final List<DispatchDriver> drivers;
 
   List<Order> get needsDriver {
     return deliveries.where((order) => order.driverId == null).toList();

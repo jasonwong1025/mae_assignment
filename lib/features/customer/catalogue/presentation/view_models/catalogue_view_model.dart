@@ -1,9 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue_product.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/repositories/catalogue_repository.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/view_models/catalogue_filter_view_model.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/view_models/selected_branch_view_model.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
+
+part 'catalogue_view_model.freezed.dart';
 
 final catalogueViewModelProvider =
     AsyncNotifierProvider.autoDispose<CatalogueViewModel, CatalogueState>(
@@ -11,20 +14,18 @@ final catalogueViewModelProvider =
     );
 
 /// What the Home (catalogue) screen shows.
-class CatalogueState {
-  const CatalogueState({
-    required this.branch,
-    required this.categories,
-    required this.products,
-  });
+@freezed
+abstract class CatalogueState with _$CatalogueState {
+  const factory CatalogueState({
+    /// The store the customer is shopping from.
+    required Branch branch,
+    required List<CatalogueCategory> categories,
 
-  /// The store the customer is shopping from.
-  final Branch branch;
+    /// Products after the category and search filters are applied.
+    required List<CatalogueProduct> products,
+  }) = _CatalogueState;
 
-  final List<CatalogueCategory> categories;
-
-  /// Products after the category and search filters are applied.
-  final List<CatalogueProduct> products;
+  const CatalogueState._();
 
   /// Up to [limit] genuinely low-stock products (a scarcity hint is shown),
   /// least stock first, for the "Going fast today" row. Empty when nothing

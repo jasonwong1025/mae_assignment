@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+
+part 'orders_filter_view_model.freezed.dart';
 
 final NotifierProvider<OrdersFilterViewModel, OrdersFilter>
 ordersFilterViewModelProvider =
@@ -20,14 +22,14 @@ enum FulfilmentFilter {
 }
 
 /// What the admin typed in the search box and picked in the Filter menu.
-class OrdersFilter {
-  const OrdersFilter({
-    this.searchText = '',
-    this.fulfilment = FulfilmentFilter.all,
-  });
+@freezed
+abstract class OrdersFilter with _$OrdersFilter {
+  const factory OrdersFilter({
+    @Default('') String searchText,
+    @Default(FulfilmentFilter.all) FulfilmentFilter fulfilment,
+  }) = _OrdersFilter;
 
-  final String searchText;
-  final FulfilmentFilter fulfilment;
+  const OrdersFilter._();
 
   /// True if [order] should be shown on the board.
   bool matches(Order order) {
@@ -53,10 +55,10 @@ class OrdersFilterViewModel extends Notifier<OrdersFilter> {
   OrdersFilter build() => const OrdersFilter();
 
   void setSearchText(String text) {
-    state = OrdersFilter(searchText: text, fulfilment: state.fulfilment);
+    state = state.copyWith(searchText: text);
   }
 
   void setFulfilment(FulfilmentFilter fulfilment) {
-    state = OrdersFilter(searchText: state.searchText, fulfilment: fulfilment);
+    state = state.copyWith(fulfilment: fulfilment);
   }
 }

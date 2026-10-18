@@ -1,3 +1,7 @@
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'sales_period.freezed.dart';
+
 /// Preset periods on the Sales tab. "Custom" is a [SalesPeriod] with no
 /// preset.
 enum SalesPreset {
@@ -15,8 +19,17 @@ enum SalesGrouping { hour, day, week }
 
 /// The days the Sales tab reports on, from [start] up to (not including)
 /// [end]. Both are at midnight.
-class SalesPeriod {
-  const SalesPeriod({required this.start, required this.end, this.preset});
+@freezed
+abstract class SalesPeriod with _$SalesPeriod {
+  const factory SalesPeriod({
+    required DateTime start,
+    required DateTime end,
+
+    /// Null for a custom period.
+    SalesPreset? preset,
+  }) = _SalesPeriod;
+
+  const SalesPeriod._();
 
   /// A preset period ending today.
   factory SalesPeriod.fromPreset(SalesPreset preset, DateTime now) {
@@ -43,12 +56,6 @@ class SalesPeriod {
 
   /// Longest custom period, in days.
   static const int maxDays = 366;
-
-  final DateTime start;
-  final DateTime end;
-
-  /// Null for a custom period.
-  final SalesPreset? preset;
 
   int get days => end.difference(start).inHours ~/ 24;
 

@@ -80,7 +80,7 @@ void main() {
   group('Branch', () {
     test('saving and loading keeps every field', () {
       final branch = sampleBranches()[2];
-      final loaded = Branch.fromMap(branch.id, branch.toMap());
+      final loaded = Branch.fromFirestore(branch.id, branch.toFirestore());
 
       expect(loaded.name, 'Puchong');
       expect(loaded.location, branch.location);
@@ -107,7 +107,7 @@ void main() {
         const DayHours(opensAt: 9 * 60, closesAt: 17 * 60),
         const DayHours(opensAt: 10 * 60, closesAt: 18 * 60),
         const DayHours(opensAt: 11 * 60, closesAt: 19 * 60),
-        const DayHours.closed(),
+        DayHours.closed,
       ];
       final branch = _branch(weeklyHours: weeklyHours);
       // 19 Oct 2026 is a Monday.

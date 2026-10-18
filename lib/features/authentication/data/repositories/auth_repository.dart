@@ -3,6 +3,8 @@ import 'dart:developer' as developer;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:mae_assignment/core/errors/app_exception.dart';
+import 'package:mae_assignment/core/firebase/firestore_config.dart';
 import 'package:mae_assignment/features/authentication/data/services/auth_service.dart';
 import 'package:mae_assignment/features/authentication/data/services/google_sign_in_service.dart';
 import 'package:mae_assignment/features/authentication/data/services/user_service.dart';
@@ -29,13 +31,8 @@ final StreamProvider<String?> authUidProvider = StreamProvider<String?>((ref) {
 });
 
 /// Error with a message that is safe to show on screen.
-class AuthException implements Exception {
-  const AuthException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => message;
+class AuthException extends AppException {
+  const AuthException(super.message);
 }
 
 /// Sign-up, sign-in and sign-out. Combines the Firebase account
@@ -47,10 +44,6 @@ class AuthRepository {
     this._userService,
     this._googleSignInService,
   );
-
-  /// Firestore keeps retrying when it cannot reach the server (no internet,
-  /// database missing), so without a limit the page would load forever.
-  static const Duration _firestoreTimeout = Duration(seconds: 15);
 
   final AuthService _authService;
   final UserService _userService;
@@ -88,7 +81,7 @@ class AuthRepository {
     );
 
     try {
-      await _userService.createUser(user).timeout(_firestoreTimeout);
+      await _userService.createUser(user).timeout(FirestoreConfig.readTimeout);
     } on Object catch (_) {
       // Without a profile the account is unusable, so remove it and let
       // the user try again with the same email.
@@ -116,7 +109,9 @@ class AuthRepository {
 
     final AppUser? user;
     try {
-      user = await _userService.getUser(account.uid).timeout(_firestoreTimeout);
+      user = await _userService
+          .getUser(account.uid)
+          .timeout(FirestoreConfig.readTimeout);
     } on Object catch (_) {
       await _authService.signOut();
       throw const AuthException(
@@ -197,7 +192,7 @@ class AuthRepository {
     try {
       profile = await _userService
           .getOrCreateCustomer(proposedCustomer)
-          .timeout(_firestoreTimeout);
+          .timeout(FirestoreConfig.readTimeout);
     } on Object catch (_) {
       await signOut();
       throw const AuthException(
@@ -251,7 +246,9 @@ class AuthRepository {
   Future<void> endDeadSession() async {
     if (!_authService.isSignedIn) return;
     try {
-      await _authService.reloadCurrentUser().timeout(_firestoreTimeout);
+      await _authService.reloadCurrentUser().timeout(
+        FirestoreConfig.readTimeout,
+      );
     } on FirebaseAuthException catch (error) {
       if (_deadSessionCodes.contains(error.code)) await signOut();
     } on Object catch (error) {
@@ -267,7 +264,9 @@ class AuthRepository {
   Future<AppUser?> getCurrentUser() async {
     final account = _authService.currentUser;
     if (account == null) return null;
-    return await _userService.getUser(account.uid).timeout(_firestoreTimeout);
+    return await _userService
+        .getUser(account.uid)
+        .timeout(FirestoreConfig.readTimeout);
   }
 
   /// Firebase error codes: https://firebase.google.com/docs/auth/admin/errors
