@@ -85,7 +85,21 @@ dev_dependencies:
   # Stubbing/verification for ViewModel and repository unit tests without a
   # real Firebase or emulator.
   mocktail: ^1.0.5
+
+  # End-to-end UI testing (the test pyramid's top layer). Drives the real
+  # app on a device against the Firebase emulators, and can tap native UI.
+  # Paired with patrol_cli 4.8.0 (see the Patrol compatibility table).
+  # Run with: patrol test --target integration_test/<file>.dart
+  patrol: ^4.10.0
+
   very_good_analysis: ^11.0.0
+
+# Patrol end-to-end test configuration. app_name is shown in reports; the
+# Android package_name must match android/app build applicationId.
+patrol:
+  app_name: Grocerly
+  android:
+    package_name: com.example.mae_assignment
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

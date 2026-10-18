@@ -22,6 +22,7 @@ import {
   GeoPoint,
   FieldValue,
 } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
 
 const PROJECT_ID = "mae-assignment-grocerly";
 
@@ -30,6 +31,18 @@ const app = initializeApp({
   projectId: PROJECT_ID,
 });
 const db = getFirestore(app);
+
+// `--with-customer` also creates a test customer (auth account + profile +
+// one saved address) for the Patrol end-to-end journey. Only meant for the
+// emulator, never the real shared project.
+const WITH_CUSTOMER = process.argv.includes("--with-customer");
+const E2E_CUSTOMER = {
+  uid: "e2e-customer",
+  email: "e2e.customer@grocerly.test",
+  password: "Password123!",
+  name: "E2E Customer",
+  phone: "0123456789",
+};
 
 /** Opening hours (minutes after midnight) for every day, same each day. */
 function everyDay(opensAt, closesAt) {
@@ -150,7 +163,65 @@ async function seed() {
     `Done: ${branches.length} branches, ${categories.length} categories, ` +
       `${products.length} products, inventory for ${Object.keys(inventory).length} branches.`
   );
+
+  if (WITH_CUSTOMER) {
+    await seedTestCustomer();
+  }
+
   process.exit(0);
+}
+
+/** Creates the E2E test customer: auth account, profile, one address. */
+async function seedTestCustomer() {
+  const onEmulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
+  if (!onEmulator) {
+    // Refuse to create the throwaway test account on the real project.
+    throw new Error("--with-customer is only allowed against the emulator.");
+  }
+
+  const auth = getAuth(app);
+  try {
+    await auth.createUser({
+      uid: E2E_CUSTOMER.uid,
+      email: E2E_CUSTOMER.email,
+      password: E2E_CUSTOMER.password,
+      displayName: E2E_CUSTOMER.name,
+    });
+  } catch (error) {
+    // Re-running the seed is fine; the account may already exist.
+    if (error.code !== "auth/uid-already-exists" &&
+        error.code !== "auth/email-already-exists") {
+      throw error;
+    }
+  }
+
+  await db.collection("users").doc(E2E_CUSTOMER.uid).set({
+    name: E2E_CUSTOMER.name,
+    email: E2E_CUSTOMER.email,
+    phone: E2E_CUSTOMER.phone,
+    role: "customer",
+    createdAt: FieldValue.serverTimestamp(),
+  });
+
+  // One default address so checkout has somewhere to deliver. Inside the
+  // SS15 branch's delivery radius (branch is at 3.0757, 101.5869).
+  await db
+    .collection("users")
+    .doc(E2E_CUSTOMER.uid)
+    .collection("addresses")
+    .doc("home")
+    .set({
+      label: "Home",
+      line: "1, Jalan SS15/4, 47500 Subang Jaya, Selangor",
+      location: new GeoPoint(3.0772, 101.588),
+      note: "",
+      isDefault: true,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+  console.log(
+    `Test customer ready: ${E2E_CUSTOMER.email} / ${E2E_CUSTOMER.password}`
+  );
 }
 
 seed().catch((error) => {

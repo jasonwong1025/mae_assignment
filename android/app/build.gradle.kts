@@ -26,6 +26,14 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Patrol end-to-end tests run through this instrumentation runner.
+        testInstrumentationRunner = "pl.leancode.patrol.PatrolJUnitRunner"
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
+    }
+
+    testOptions {
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
 
     buildTypes {
@@ -45,4 +53,11 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // AndroidX Test Orchestrator runs each Patrol test in its own
+    // instrumentation, matching testOptions.execution above. The Patrol
+    // native library itself comes transitively via the Flutter plugin.
+    androidTestUtil("androidx.test:orchestrator:1.5.1")
 }

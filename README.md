@@ -89,7 +89,37 @@ use the real backend. An Android emulator image reaches the host emulators on
 `10.0.2.2` with no network setup; a physical device needs the host's LAN
 address via `--dart-define=FIREBASE_EMULATOR_HOST=<host-ip>`.
 
-(Patrol setup is added when the first E2E flow is written.)
+Flows live in `integration_test/`. The first is the customer order journey
+(`customer_journey_test.dart`): sign in, browse, add to cart, place a delivery
+order, and track it. Patrol version pairing follows the
+[compatibility table](https://patrol.leancode.co/documentation/compatibility-table)
+(`patrol` in `pubspec.yaml` with `patrol_cli` installed separately). The native
+runner lives in `android/app/src/androidTest/`.
+
+Install the Patrol CLI once (`dart pub global activate patrol_cli`), then:
+
+```bash
+# 1. Start the emulators (Auth + Firestore).
+cd test_firebase
+npx firebase emulators:start --only auth,firestore --project mae-assignment-grocerly
+
+# 2. In another shell, seed the emulator with the catalogue and a test
+#    customer (an auth account plus one saved address). The --with-customer
+#    flag is refused against the real project.
+cd test_firebase
+FIRESTORE_EMULATOR_HOST=localhost:8085 \
+FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
+node seed.mjs --with-customer
+
+# 3. With a device/emulator connected, run the flow. An Android AVD reaches
+#    the host on 10.0.2.2 automatically; a physical device needs the host ip.
+patrol test --target integration_test/customer_journey_test.dart \
+  --dart-define=USE_FIREBASE_EMULATOR=true
+#   physical device: add --dart-define=FIREBASE_EMULATOR_HOST=<host-ip>
+```
+
+Patrol generates `integration_test/test_bundle.dart` on each run; it is
+git-ignored and must not be committed.
 
 ## Code generation
 
