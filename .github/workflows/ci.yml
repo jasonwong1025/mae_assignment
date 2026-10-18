@@ -128,6 +128,27 @@ jobs:
             /usr/local/share/boost /opt/hostedtoolcache/CodeQL
           df -h / | tail -1
 
+      # The runner has ~8 GB RAM, shared by Gradle, the Kotlin compiler, the
+      # emulator (2.5 GB guest) and the Firestore emulator. android/
+      # gradle.properties allows Gradle 8 GB for local machines; with that the
+      # runner runs out of memory and GitHub kills it mid-test. The user-level
+      # gradle.properties takes precedence over the project one, so this caps
+      # Gradle on CI only. Swap absorbs short peaks.
+      - name: Limit memory use
+        run: |
+          mkdir -p ~/.gradle
+          cat > ~/.gradle/gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError
+          org.gradle.workers.max=2
+          org.gradle.daemon=false
+          kotlin.compiler.execution.strategy=in-process
+          EOF
+          sudo fallocate -l 4G /swapfile-e2e
+          sudo chmod 600 /swapfile-e2e
+          sudo mkswap /swapfile-e2e > /dev/null
+          sudo swapon /swapfile-e2e
+          free -h
+
       # Gradle and the Firestore emulator both run on the JVM. Caching Gradle
       # speeds up the app build.
       - name: Set up Java
@@ -197,8 +218,10 @@ jobs:
             --project mae-assignment-grocerly \
             "FIRESTORE_EMULATOR_HOST=localhost:8085 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 node seed.mjs --with-customer && cd .. && dart run tool/run_e2e.dart"
 
+      # Also on cancel: a runner killed for running out of memory reports
+      # "cancelled", and the logs are what explain it.
       - name: Upload E2E logs
-        if: failure()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@v4
         with:
           name: e2e-logs
