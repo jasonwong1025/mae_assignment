@@ -55,17 +55,16 @@ Future<ProviderContainer> _pumpBranches(
   return ProviderScope.containerOf(tester.element(find.byType(BranchesView)));
 }
 
-Branch _branch({String name = 'Test branch'}) {
+Branch _branch({String name = 'Test branch', List<DayHours>? weeklyHours}) {
   return Branch(
     id: '',
     name: name,
     address: '1, Jalan Test',
     phone: '03-1234 5678',
     location: const LatLng(3.1, 101.6),
-    weeklyHours: List.filled(
-      7,
-      const DayHours(opensAt: 8 * 60, closesAt: 20 * 60),
-    ),
+    weeklyHours:
+        weeklyHours ??
+        List.filled(7, const DayHours(opensAt: 8 * 60, closesAt: 20 * 60)),
     maxDeliveryKm: 5,
     baseDeliveryFee: 3,
     feePerKm: 0.5,
@@ -101,9 +100,24 @@ void main() {
     });
 
     test('hours are looked up by weekday', () {
-      final branch = _branch();
+      final weeklyHours = [
+        const DayHours(opensAt: 6 * 60, closesAt: 14 * 60),
+        const DayHours(opensAt: 7 * 60, closesAt: 15 * 60),
+        const DayHours(opensAt: 8 * 60, closesAt: 16 * 60),
+        const DayHours(opensAt: 9 * 60, closesAt: 17 * 60),
+        const DayHours(opensAt: 10 * 60, closesAt: 18 * 60),
+        const DayHours(opensAt: 11 * 60, closesAt: 19 * 60),
+        const DayHours.closed(),
+      ];
+      final branch = _branch(weeklyHours: weeklyHours);
       // 19 Oct 2026 is a Monday.
-      expect(branch.hoursOn(DateTime(2026, 10, 19)).opensAt, 8 * 60);
+      final monday = DateTime(2026, 10, 19);
+      for (var offset = 0; offset < weeklyHours.length; offset++) {
+        expect(
+          branch.hoursOn(monday.add(Duration(days: offset))),
+          same(weeklyHours[offset]),
+        );
+      }
     });
   });
 

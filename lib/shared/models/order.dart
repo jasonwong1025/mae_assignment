@@ -66,12 +66,11 @@ abstract class OrderItem with _$OrderItem {
 
 /// A placed customer order, stored at orders/{orderId}.
 ///
-/// This is the shared order contract: the customer app writes it at
-/// checkout and reads it for tracking; the Store Worker and Store Admin
-/// apps read it (and later update its status). It carries both a string
-/// [id] (the document id, used in routes) and an int [number] (shown to
-/// people and used by admin/sales/reviews to join), so neither side has to
-/// reconcile the two identifiers later.
+/// The customer app writes this shared order contract at checkout and reads
+/// it for tracking. The Store Worker and Store Admin apps are intended to
+/// read and update it once their sample-backed order flows are connected to
+/// Firestore. It carries both a string [id] (the document id, used in routes)
+/// and an int [number] (shown to people and available for future joins).
 @freezed
 abstract class Order with _$Order {
   const factory Order({

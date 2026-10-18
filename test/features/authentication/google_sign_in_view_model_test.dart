@@ -54,6 +54,7 @@ void main() {
     final result = await viewModel().signIn();
 
     expect(result, isFalse);
+    expect(container.read(googleSignInViewModelProvider).hasError, isFalse);
   });
 
   test('signIn surfaces an AuthException as an error state', () async {
@@ -67,6 +68,10 @@ void main() {
     expect(
       container.read(googleSignInViewModelProvider),
       isA<AsyncError<void>>(),
+    );
+    expect(
+      container.read(googleSignInViewModelProvider).error,
+      'Google sign-in is not enabled yet.',
     );
   });
 }

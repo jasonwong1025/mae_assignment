@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, test } from "vitest";
+import { beforeEach, describe, test } from "vitest";
 import { assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
 import {
   doc,
@@ -6,6 +6,7 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { firestoreForUser, firestoreForGuest, seed } from "./helpers.js";
 
@@ -121,7 +122,6 @@ describe("updating orders", () => {
 
   test("nobody can delete an order", async () => {
     const admin = firestoreForUser(testEnv, ADMIN.uid, ADMIN.email);
-    const { deleteDoc } = await import("firebase/firestore");
     await assertFails(deleteDoc(doc(admin, "orders", "o-alice")));
   });
 });

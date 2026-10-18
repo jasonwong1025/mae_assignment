@@ -86,9 +86,9 @@ class DeliveryGroups {
       outForDelivery.isEmpty && readyToCollect.isEmpty && beingPacked.isEmpty;
 }
 
-/// State for My Deliveries: the signed-in driver's deliveries at their
-/// branch, grouped by stage. Updates whenever any of them changes, e.g.
-/// when a packer marks one ready.
+/// State for My Deliveries: the signed-in driver's assigned deliveries
+/// across branches, grouped by stage. Updates whenever any of them changes,
+/// such as when a packer marks one ready.
 class DeliveryTasksViewModel extends StreamNotifier<DeliveryGroups> {
   @override
   Stream<DeliveryGroups> build() async* {

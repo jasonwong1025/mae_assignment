@@ -41,33 +41,41 @@ void main() {
 
     // --- Catalogue (Home) --------------------------------------------
     // The catalogue reads the branch and products from Firestore, so give it
-    // longer than the default 10s. Anchor first on the always-present
-    // "DELIVER TO" header (proves the catalogue frame rendered even if the
-    // product grid is still loading), then on a seeded product.
+    // longer than the default 10s. Use waitUntilExists (not ...Visible) for
+    // anchors: it only needs the widget in the tree, not hit-testable, so a
+    // chip inside a horizontal list or a card below the fold still counts as
+    // "the catalogue loaded". The "+" add button only renders once products
+    // are shown, so waiting for it confirms the grid has data.
     const catalogueTimeout = Duration(seconds: 30);
-    await $('DELIVER TO').waitUntilVisible(timeout: catalogueTimeout);
-    await $('Fresh milk 1L').waitUntilVisible(timeout: catalogueTimeout);
+    await $.waitUntilExists($('DELIVER TO'), timeout: catalogueTimeout);
+    await $.waitUntilExists(
+      $(Icons.add_rounded),
+      timeout: catalogueTimeout,
+    );
 
-    // Add the first product to the cart via its "+" button (the add button
-    // on each product card uses Icons.add_rounded).
-    await $(Icons.add_rounded).tap();
+    // Add the first product to the cart. The add buttons sit in the grid
+    // below the "going fast" row, so scroll the first one into view before
+    // tapping (Patrol's tap needs the widget hit-testable; it does not
+    // auto-scroll).
+    await $(Icons.add_rounded).first.scrollTo().tap();
+    await $.pumpAndSettle();
 
     // --- Cart --------------------------------------------------------
     // Open the Cart tab from the bottom navigation.
     await $('Cart').tap();
-    await $.waitUntilVisible($('Your cart'));
+    await $.waitUntilExists($('Your cart'));
 
-    // The seeded customer already has a default address, so "Change" shows
-    // and we keep it. Place the order.
-    await $.waitUntilVisible($('Place order'));
-    await $('Place order').tap();
+    // The seeded customer already has a default address, so it is used by
+    // default. Place the order (the button label includes the total, so
+    // match on the leading text).
+    await $('Place order').scrollTo().tap();
 
     // --- Tracking ----------------------------------------------------
-    await $.waitUntilVisible($('Order tracking'));
-    await $.waitUntilVisible($('Pending'));
+    await $.waitUntilExists($('Order tracking'), timeout: catalogueTimeout);
+    await $.waitUntilExists($('Pending'), timeout: catalogueTimeout);
 
     // --- Back to the orders list -------------------------------------
     await $('Back to orders').tap();
-    await $.waitUntilVisible($('Your orders'));
+    await $.waitUntilExists($('Your orders'));
   });
 }

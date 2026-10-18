@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -6,6 +8,9 @@ import 'package:mae_assignment/features/authentication/data/repositories/auth_re
 import 'package:mae_assignment/features/customer/cart/presentation/view_models/cart_view_model.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue_product.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/repositories/catalogue_repository.dart';
+import 'package:mae_assignment/features/customer/catalogue/presentation/view_models/catalogue_filter_view_model.dart';
+import 'package:mae_assignment/features/customer/catalogue/presentation/view_models/catalogue_view_model.dart';
+import 'package:mae_assignment/features/customer/catalogue/presentation/view_models/selected_branch_view_model.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/views/catalogue_view.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/services/address_service.dart';
@@ -39,9 +44,32 @@ class _FakeCatalogueRepository implements CatalogueRepository {
   _FakeCatalogueRepository(this.data);
 
   final CatalogueData data;
+  int loadCount = 0;
+  final List<String> branchIds = [];
 
   @override
-  Future<CatalogueData> loadCatalogue(String branchId) async => data;
+  Future<CatalogueData> loadCatalogue(String branchId) async {
+    loadCount++;
+    branchIds.add(branchId);
+    return data;
+  }
+}
+
+class _OutOfOrderCatalogueRepository implements CatalogueRepository {
+  _OutOfOrderCatalogueRepository(this.initial);
+
+  final CatalogueData initial;
+  final List<Completer<CatalogueData>> pending = [];
+  int loadCount = 0;
+
+  @override
+  Future<CatalogueData> loadCatalogue(String branchId) {
+    loadCount++;
+    if (loadCount == 1) return Future.value(initial);
+    final request = Completer<CatalogueData>();
+    pending.add(request);
+    return request.future;
+  }
 }
 
 CatalogueProduct _product(
@@ -61,16 +89,23 @@ CatalogueProduct _product(
   );
 }
 
-Future<ProviderContainer> _pump(WidgetTester tester, CatalogueData data) async {
+Future<ProviderContainer> _pump(
+  WidgetTester tester,
+  CatalogueData data, {
+  CatalogueRepository? repository,
+  BranchService? branchService,
+}) async {
   tester.view.physicalSize = const Size(390, 1600);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
   final container = ProviderContainer(
     overrides: [
-      branchServiceProvider.overrideWithValue(FakeBranchService()),
+      branchServiceProvider.overrideWithValue(
+        branchService ?? FakeBranchService(),
+      ),
       catalogueRepositoryProvider.overrideWithValue(
-        _FakeCatalogueRepository(data),
+        repository ?? _FakeCatalogueRepository(data),
       ),
       ..._customerOverrides(),
     ],
@@ -138,6 +173,123 @@ void main() {
 
     expect(find.text('Fresh milk'), findsOneWidget);
     expect(find.text('Roma tomato'), findsNothing);
+  });
+
+  testWidgets('search and category filters reuse the loaded catalogue', (
+    tester,
+  ) async {
+    final repository = _FakeCatalogueRepository(
+      CatalogueData(
+        categories: const [
+          CatalogueCategory(id: 'produce', name: 'Fresh produce'),
+          CatalogueCategory(id: 'dairy', name: 'Dairy & eggs'),
+        ],
+        products: [
+          _product('p1', 'Roma tomato'),
+          _product('p2', 'Fresh milk', categoryId: 'dairy'),
+        ],
+      ),
+    );
+    final container = await _pump(
+      tester,
+      repository.data,
+      repository: repository,
+    );
+
+    expect(repository.loadCount, 1);
+
+    await tester.enterText(find.byType(TextField), 'milk');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Fresh milk'), findsOneWidget);
+    expect(find.text('Roma tomato'), findsNothing);
+    expect(repository.loadCount, 1);
+
+    final produce = find.text('Fresh produce');
+    await tester.ensureVisible(produce);
+    await tester.tap(produce);
+    await tester.pumpAndSettle();
+
+    expect(find.text('No products found'), findsOneWidget);
+    expect(repository.loadCount, 1);
+
+    await tester.enterText(find.byType(TextField), '');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Roma tomato'), findsOneWidget);
+    expect(find.text('Fresh milk'), findsNothing);
+    expect(repository.loadCount, 1);
+
+    // The screen's retry action invalidates this provider, so it must fetch
+    // the selected branch's catalogue again.
+    container.invalidate(catalogueViewModelProvider);
+    await tester.pumpAndSettle();
+    expect(repository.loadCount, 2);
+  });
+
+  testWidgets('an older load cannot replace the latest filter data', (
+    tester,
+  ) async {
+    CatalogueData withProduct(String id, String name) =>
+        CatalogueData(categories: const [], products: [_product(id, name)]);
+    final repository = _OutOfOrderCatalogueRepository(
+      withProduct('initial', 'Original apple'),
+    );
+    final container = await _pump(
+      tester,
+      repository.initial,
+      repository: repository,
+    );
+
+    container.invalidate(catalogueViewModelProvider);
+    await tester.pump();
+    await tester.pump();
+    expect(repository.pending, hasLength(1));
+
+    container.invalidate(catalogueViewModelProvider);
+    await tester.pump();
+    await tester.pump();
+    expect(repository.pending, hasLength(2));
+
+    repository.pending[1].complete(withProduct('latest', 'Fresh milk'));
+    await tester.pumpAndSettle();
+    expect(find.text('Fresh milk'), findsOneWidget);
+
+    repository.pending[0].complete(withProduct('old', 'Roma tomato'));
+    await tester.pumpAndSettle();
+    container
+        .read(catalogueFilterViewModelProvider.notifier)
+        .setSearchText('milk');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Fresh milk'), findsOneWidget);
+    expect(find.text('No products found'), findsNothing);
+    expect(repository.loadCount, 3);
+  });
+
+  testWidgets('changing the selected branch reloads its catalogue', (
+    tester,
+  ) async {
+    final branches = FakeBranchService();
+    final firstId = branches.branches.first.id;
+    final nextBranch = branches.branches[1];
+    final repository = _FakeCatalogueRepository(
+      CatalogueData(categories: const [], products: [_product('p1', 'Milk')]),
+    );
+    final container = await _pump(
+      tester,
+      repository.data,
+      repository: repository,
+      branchService: branches,
+    );
+    expect(repository.branchIds, [firstId]);
+
+    branches.branches.removeAt(0);
+    container.invalidate(selectedBranchProvider);
+    await tester.pumpAndSettle();
+
+    expect(repository.branchIds, [firstId, nextBranch.id]);
+    expect(find.textContaining(nextBranch.name), findsOneWidget);
   });
 
   testWidgets('an out-of-stock product cannot be added', (tester) async {

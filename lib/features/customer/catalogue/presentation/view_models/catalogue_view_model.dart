@@ -38,20 +38,54 @@ class CatalogueState {
   }
 }
 
-/// Loads the catalogue for the customer's branch and applies the category
-/// and search filters. Rebuilds when the branch, category or search change.
+/// Loads the catalogue for the customer's branch and reapplies filters when
+/// they change. Filter updates reuse the loaded branch data; branch changes
+/// and explicit invalidation still reload it from the repository.
 class CatalogueViewModel extends AsyncNotifier<CatalogueState> {
+  CatalogueData? _loadedData;
+  Branch? _loadedBranch;
+  int _buildGeneration = 0;
+
   @override
   Future<CatalogueState> build() async {
-    final branch = await ref.watch(selectedBranchProvider.future);
-    final filter = ref.watch(catalogueFilterViewModelProvider);
-    final search = filter.searchText.trim().toLowerCase();
+    // A branch change or provider invalidation starts a fresh repository load.
+    final generation = ++_buildGeneration;
+    _loadedData = null;
+    _loadedBranch = null;
 
+    ref.listen(catalogueFilterViewModelProvider, (previous, filter) {
+      final data = _loadedData;
+      final branch = _loadedBranch;
+      if (data != null && branch != null) {
+        state = AsyncData(_applyFilter(branch, data, filter));
+      }
+    });
+
+    final branch = await ref.watch(selectedBranchProvider.future);
     final data = await ref
         .watch(catalogueRepositoryProvider)
         .loadCatalogue(branch.id);
 
+    // An older in-flight build may finish after a newer branch load. Riverpod
+    // ignores its returned state, so keep it from replacing the filter cache.
+    if (generation == _buildGeneration) {
+      _loadedBranch = branch;
+      _loadedData = data;
+    }
+    return _applyFilter(
+      branch,
+      data,
+      ref.read(catalogueFilterViewModelProvider),
+    );
+  }
+
+  CatalogueState _applyFilter(
+    Branch branch,
+    CatalogueData data,
+    CatalogueFilter filter,
+  ) {
     var products = data.productsIn(filter.categoryId);
+    final search = filter.searchText.trim().toLowerCase();
     if (search.isNotEmpty) {
       products = [
         for (final product in products)

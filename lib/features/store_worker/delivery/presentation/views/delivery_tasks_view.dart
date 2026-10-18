@@ -12,7 +12,7 @@ import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worke
 import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
 
-/// Delivery Driver "My Deliveries" tab: the driver's deliveries at their
+/// Delivery Driver "My Deliveries" tab: assigned deliveries from any
 /// branch, grouped by stage. Orders still being packed are listed so the
 /// driver can plan, but cannot be collected until they are ready.
 class DeliveryTasksView extends ConsumerWidget {

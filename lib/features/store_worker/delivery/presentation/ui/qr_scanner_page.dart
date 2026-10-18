@@ -73,7 +73,7 @@ class _QrScannerPageState extends State<_QrScannerPage> {
                 padding: EdgeInsets.all(AppSpacing.xl),
                 child: Text(
                   'The camera could not be opened. Go back and type the '
-                  'order number instead.',
+                  'collection code under the QR code instead.',
                   style: TextStyle(color: Colors.white),
                   textAlign: TextAlign.center,
                 ),

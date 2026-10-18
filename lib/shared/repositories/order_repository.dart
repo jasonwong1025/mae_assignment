@@ -27,7 +27,8 @@ class OrderException implements Exception {
 ///
 /// Placing an order turns the customer's [Cart] into an [Order] (capturing
 /// the price of every line so totals never drift), gives it the next order
-/// number, and writes it to Firestore for the worker and admin apps to read.
+/// number, and writes it to Firestore. Worker and admin order screens currently
+/// use separate sample-backed repositories.
 class OrderRepository {
   OrderRepository(this._service);
 

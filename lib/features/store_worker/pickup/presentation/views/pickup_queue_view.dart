@@ -14,8 +14,8 @@ import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
 
 /// Packing Staff "Ready for Pickup" tab: every ready self-pickup order at
-/// the packer's branch, whoever packed it, with search and the pickups
-/// this packer handed over today.
+/// the packer's branch, whoever packed it, with search and delivery bags
+/// awaiting drivers at that branch.
 class PickupQueueView extends ConsumerStatefulWidget {
   const PickupQueueView({super.key});
 
@@ -254,5 +254,3 @@ class _InlineEmpty extends StatelessWidget {
     );
   }
 }
-
-/// Collapsible list of pickups this packer handed over today.

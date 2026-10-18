@@ -182,9 +182,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                             _RoleButton(
                               icon: Icons.inventory_2_outlined,
                               title: UserRole.storeWorker.label,
-                              subtitle: ref.watch(workerPreviewEnabledProvider)
-                                  ? 'Packing and delivery'
-                                  : 'Packing and delivery',
+                              subtitle: 'Packing and delivery',
                               isLoading:
                                   isLoading &&
                                   _selectedRole == UserRole.storeWorker,

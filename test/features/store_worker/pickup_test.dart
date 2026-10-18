@@ -189,7 +189,7 @@ void main() {
       await tester.drag(find.byKey(SlideToConfirm.handleKey), _fullSlide);
       await tester.pumpAndSettle(SlideToConfirm.tickDuration);
 
-      // Back on the list: success message, 2306 gone, now in my handovers.
+      // Back on the list: success message and order 2306 no longer waiting.
       expect(
         find.text('Order #2306 handed over to Kelvin Lim.'),
         findsOneWidget,

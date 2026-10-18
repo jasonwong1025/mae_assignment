@@ -14,8 +14,8 @@ final Provider<OrderService> orderServiceProvider = Provider<OrderService>((
 /// Reads and writes the shared "orders" collection in Firestore.
 ///
 /// The customer app creates orders here at checkout and watches its own
-/// orders for live tracking; the Store Worker and Store Admin apps read
-/// the same documents. Writes are plain client writes, allowed by
+/// orders for live tracking. The Store Worker and Store Admin order screens
+/// currently use sample data. Writes are plain client writes, allowed by
 /// `firestore.rules` (a customer may create and read their own orders).
 class OrderService {
   OrderService(this._firestore);

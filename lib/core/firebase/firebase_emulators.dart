@@ -40,9 +40,9 @@ class FirebaseEmulators {
     if (override.isNotEmpty) return override;
     final isAndroid =
         !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
-    // Platform.isAndroid guards against desktop/test runs where the method
-    // channel is unavailable; the kIsWeb check keeps web off this path.
-    if (isAndroid && !kIsWeb && Platform.isAndroid) return '10.0.2.2';
+    // isAndroid excludes web before Platform.isAndroid is checked. The
+    // Platform.isAndroid guard keeps desktop/test runs off this path.
+    if (isAndroid && Platform.isAndroid) return '10.0.2.2';
     return 'localhost';
   }
 

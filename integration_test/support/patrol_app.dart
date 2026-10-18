@@ -25,7 +25,8 @@ Future<void> launchApp(PatrolIntegrationTester $) async {
   }
   FirebaseEmulators.connect();
 
-  await $.pumpWidgetAndSettle(
-    const ProviderScope(child: GrocerlyApp()),
-  );
+  // pumpWidget (not ...AndSettle): the catalogue's Firestore reads have
+  // their own timeouts, so settling here could block on pending async work
+  // before the test even starts. The individual steps wait as needed.
+  await $.pumpWidget(const ProviderScope(child: GrocerlyApp()));
 }

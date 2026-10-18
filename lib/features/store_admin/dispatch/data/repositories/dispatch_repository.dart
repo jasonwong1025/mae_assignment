@@ -32,7 +32,7 @@ class DispatchException implements Exception {
 
 /// Data for the Dispatch tab: delivery orders, drivers and where they are.
 /// Uses the same orders as the Orders tab, so an assignment shows up
-/// there too. Drivers are sample data until orders are in Firestore.
+/// there too. Both orders and drivers are currently sample-backed.
 class DispatchRepository {
   DispatchRepository(this._orders, this._locations);
 

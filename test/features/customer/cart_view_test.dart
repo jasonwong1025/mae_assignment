@@ -261,12 +261,6 @@ void main() {
       return container;
     }
 
-    testWidgets('the cart line renders (body is not blank)', (tester) async {
-      await pumpWithRouter(tester);
-      expect(find.text('Fresh milk — BrandCo'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
-
     // Regression: on device the cart list was blank because the line's
     // thumbnail (an AspectRatio) had only a width constraint and no height,
     // so with a product image it had no height to resolve and collapsed the
@@ -321,6 +315,7 @@ void main() {
     testWidgets('placing a pickup order resolves the branch and navigates '
         'to tracking without "No store selected"', (tester) async {
       final container = await pumpWithRouter(tester);
+      expect(find.text('Fresh milk — BrandCo'), findsOneWidget);
 
       // Self-pickup needs no delivery address, so this exercises the full
       // checkout -> tracking path without the address picker.

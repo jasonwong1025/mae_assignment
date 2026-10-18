@@ -1,6 +1,8 @@
 # Grocerly
 
-Flutter app for grocery ordering and fulfilment. The app currently supports onboarding and customer email/password registration and sign-in; the home screen is a placeholder.
+Flutter app for grocery ordering and fulfilment. The customer app supports
+onboarding, account access, catalogue browsing and checkout; the worker and
+admin order flows are still sample-backed.
 
 ## Team setup
 
@@ -80,16 +82,14 @@ npm test             # starts the emulator, runs the tests, shuts it down
 
 ### 3. End-to-end tests (Patrol, device + emulator)
 
-Patrol drives the real app on a device against the emulators, including native
-UI such as the Google sign-in dialog. This is the slow, device-dependent layer,
+Patrol drives the real app on a managed Android emulator against the Firebase
+emulators, including native UI. This is the slow, device-dependent layer,
 reserved for a few whole-journey checks rather than everyday logic coverage.
 The app only talks to the emulators when started with
 `--dart-define=USE_FIREBASE_EMULATOR=true`; a normal run and every release build
-use the real backend. An Android emulator image reaches the host emulators on
-`10.0.2.2` with no network setup; a physical device reaches them over an
-`adb reverse` tunnel (so the app connects on `localhost`), which the runner
-sets up automatically. The tunnel works regardless of Wi-Fi/router isolation,
-unlike pointing the device at the host's LAN address.
+use the real backend. The Android emulator reaches the host emulators on
+`10.0.2.2` with no network setup. The runner installs the required emulator
+image if needed, creates a dedicated AVD, and boots it before running Patrol.
 
 Flows live in `integration_test/`. The first is the customer order journey
 (`customer_journey_test.dart`): sign in, browse, add to cart, place a delivery
@@ -113,10 +113,8 @@ FIRESTORE_EMULATOR_HOST=localhost:8085 \
 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
 node seed.mjs --with-customer
 
-# 3. With a device/emulator connected, run the flow. The runner checks the
-#    emulators are up, detects an AVD (reaches the host on 10.0.2.2) versus a
-#    physical device (sets up `adb reverse` port tunnels), and passes the
-#    right defines for you.
+# 3. Run the flow. The runner checks the Firebase emulators, prepares and
+#    boots its dedicated Android AVD, then passes the emulator define.
 fvm dart run tool/run_e2e.dart
 ```
 
@@ -125,7 +123,7 @@ fvm dart run tool/run_e2e.dart
 It defaults to the customer journey flow; pass `--target <file>` and any
 extra `patrol test` arguments to run a different flow.
 
-Patrol generates `integration_test/test_bundle.dart` on each run; it is
+Patrol generates `patrol_test/test_bundle.dart` on each run; it is
 git-ignored and must not be committed.
 
 ## Code generation

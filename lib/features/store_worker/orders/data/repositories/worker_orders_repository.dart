@@ -247,7 +247,7 @@ class WorkerOrdersRepository {
   // Home delivery
   // ---------------------------------------------------------------------
 
-  /// Confirms the driver has the right bag. [code] is the order number
+  /// Confirms the driver has the right bag. [code] is the collection code
   /// they typed ([VerificationMethod.manual]) or the scanned QR text
   /// ([VerificationMethod.qr]). The status stays ready.
   Future<void> verifyCollection(

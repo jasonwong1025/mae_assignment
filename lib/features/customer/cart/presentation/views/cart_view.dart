@@ -356,15 +356,9 @@ class _CartLineTile extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // A fixed 56x56 box. Both dimensions are set because the row uses
-          // CrossAxisAlignment.start, which hands the child an unbounded
-          // height; ProductThumbnail is an AspectRatio and would otherwise
-          // have no height to resolve against, collapsing the line (and the
-          // whole list) to nothing on a real device.
-          // A fixed 56x56 box. Both dimensions are set because the row uses
-          // CrossAxisAlignment.start, which hands the child an unbounded
-          // height; ProductThumbnail is an AspectRatio and would otherwise
-          // have no height to resolve against once a product has an image.
+          // A fixed 56x56 box gives ProductThumbnail (an AspectRatio) a height
+          // in this top-aligned row, preventing the cart from collapsing when
+          // a product has an image.
           SizedBox(
             width: 56,
             height: 56,
