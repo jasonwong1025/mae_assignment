@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart' show find;
 import 'package:patrol/patrol.dart';
 
 import 'support/patrol_app.dart';
+import 'support/waits.dart';
 
 /// End-to-end customer journey against the Firebase emulators:
 /// sign in -> browse the catalogue -> add a product -> open the cart ->
@@ -43,9 +44,12 @@ void main() {
     // chip inside a horizontal list or a card below the fold still counts as
     // "the catalogue loaded". The "+" add button only renders once products
     // are shown, so waiting for it confirms the grid has data.
-    const catalogueTimeout = Duration(seconds: 30);
-    await $.waitUntilExists($('DELIVER TO'), timeout: catalogueTimeout);
-    await $.waitUntilExists($(Icons.add_rounded), timeout: catalogueTimeout);
+    // CI emulators run without a GPU and are much slower than a dev
+    // machine, so allow a generous budget; waits return as soon as the
+    // widget appears.
+    const catalogueTimeout = Duration(seconds: 60);
+    await waitForWidget($, $('DELIVER TO'), timeout: catalogueTimeout);
+    await waitForWidget($, $(Icons.add_rounded), timeout: catalogueTimeout);
 
     // Add the first product to the cart. The add buttons sit in the grid
     // below the "going fast" row, so scroll the first one into view before
@@ -57,7 +61,7 @@ void main() {
     // --- Cart --------------------------------------------------------
     // Open the Cart tab from the bottom navigation.
     await $('Cart').tap();
-    await $.waitUntilExists($('Your cart'));
+    await waitForWidget($, $('Your cart'));
 
     // The seeded customer already has a default address, so it is used by
     // default. The button is pinned outside the cart's scrolling list. Find
@@ -67,12 +71,12 @@ void main() {
     ).tap();
 
     // --- Tracking ----------------------------------------------------
-    await $.waitUntilExists($('Order tracking'), timeout: catalogueTimeout);
-    await $.waitUntilExists($('Pending'), timeout: catalogueTimeout);
+    await waitForWidget($, $('Order tracking'), timeout: catalogueTimeout);
+    await waitForWidget($, $('Pending'), timeout: catalogueTimeout);
 
     // --- Back to the orders list -------------------------------------
     // "Back to orders" is the back button's tooltip, not visible text.
     await $(find.byTooltip('Back to orders')).tap();
-    await $.waitUntilExists($('Your orders'));
+    await waitForWidget($, $('Your orders'));
   });
 }

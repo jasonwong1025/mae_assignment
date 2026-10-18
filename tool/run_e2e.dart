@@ -91,9 +91,29 @@ Future<void> main(List<String> args) async {
     ...patrolArgs,
     '--dart-define=USE_FIREBASE_EMULATOR=true',
   ];
-  exit(
-    await _runPatrolQuietly(sdk, command, verbose: args.contains('--verbose')),
+  // Start from an empty logcat so a failure's log holds only this run.
+  await _run(sdk.adb, ['-s', serial, 'logcat', '-c']);
+  final code = await _runPatrolQuietly(
+    sdk,
+    command,
+    verbose: args.contains('--verbose'),
   );
+  if (code != 0) await _saveLogcat(sdk, serial);
+  exit(code);
+}
+
+/// Where the device log of a failed run is written.
+const _logcatPath = 'build/e2e/logcat.txt';
+
+/// Saves the device log, which holds the app's own errors (Firebase,
+/// Flutter) that the test output does not show.
+Future<void> _saveLogcat(_AndroidSdk sdk, String serial) async {
+  final log = await _run(sdk.adb, ['-s', serial, 'logcat', '-d']);
+  if (log == null) return;
+  File(_logcatPath)
+    ..parent.createSync(recursive: true)
+    ..writeAsStringSync(log);
+  stdout.writeln('Device log: $_logcatPath');
 }
 
 /// The value of `--device`/`-d` if the caller passed one, else null.
