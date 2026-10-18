@@ -119,6 +119,15 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # The runner starts with only ~5 GB free; the emulator's data partition,
+      # the Gradle build and the APKs need more. Drop toolchains this job never
+      # uses (the Android SDK stays).
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+            /usr/local/share/boost /opt/hostedtoolcache/CodeQL
+          df -h / | tail -1
+
       # Gradle and the Firestore emulator both run on the JVM. Caching Gradle
       # speeds up the app build.
       - name: Set up Java

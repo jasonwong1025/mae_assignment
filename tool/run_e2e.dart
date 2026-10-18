@@ -139,6 +139,7 @@ Future<String> _bootManagedAvd(_AndroidSdk sdk) async {
     '-no-snapshot',
     '-no-boot-anim',
     '-no-audio',
+    '-no-metrics',
     '-gpu',
     'swiftshader_indirect',
   ]);
