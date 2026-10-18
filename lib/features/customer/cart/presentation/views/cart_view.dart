@@ -161,6 +161,7 @@ class _CartContent extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.all(AppSpacing.l),
             child: FilledButton(
+              key: const Key('place_order_button'),
               onPressed: isPlacing ? null : onPlaceOrder,
               child: isPlacing
                   ? const SizedBox(
@@ -651,7 +652,10 @@ class _PromoRowState extends ConsumerState<_PromoRow> {
           ),
         ),
         const SizedBox(width: AppSpacing.s),
-        OutlinedButton(onPressed: _apply, child: const Text('Apply')),
+        SizedBox(
+          height: 48,
+          child: TextButton(onPressed: _apply, child: const Text('Apply')),
+        ),
       ],
     );
   }
@@ -721,9 +725,9 @@ class _TotalRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: textTheme.bodyLarge),
+          Expanded(child: Text(label, style: textTheme.bodyLarge)),
+          const SizedBox(width: AppSpacing.s),
           Text(
             text,
             style: textTheme.bodyLarge?.copyWith(

@@ -80,7 +80,7 @@ npm install          # first time only
 npm test             # starts the emulator, runs the tests, shuts it down
 ```
 
-### 3. End-to-end tests (Patrol, device + emulator)
+### 3. End-to-end tests (Patrol, Android emulator + Firebase emulators)
 
 Patrol drives the real app on a managed Android emulator against the Firebase
 emulators, including native UI. This is the slow, device-dependent layer,
@@ -122,6 +122,25 @@ fvm dart run tool/run_e2e.dart
 `tool/check_firestore_paths.dart`) so it works on macOS, Windows and Linux.
 It defaults to the customer journey flow; pass `--target <file>` and any
 extra `patrol test` arguments to run a different flow.
+
+E2E runs on the runner's own AVD (`grocerly_e2e`), never on your phone, so
+keep using a real device for everyday `flutter run`. Patrol over wireless adb
+stalls during APK install, and an AVD needs no network wiring to reach the
+host emulators.
+
+One-time setup, handled by the runner unless noted:
+
+- The first run downloads the Android emulator and an API 35 system image
+  (about 1 GB) through `sdkmanager`, then creates the AVD. Later runs reuse
+  them and take under a minute once the emulator is booted.
+- **Linux only, manual:** the emulator needs KVM. If the runner reports that
+  your user cannot access `/dev/kvm`, run `sudo gpasswd -a "$USER" kvm`, then
+  `newgrp kvm` (or log out and back in). macOS and Windows use their built-in
+  hypervisors.
+
+The terminal shows only build/install phases, test steps, the summary, and a
+short excerpt of any error. The full Patrol and Gradle output goes to
+`build/e2e/patrol.log`. Pass `--verbose` to stream everything.
 
 Patrol generates `patrol_test/test_bundle.dart` on each run; it is
 git-ignored and must not be committed.

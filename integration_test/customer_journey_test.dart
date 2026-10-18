@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart' show find;
 import 'package:patrol/patrol.dart';
 
 import 'support/patrol_app.dart';
@@ -16,12 +17,8 @@ import 'support/patrol_app.dart';
 ///        FIRESTORE_EMULATOR_HOST=localhost:8085 \
 ///        FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
 ///        node seed.mjs --with-customer
-///   3. A device/emulator connected.
-///
-/// Run (a physical device needs the host's LAN ip for the emulators):
-///   patrol test --target integration_test/customer_journey_test.dart \
-///     --dart-define=USE_FIREBASE_EMULATOR=true \
-///     --dart-define=FIREBASE_EMULATOR_HOST=`host-ip`
+///   3. Run `fvm dart run tool/run_e2e.dart`; the runner prepares the AVD
+///      and passes the emulator define to Patrol.
 void main() {
   patrolTest('customer places an order and tracks it', ($) async {
     await launchApp($);
@@ -48,10 +45,7 @@ void main() {
     // are shown, so waiting for it confirms the grid has data.
     const catalogueTimeout = Duration(seconds: 30);
     await $.waitUntilExists($('DELIVER TO'), timeout: catalogueTimeout);
-    await $.waitUntilExists(
-      $(Icons.add_rounded),
-      timeout: catalogueTimeout,
-    );
+    await $.waitUntilExists($(Icons.add_rounded), timeout: catalogueTimeout);
 
     // Add the first product to the cart. The add buttons sit in the grid
     // below the "going fast" row, so scroll the first one into view before
@@ -66,16 +60,19 @@ void main() {
     await $.waitUntilExists($('Your cart'));
 
     // The seeded customer already has a default address, so it is used by
-    // default. Place the order (the button label includes the total, so
-    // match on the leading text).
-    await $('Place order').scrollTo().tap();
+    // default. The button is pinned outside the cart's scrolling list. Find
+    // it by its stable key without traversing offscreen list children.
+    await $(
+      find.byKey(const Key('place_order_button'), skipOffstage: false),
+    ).tap();
 
     // --- Tracking ----------------------------------------------------
     await $.waitUntilExists($('Order tracking'), timeout: catalogueTimeout);
     await $.waitUntilExists($('Pending'), timeout: catalogueTimeout);
 
     // --- Back to the orders list -------------------------------------
-    await $('Back to orders').tap();
+    // "Back to orders" is the back button's tooltip, not visible text.
+    await $(find.byTooltip('Back to orders')).tap();
     await $.waitUntilExists($('Your orders'));
   });
 }

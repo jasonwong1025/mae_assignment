@@ -53,7 +53,6 @@ Future<void> main(List<String> args) async {
     );
   }
 
-  await _ensureKvmAccess();
   await _ensureEmulatorInstalled(sdk!);
   await _ensureAvdExists(sdk);
   final serial = await _ensureAvdRunning(sdk);
@@ -79,14 +78,101 @@ Future<void> main(List<String> args) async {
     ...passedArgs,
     '--dart-define=USE_FIREBASE_EMULATOR=true',
   ];
-  stdout.writeln('patrol ${command.join(' ')}');
+  exit(await _runPatrolQuietly(command, verbose: args.contains('--verbose')));
+}
+
+/// Where the full, unfiltered Patrol/Gradle output is written.
+const _logPath = 'build/e2e/patrol.log';
+
+/// Runs patrol, writing everything to [_logPath] and printing only what a
+/// developer needs: progress phases, test steps, the summary, and the error
+/// of a failing step. Gradle/plugin warnings stay in the log file. Pass
+/// `--verbose` to stream everything instead.
+Future<int> _runPatrolQuietly(
+  List<String> command, {
+  required bool verbose,
+}) async {
+  final patrolArgs = command.where((a) => a != '--verbose').toList();
+  final logFile = File(_logPath)..parent.createSync(recursive: true);
+  final log = logFile.openWrite()..writeln('patrol ${patrolArgs.join(' ')}');
+  stdout
+    ..writeln('Running Patrol (full log: $_logPath)')
+    ..writeln(
+      'First run builds and installs the app; this takes a few '
+      'minutes.',
+    );
 
   final process = await Process.start(
     'patrol',
-    command,
-    mode: ProcessStartMode.inheritStdio,
+    patrolArgs,
+    runInShell: Platform.isWindows,
   );
-  exit(await process.exitCode);
+
+  // Exception blocks can run to thousands of lines (render tree dumps), so
+  // show only the first few blocks, each cut to its header and message.
+  const maxErrorBlocks = 2;
+  const maxLinesPerBlock = 6;
+  var errorBlocks = 0;
+  var errorLinesLeft = 0;
+
+  void handle(String line) {
+    log.writeln(line);
+    if (verbose) {
+      stdout.writeln(line);
+      return;
+    }
+    final text = line.trimRight();
+    if (text.contains('EXCEPTION CAUGHT')) {
+      errorBlocks++;
+      errorLinesLeft = errorBlocks <= maxErrorBlocks ? maxLinesPerBlock : 0;
+      if (errorBlocks == maxErrorBlocks + 1) {
+        stdout.writeln('(more errors in $_logPath)');
+      }
+    }
+    if (errorLinesLeft > 0) {
+      if (text.startsWith('When the exception was thrown')) {
+        errorLinesLeft = 0;
+      } else {
+        errorLinesLeft--;
+        stdout.writeln(text);
+      }
+      return;
+    }
+    if (_isUsefulLine(text)) stdout.writeln(text);
+  }
+
+  final done = Future.wait([
+    process.stdout
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .forEach(handle),
+    process.stderr
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .forEach(handle),
+  ]);
+  final code = await process.exitCode;
+  await done;
+  await log.close();
+
+  stdout.writeln(
+    code == 0
+        ? '\nE2E passed.'
+        : '\nE2E failed (exit $code). Full log: $_logPath',
+  );
+  return code;
+}
+
+/// Lines worth showing in the terminal. Steps in progress (⏳) are skipped;
+/// only their final ✅/❌ result is shown.
+bool _isUsefulLine(String text) {
+  if (text.contains('⏳')) return false;
+  const markers = [
+    '✅', '❌', '🧪', '📝', '⏩', '📊', '⏱', // steps and summary
+    '✓ ', '✗ ', '• ', // patrol phases (build, install, execute)
+    'Test summary', 'Successful:', 'Failed:',
+  ];
+  return markers.any(text.contains);
 }
 
 /// On Linux the x86_64 emulator needs hardware acceleration via /dev/kvm,
@@ -132,11 +218,7 @@ Future<void> _ensureEmulatorInstalled(_AndroidSdk sdk) async {
     '${packages.join(', ')}',
   );
   // `yes` pipes license acceptances to sdkmanager.
-  final ok = await _runInherit(
-    sdk.sdkmanager,
-    packages,
-    acceptLicenses: true,
-  );
+  final ok = await _runInherit(sdk.sdkmanager, packages, acceptLicenses: true);
   if (!ok) _fail('Failed to install: ${packages.join(', ')}');
 }
 
@@ -150,7 +232,7 @@ Future<void> _ensureAvdExists(_AndroidSdk sdk) async {
   if (avds.contains(_avdName)) return;
 
   stdout.writeln('Creating AVD "$_avdName" from $_systemImage...');
-  final result = await Process.run(sdk.avdmanager, [
+  final process = await Process.start(sdk.avdmanager, [
     'create',
     'avd',
     '--name',
@@ -160,10 +242,15 @@ Future<void> _ensureAvdExists(_AndroidSdk sdk) async {
     '--device',
     'pixel_6',
     '--force',
-  ], stdinEncoding: utf8, runInShell: Platform.isWindows);
-  // avdmanager asks "create a custom hardware profile?"; default (no) is fine.
-  if (result.exitCode != 0) {
-    _fail('Failed to create AVD:\n${result.stdout}\n${result.stderr}');
+  ], runInShell: Platform.isWindows);
+  // avdmanager asks "Do you wish to create a custom hardware profile?";
+  // answer "no" to take the device defaults.
+  process.stdin.write('no\n');
+  await process.stdin.close();
+  final out = await process.stdout.transform(utf8.decoder).join();
+  final err = await process.stderr.transform(utf8.decoder).join();
+  if (await process.exitCode != 0) {
+    _fail('Failed to create AVD:\n$out\n$err');
   }
 }
 
@@ -175,23 +262,20 @@ Future<String> _ensureAvdRunning(_AndroidSdk sdk) async {
     return already;
   }
 
+  await _ensureKvmAccess();
   stdout.writeln('Booting emulator "$_avdName" (headless)...');
   // Detached: the emulator keeps running after this process; we just wait
   // for it to come up. -no-window keeps CI/headless hosts happy; -no-snapshot
   // gives a clean boot each run.
-  await Process.start(
-    sdk.emulatorBinary,
-    [
-      '-avd',
-      _avdName,
-      '-no-window',
-      '-no-snapshot',
-      '-no-boot-anim',
-      '-gpu',
-      'swiftshader_indirect',
-    ],
-    mode: ProcessStartMode.detached,
-  );
+  await Process.start(sdk.emulatorBinary, [
+    '-avd',
+    _avdName,
+    '-no-window',
+    '-no-snapshot',
+    '-no-boot-anim',
+    '-gpu',
+    'swiftshader_indirect',
+  ], mode: ProcessStartMode.detached);
 
   // Wait for a device to attach, then for Android to finish booting.
   final serial = await _waitForDevice(sdk, const Duration(minutes: 3));
@@ -289,7 +373,9 @@ Future<bool> _runInherit(
   final process = await Process.start(
     executable,
     args,
-    mode: acceptLicenses ? ProcessStartMode.normal : ProcessStartMode.inheritStdio,
+    mode: acceptLicenses
+        ? ProcessStartMode.normal
+        : ProcessStartMode.inheritStdio,
     runInShell: Platform.isWindows,
   );
   if (acceptLicenses) {

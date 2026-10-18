@@ -203,8 +203,10 @@ async function seedTestCustomer() {
     createdAt: FieldValue.serverTimestamp(),
   });
 
-  // One default address so checkout has somewhere to deliver. Inside the
-  // SS15 branch's delivery radius (branch is at 3.0757, 101.5869).
+  // One default address so checkout has somewhere to deliver. It sits
+  // between the two seeded branches (~6 km from each), inside both
+  // delivery radii (SS15 8 km, Bukit Jalil 10 km), so checkout succeeds
+  // whichever branch the app selects.
   await db
     .collection("users")
     .doc(E2E_CUSTOMER.uid)
@@ -212,8 +214,8 @@ async function seedTestCustomer() {
     .doc("home")
     .set({
       label: "Home",
-      line: "1, Jalan SS15/4, 47500 Subang Jaya, Selangor",
-      location: new GeoPoint(3.0772, 101.588),
+      line: "Taman OUG, 58200 Kuala Lumpur",
+      location: new GeoPoint(3.067, 101.638),
       note: "",
       isDefault: true,
       createdAt: FieldValue.serverTimestamp(),

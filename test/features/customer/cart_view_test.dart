@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/customer/cart/data/models/cart.dart';
 import 'package:mae_assignment/features/customer/cart/presentation/view_models/cart_view_model.dart';
@@ -10,6 +11,7 @@ import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue
 import 'package:mae_assignment/features/customer/catalogue/presentation/ui/product_thumbnail.dart';
 import 'package:mae_assignment/features/customer/orders/presentation/views/customer_order_tracking_view.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
+import 'package:mae_assignment/shared/models/customer_address.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/services/address_service.dart';
 import 'package:mae_assignment/shared/services/branch_service.dart';
@@ -44,9 +46,12 @@ CatalogueProduct _product(
 Future<ProviderContainer> _pump(
   WidgetTester tester, {
   required List<CartLine> lines,
+  AddressService? addressService,
+  Size physicalSize = const Size(390, 1400),
+  double devicePixelRatio = 1,
 }) async {
-  tester.view.physicalSize = const Size(390, 1400);
-  tester.view.devicePixelRatio = 1;
+  tester.view.physicalSize = physicalSize;
+  tester.view.devicePixelRatio = devicePixelRatio;
   addTearDown(tester.view.reset);
 
   final auth = FakeAuthRepository()
@@ -63,7 +68,9 @@ Future<ProviderContainer> _pump(
       // The cart watches the delivery quote (saved addresses -> auth), so
       // provide fakes to avoid real Firebase and its pending timers.
       authRepositoryProvider.overrideWithValue(auth),
-      addressServiceProvider.overrideWithValue(FakeAddressService()),
+      addressServiceProvider.overrideWithValue(
+        addressService ?? FakeAddressService(),
+      ),
       branchServiceProvider.overrideWithValue(FakeBranchService()),
     ],
   );
@@ -111,6 +118,37 @@ void main() {
     expect(find.text('3 items'), findsOneWidget);
     // Subtotal 8.9*2 + 6.8 = 24.6, + 3 delivery = 27.60.
     expect(find.textContaining('Place order — RM 27.60'), findsOneWidget);
+  });
+
+  testWidgets('delivery cart with saved address fits a phone viewport', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      physicalSize: const Size(1080, 2400),
+      devicePixelRatio: 2.625,
+      addressService: FakeAddressService(
+        addresses: const [
+          CustomerAddress(
+            id: 'home',
+            label: 'Home',
+            line: 'Taman OUG, 58200 Kuala Lumpur',
+            location: LatLng(3.067, 101.638),
+            isDefault: true,
+          ),
+        ],
+      ),
+      lines: [
+        CartLine(
+          product: _product('p1', 'Fresh milk', price: 8.9),
+          quantity: 1,
+        ),
+      ],
+    );
+
+    expect(find.text('Taman OUG, 58200 Kuala Lumpur'), findsOneWidget);
+    expect(find.textContaining('Place order'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('plus button increases the quantity and total', (tester) async {
