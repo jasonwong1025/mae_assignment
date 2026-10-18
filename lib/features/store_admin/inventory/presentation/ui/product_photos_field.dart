@@ -1,9 +1,8 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/product_photo_image.dart';
 
 /// Photo tiles for the product form, with remove buttons and an
 /// "Add" tile until the limit is reached.
@@ -17,7 +16,7 @@ class ProductPhotosField extends StatelessWidget {
 
   static const double _tileSize = 72;
 
-  final List<Uint8List> photos;
+  final List<ProductPhoto> photos;
   final VoidCallback onAdd;
 
   /// Called with the index of the photo to remove.
@@ -59,7 +58,7 @@ class _PhotoTile extends StatelessWidget {
     required this.onRemove,
   });
 
-  final Uint8List photo;
+  final ProductPhoto photo;
   final double size;
   final VoidCallback onRemove;
 
@@ -72,12 +71,7 @@ class _PhotoTile extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.memory(
-              photo,
-              width: size,
-              height: size,
-              fit: BoxFit.cover,
-            ),
+            child: ProductPhotoImage(photo: photo, width: size, height: size),
           ),
           // Remove button in the top right corner.
           Positioned(

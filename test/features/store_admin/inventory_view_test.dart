@@ -15,6 +15,7 @@ import 'package:mae_assignment/shared/services/branch_service.dart';
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_branch_service.dart';
 import '../../helpers/fake_image_picker_service.dart';
+import '../../helpers/fake_inventory.dart';
 
 const _admin = AppUser(
   uid: 'uid-1',
@@ -46,6 +47,7 @@ Future<void> _pumpInventory(
         imagePickerServiceProvider.overrideWithValue(
           imagePicker ?? FakeImagePickerService(),
         ),
+        ...fakeInventoryOverrides(),
       ],
       child: MaterialApp(theme: AppTheme.light, home: const InventoryView()),
     ),
@@ -101,7 +103,7 @@ void main() {
 
   group('InventoryRepository', () {
     test('a new product is added to every branch', () async {
-      final repository = InventoryRepository(FakeImagePickerService());
+      final repository = fakeInventoryRepository();
       await repository.addProduct(
         name: 'Kaya',
         brand: 'Yeos',
@@ -124,7 +126,7 @@ void main() {
     });
 
     test('details change everywhere, price and stock only here', () async {
-      final repository = InventoryRepository(FakeImagePickerService());
+      final repository = fakeInventoryRepository();
       final milk = (await repository.getItems(
         'ss15',
         searchText: 'fresh milk',
@@ -156,7 +158,7 @@ void main() {
     });
 
     test('returns one page of 20, sorted by name', () async {
-      final repository = InventoryRepository(FakeImagePickerService());
+      final repository = fakeInventoryRepository();
 
       final first = await repository.getItems('ss15');
       final last = await repository.getItems('ss15', page: 3);
@@ -171,14 +173,14 @@ void main() {
     });
 
     test('a page number that is too high gives the last page', () async {
-      final repository = InventoryRepository(FakeImagePickerService());
+      final repository = fakeInventoryRepository();
       final result = await repository.getItems('ss15', page: 99);
 
       expect(result.page, 3);
     });
 
     test('filters by category, stock and hidden', () async {
-      final repository = InventoryRepository(FakeImagePickerService());
+      final repository = fakeInventoryRepository();
 
       final bakery = await repository.getItems('ss15', categoryId: 'bakery');
       final out = await repository.getItems(
@@ -199,8 +201,7 @@ void main() {
 
     test('refuses a category name that exists', () async {
       expect(
-        () =>
-            InventoryRepository(FakeImagePickerService()).addCategory('bakery'),
+        () => fakeInventoryRepository().addCategory('bakery'),
         throwsA(isA<InventoryException>()),
       );
     });

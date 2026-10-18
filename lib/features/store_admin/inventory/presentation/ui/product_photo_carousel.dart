@@ -1,8 +1,8 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
 import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/product_labels.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/product_photo_image.dart';
 import 'package:mae_assignment/shared/ui/page_indicator.dart';
 
 /// Product photos, one at a time. Swipe or use the arrows.
@@ -14,7 +14,7 @@ class ProductPhotoCarousel extends StatefulWidget {
     super.key,
   });
 
-  final List<Uint8List> photos;
+  final List<ProductPhoto> photos;
   final String categoryId;
 
   @override
@@ -80,9 +80,8 @@ class _ProductPhotoCarouselState extends State<ProductPhotoCarousel> {
                   itemCount: photos.length,
                   onPageChanged: (page) => setState(() => _currentPage = page),
                   itemBuilder: (context, index) {
-                    return Image.memory(
-                      photos[index],
-                      fit: BoxFit.cover,
+                    return ProductPhotoImage(
+                      photo: photos[index],
                       width: double.infinity,
                     );
                   },

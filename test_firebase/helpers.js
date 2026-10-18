@@ -11,8 +11,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 // Flutter app share one project.
 export const PROJECT_ID = "mae-assignment-grocerly";
 
-// The Firestore emulator port from firebase.json.
+// The emulator ports from firebase.json.
 const FIRESTORE_PORT = 8085;
+const STORAGE_PORT = 9199;
 
 /**
  * Boots one test environment loaded with the real firestore.rules. Reuse it
@@ -26,6 +27,11 @@ export function newTestEnv() {
       host: "127.0.0.1",
       port: FIRESTORE_PORT,
     },
+    storage: {
+      rules: readFileSync(join(here, "..", "storage.rules"), "utf8"),
+      host: "127.0.0.1",
+      port: STORAGE_PORT,
+    },
   });
 }
 
@@ -37,6 +43,18 @@ export function firestoreForUser(testEnv, uid, email) {
   return testEnv
     .authenticatedContext(uid, email ? { email } : undefined)
     .firestore();
+}
+
+/** A signed-in user's Storage handle. */
+export function storageForUser(testEnv, uid, email) {
+  return testEnv
+    .authenticatedContext(uid, email ? { email } : undefined)
+    .storage();
+}
+
+/** A signed-out visitor's Storage handle. */
+export function storageForGuest(testEnv) {
+  return testEnv.unauthenticatedContext().storage();
 }
 
 /** A signed-out visitor's Firestore handle. */

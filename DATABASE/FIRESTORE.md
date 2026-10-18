@@ -115,9 +115,10 @@ Rules: only the document id `current`; keys limited to the four above;
 
 ## `products/{productId}`
 
-The shared catalogue, the same for every branch. Dart: `CatalogueProduct`
-(read model, see below). Service: `CatalogueService`. Any signed-in user
-reads; the client never writes (seed script or admin SDK).
+The shared catalogue, the same for every branch. Dart: `Product` (the admin's
+editable model) and `CatalogueProduct` (the customer's read model, see below).
+Services: `InventoryService` (admin) and `CatalogueService` (customer). Any
+signed-in user reads; **only the admin writes**, from the Inventory tab.
 
 | Field | Type | Notes |
 | --- | --- | --- |
@@ -126,11 +127,18 @@ reads; the client never writes (seed script or admin SDK).
 | `categoryId` | string | A `categories` document id. |
 | `packSize` | string | "1L", "500g"... |
 | `description` | string | Optional. |
-| `imageUrls` | array of string | First is the cover. |
+| `imageUrls` | array of string | Firebase Storage download URLs, at most 5. First is the cover. |
+| `lowStockLevel` | int | Optional. Stock at or below this is "Low" in the Inventory tab (the customer app ignores it). Reads as 10 when absent. |
+
+Rules: the admin creates and updates a product with only the fields above, a
+non-empty `name` (at most 120 characters) and a `categoryId`; nobody deletes.
+The seed script writes products without `lowStockLevel`.
 
 ## `categories/{categoryId}`
 
-Dart: `CatalogueCategory`. Any signed-in user reads; no client writes.
+Dart: `CatalogueCategory` (customer) and `ProductCategory` (admin). Any
+signed-in user reads; the admin creates a category (a name and a sort order);
+nobody deletes.
 
 | Field | Type | Notes |
 | --- | --- | --- |
@@ -156,8 +164,12 @@ never deleted.
 ### `branches/{branchId}/inventory/{productId}`
 
 Price and stock of a product at one branch; the document id is the product id.
-Any signed-in user reads; no client writes. A product is only sold at a branch
-that has a row here.
+Any signed-in user reads; **only the admin writes** (`price >= 0`, an int
+`stock >= 0`, a bool `isHidden`, nothing else); nobody deletes. A product is only
+sold at a branch that has a row here. The Inventory tab lists a product the
+branch has no row for as hidden with no stock, so the admin can set it up, and
+creating a product or a branch writes a row for every branch (stock 0 except where
+the admin chose). Dart: `BranchStock`. Service: `InventoryService`.
 
 | Field | Type | Notes |
 | --- | --- | --- |
@@ -245,10 +257,25 @@ only increase.
 is never written back. `Cart` is the in-memory cart; `StoredCart` is what is
 saved.
 
+## Firebase Storage
+
+Product photos live in Storage, not Firestore; a product keeps only their
+download URLs in `imageUrls`. Rules are in `storage.rules` (tested in
+`test_firebase/storage.rules.test.js`); paths are built in
+`lib/core/firebase/storage_paths.dart`.
+
+| Path | Who | Notes |
+| --- | --- | --- |
+| `products/{productId}/{fileName}` | Any signed-in user reads; only the admin uploads or deletes | An image under 5 MB. `ProductPhotoService` names files by time, so a photo is never overwritten. |
+
+The default bucket must exist before photos work: enable Storage once in the
+Firebase console (this needs the Blaze plan), then run
+`firebase deploy --only storage`.
+
 ## Not stored yet
 
 The Store Admin and Store Worker screens for dispatch, drivers, reviews, sales,
-dashboard, packing and delivery still run on sample data (`sample_*.dart`,
+dashboard, orders, packing and delivery still run on sample data (`sample_*.dart`,
 `mock_*.dart`). When one is connected, add its collection here first, then
 follow the checklist below.
 

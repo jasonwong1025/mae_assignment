@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
@@ -49,7 +47,7 @@ class _ProductFormState extends ConsumerState<ProductForm> {
   String? _categoryId;
 
   /// Photos in the form. Saved on Save.
-  late List<Uint8List> _photos;
+  late List<ProductPhoto> _photos;
   bool _isSaving = false;
 
   bool get _isAdding => widget.item == null;
@@ -103,7 +101,12 @@ class _ProductFormState extends ConsumerState<ProductForm> {
       _showMessage('Could not open your photos.');
       return;
     }
-    setState(() => _photos = [..._photos, ...picked]);
+    setState(() {
+      _photos = [
+        ..._photos,
+        for (final bytes in picked) ProductPhoto.picked(bytes),
+      ];
+    });
   }
 
   /// Creates a category and selects it.

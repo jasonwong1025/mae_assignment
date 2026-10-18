@@ -31,7 +31,7 @@ const Set<String> _deviceServices = {
 };
 
 final RegExp _firebaseImport = RegExp(
-  r'''import\s+['"]package:(cloud_firestore|firebase_auth|firebase_core|google_sign_in)/''',
+  r'''import\s+['"]package:(cloud_firestore|firebase_auth|firebase_core|firebase_storage|google_sign_in)/''',
 );
 final RegExp _serviceImport = RegExp(
   r'''import\s+['"]package:mae_assignment/[^'"]*/services/([^'"/]+\.dart)['"]''',

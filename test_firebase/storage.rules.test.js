@@ -1,0 +1,98 @@
+import { beforeEach, describe, test } from "vitest";
+import { assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
+import { deleteObject, getBytes, ref, uploadBytes } from "firebase/storage";
+import { doc, setDoc } from "firebase/firestore";
+import {
+  seed,
+  storageForGuest,
+  storageForUser,
+} from "./helpers.js";
+
+const ALICE = { uid: "alice", email: "alice@example.com" };
+const ADMIN = { uid: "admin", email: "admin@example.com" };
+const WORKER = { uid: "worker", email: "worker@example.com" };
+
+const photo = () => new Uint8Array([1, 2, 3, 4]);
+const jpeg = { contentType: "image/jpeg" };
+
+let testEnv;
+beforeEach(async () => {
+  testEnv = globalThis.__TEST_ENV__;
+  // The storage rules read the caller's role from Firestore.
+  await seed(testEnv, async (db) => {
+    await setDoc(doc(db, "users", ALICE.uid), { role: "customer" });
+    await setDoc(doc(db, "users", ADMIN.uid), { role: "storeAdmin" });
+    await setDoc(doc(db, "users", WORKER.uid), { role: "storeWorker" });
+  });
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await uploadBytes(
+      ref(context.storage(), "products/p1/existing.jpg"),
+      photo(),
+      jpeg
+    );
+  });
+});
+
+const admin = () => storageForUser(testEnv, ADMIN.uid, ADMIN.email);
+
+describe("product photos", () => {
+  test("the admin can upload and remove a photo", async () => {
+    const file = ref(admin(), "products/p1/new.jpg");
+    await assertSucceeds(uploadBytes(file, photo(), jpeg));
+    await assertSucceeds(deleteObject(file));
+  });
+
+  test("any signed-in user can read a photo", async () => {
+    const alice = storageForUser(testEnv, ALICE.uid, ALICE.email);
+    await assertSucceeds(
+      getBytes(ref(alice, "products/p1/existing.jpg"))
+    );
+  });
+
+  test("a guest cannot read a photo", async () => {
+    await assertFails(
+      getBytes(ref(storageForGuest(testEnv), "products/p1/existing.jpg"))
+    );
+  });
+
+  test("customers and workers cannot upload or delete", async () => {
+    for (const user of [ALICE, WORKER]) {
+      const storage = storageForUser(testEnv, user.uid, user.email);
+      await assertFails(
+        uploadBytes(ref(storage, "products/p1/evil.jpg"), photo(), jpeg)
+      );
+      await assertFails(deleteObject(ref(storage, "products/p1/existing.jpg")));
+    }
+  });
+
+  test("a guest cannot upload", async () => {
+    await assertFails(
+      uploadBytes(
+        ref(storageForGuest(testEnv), "products/p1/evil.jpg"),
+        photo(),
+        jpeg
+      )
+    );
+  });
+
+  test("only images are accepted", async () => {
+    await assertFails(
+      uploadBytes(ref(admin(), "products/p1/script.js"), photo(), {
+        contentType: "text/javascript",
+      })
+    );
+  });
+
+  test("photos over 5 MB are refused", async () => {
+    const big = new Uint8Array(5 * 1024 * 1024 + 1);
+    await assertFails(
+      uploadBytes(ref(admin(), "products/p1/big.jpg"), big, jpeg)
+    );
+  });
+
+  test("nothing outside products/ can be written", async () => {
+    await assertFails(
+      uploadBytes(ref(admin(), "other/file.jpg"), photo(), jpeg)
+    );
+  });
+});

@@ -1,18 +1,20 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
+import 'package:mae_assignment/features/store_admin/inventory/presentation/ui/product_photo_image.dart';
 
 /// Icon for a category. New categories get a general one.
 IconData categoryIcon(String categoryId) {
   switch (categoryId) {
     case 'fruits-vegetables':
+    case 'produce':
       return Icons.eco_outlined;
     case 'meat-seafood':
       return Icons.set_meal_outlined;
     case 'dairy-eggs':
+    case 'dairy':
       return Icons.egg_outlined;
     case 'bakery':
       return Icons.bakery_dining_outlined;
@@ -45,7 +47,7 @@ class ProductThumbnail extends StatelessWidget {
   final String categoryId;
 
   /// Cover photo. Null shows the category icon.
-  final Uint8List? photo;
+  final ProductPhoto? photo;
   final double size;
 
   @override
@@ -54,12 +56,7 @@ class ProductThumbnail extends StatelessWidget {
     if (photo != null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(size / 4),
-        child: Image.memory(
-          photo,
-          width: size,
-          height: size,
-          fit: BoxFit.cover,
-        ),
+        child: ProductPhotoImage(photo: photo, width: size, height: size),
       );
     }
 

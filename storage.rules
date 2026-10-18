@@ -1,0 +1,27 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // True if the signed-in user's profile says they are the HQ admin. Reads
+    // the same users/{uid} document that firestore.rules uses.
+    function isAdmin() {
+      return request.auth != null
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid))
+            .data.role == 'storeAdmin';
+    }
+
+    // Product photos: products/{productId}/{fileName}. Any signed-in user
+    // may read them (the customer app shows them by download URL); only the
+    // admin uploads or removes them, and only images of a sensible size.
+    match /products/{productId}/{fileName} {
+      allow read: if request.auth != null;
+      allow create, update: if isAdmin()
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if isAdmin();
+    }
+
+    // Everything else is closed.
+  }
+}

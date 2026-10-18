@@ -6,7 +6,6 @@ import 'package:mae_assignment/app/theme/app_theme.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/store_admin/branches/presentation/ui/branch_detail_panel.dart';
 import 'package:mae_assignment/features/store_admin/branches/presentation/views/branches_view.dart';
-import 'package:mae_assignment/features/store_admin/inventory/data/repositories/inventory_repository.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
 import 'package:mae_assignment/shared/repositories/branch_repository.dart';
@@ -15,7 +14,7 @@ import 'package:mae_assignment/shared/services/branch_service.dart';
 
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_branch_service.dart';
-import '../../helpers/fake_image_picker_service.dart';
+import '../../helpers/fake_inventory.dart';
 import '../../helpers/map_test_setup.dart';
 
 const _admin = AppUser(
@@ -138,7 +137,7 @@ void main() {
   });
 
   test('a new branch gets every product with 0 stock', () async {
-    final inventory = InventoryRepository(FakeImagePickerService());
+    final inventory = fakeInventoryRepository();
     final before = await inventory.getItems('ss15');
 
     await inventory.addBranch('new-branch');

@@ -77,21 +77,44 @@ service cloud.firestore {
     //
     // Products and categories are shared across branches; a branch's
     // inventory (price, stock) lives under branches/{branchId}/inventory.
-    // Any signed-in user may read the catalogue. Writes are not allowed
-    // from the client yet; the Store Admin side will write through a
-    // privileged path (Cloud Functions or admin SDK) once connected.
+    // Any signed-in user may read the catalogue. Only the admin writes it
+    // (the Inventory tab), with the shape checked here; nothing is ever
+    // deleted from the client (hide a product at a branch instead).
     function isSignedIn() {
       return request.auth != null;
     }
 
+    // A product document as the Inventory tab saves it.
+    function validProduct(data) {
+      return data.keys().hasOnly(
+          ['name', 'brand', 'categoryId', 'packSize', 'description',
+           'imageUrls', 'lowStockLevel'])
+        && data.keys().hasAll(['name', 'categoryId'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 120
+        && data.categoryId is string
+        && (!('imageUrls' in data)
+            || (data.imageUrls is list && data.imageUrls.size() <= 5))
+        && (!('lowStockLevel' in data)
+            || (data.lowStockLevel is int && data.lowStockLevel >= 0));
+    }
+
     match /products/{productId} {
       allow read: if isSignedIn();
-      allow write: if false;
+      allow create, update: if isAdmin() && validProduct(request.resource.data);
+      allow delete: if false;
     }
 
     match /categories/{categoryId} {
       allow read: if isSignedIn();
-      allow write: if false;
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['name', 'sortOrder'])
+        && request.resource.data.keys().hasAll(['name'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 60
+        && (!('sortOrder' in request.resource.data)
+            || request.resource.data.sortOrder is int);
+      allow delete: if false;
     }
 
     // Store branches. Every signed-in user can see them (customers choose
@@ -102,9 +125,19 @@ service cloud.firestore {
       allow create, update: if isAdmin();
       allow delete: if false;
 
+      // Price and stock of a product at this branch; the document id is the
+      // product id. Only the admin writes it.
       match /inventory/{productId} {
         allow read: if isSignedIn();
-        allow write: if false;
+        allow create, update: if isAdmin()
+          && request.resource.data.keys().hasOnly(['price', 'stock', 'isHidden'])
+          && request.resource.data.keys().hasAll(['price', 'stock', 'isHidden'])
+          && request.resource.data.price is number
+          && request.resource.data.price >= 0
+          && request.resource.data.stock is int
+          && request.resource.data.stock >= 0
+          && request.resource.data.isHidden is bool;
+        allow delete: if false;
       }
     }
 

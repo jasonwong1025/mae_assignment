@@ -13,6 +13,7 @@ beforeAll(async () => {
 
 afterEach(async () => {
   await testEnv.clearFirestore();
+  await testEnv.clearStorage();
 });
 
 afterAll(async () => {

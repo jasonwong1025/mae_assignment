@@ -79,7 +79,7 @@ class InventoryViewModel extends AsyncNotifier<InventoryState> {
     required String packSize,
     required String description,
     required int lowStockLevel,
-    required List<Uint8List> photos,
+    required List<ProductPhoto> photos,
     required double price,
     required int stock,
   }) async {
@@ -117,7 +117,7 @@ class InventoryViewModel extends AsyncNotifier<InventoryState> {
     required String packSize,
     required String description,
     required int lowStockLevel,
-    required List<Uint8List> photos,
+    required List<ProductPhoto> photos,
     required double price,
   }) {
     final product = Product(

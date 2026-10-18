@@ -2,11 +2,11 @@
   "name": "grocerly-firestore-rules-tests",
   "version": "1.0.0",
   "private": true,
-  "description": "Firestore Security Rules tests for Grocerly, run against the Firebase Emulator Suite.",
+  "description": "Firestore and Storage Security Rules tests for Grocerly, run against the Firebase Emulator Suite.",
   "type": "module",
   "scripts": {
-    "test": "firebase emulators:exec --only firestore --project mae-assignment-grocerly 'vitest run'",
-    "test:watch": "firebase emulators:exec --only firestore --project mae-assignment-grocerly 'vitest'",
+    "test": "firebase emulators:exec --only firestore,storage --project mae-assignment-grocerly 'vitest run'",
+    "test:watch": "firebase emulators:exec --only firestore,storage --project mae-assignment-grocerly 'vitest'",
     "seed": "node seed.mjs"
   },
   "devDependencies": {

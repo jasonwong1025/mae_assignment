@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:mae_assignment/core/errors/app_exception.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/repositories/inventory_repository.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
@@ -63,7 +64,8 @@ class BranchesViewModel extends AsyncNotifier<PageResult<Branch>> {
           .read(branchRepositoryProvider)
           .addBranch(details);
       await ref.read(inventoryRepositoryProvider).addBranch(branch.id);
-    } on BranchException catch (e) {
+    } on AppException catch (e) {
+      // BranchException or InventoryException: both carry a message to show.
       return e.message;
     }
     await _reload();

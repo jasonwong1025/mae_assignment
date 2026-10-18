@@ -66,10 +66,11 @@ for backend logic that uses Firebase (`AuthService`, `UserService`,
 `AuthRepository`). Change `.fvmrc`, the Flutter constraint in `pubspec.yaml`,
 and `pubspec.lock` together when the team intentionally upgrades Flutter.
 
-### 2. Firestore Security Rules tests (Firebase Emulator Suite)
+### 2. Security Rules tests (Firebase Emulator Suite)
 
-The real `firestore.rules` cannot be faked, so they are tested against the
-Firestore emulator with `@firebase/rules-unit-testing`. The emulator starts and
+The real `firestore.rules` and `storage.rules` cannot be faked, so they are
+tested against the Firestore and Storage emulators with
+`@firebase/rules-unit-testing`. The emulator starts and
 stops itself; this needs Node and Java (both expected by the Firebase CLI) but
 no device, and works the same on every OS. Emulator ports live in the
 `emulators` block of `firebase.json`.

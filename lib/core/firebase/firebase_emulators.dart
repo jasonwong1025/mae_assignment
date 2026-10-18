@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 
 /// Points Firebase Auth and Cloud Firestore at the local Emulator Suite
@@ -15,6 +16,7 @@ import 'package:flutter/foundation.dart';
 /// Ports match the `emulators` block in `firebase.json`:
 /// - Auth:      9099
 /// - Firestore: 8085
+/// - Storage:   9199
 class FirebaseEmulators {
   FirebaseEmulators._();
 
@@ -23,6 +25,7 @@ class FirebaseEmulators {
 
   static const int _authPort = 9099;
   static const int _firestorePort = 8085;
+  static const int _storagePort = 9199;
 
   /// True inside `flutter test` (the test runner sets FLUTTER_TEST). Used
   /// as a hard safety gate: a test must never reach the real project.
@@ -94,9 +97,15 @@ class FirebaseEmulators {
       ),
     );
 
+    // Needs the Storage emulator running only when product photos are used.
+    unawaited(
+      FirebaseStorage.instance.useStorageEmulator(emulatorHost, _storagePort),
+    );
+
     debugPrint(
       'Firebase emulators: Auth $emulatorHost:$_authPort, '
-      'Firestore $emulatorHost:$_firestorePort '
+      'Firestore $emulatorHost:$_firestorePort, '
+      'Storage $emulatorHost:$_storagePort '
       '(host mapping: $automaticHostMapping)',
     );
   }

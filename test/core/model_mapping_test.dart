@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
@@ -6,6 +8,8 @@ import 'package:mae_assignment/core/firebase/firestore_paths.dart';
 import 'package:mae_assignment/features/customer/cart/data/models/cart.dart';
 import 'package:mae_assignment/features/customer/cart/data/models/stored_cart.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue_product.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
 import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
@@ -328,6 +332,64 @@ void main() {
     test('averages the scores given', () {
       expect(review.averageScore, 4);
       expect(review.copyWith(deliveryScore: null).averageScore, 4.5);
+    });
+  });
+
+  group('Admin product', () {
+    const product = Product(
+      id: 'p1',
+      name: 'Fresh milk',
+      brand: 'Farm',
+      categoryId: 'dairy',
+      packSize: '1L',
+      description: 'Full cream',
+      lowStockLevel: 6,
+      photos: [ProductPhoto.stored('https://photos.test/a.jpg')],
+    );
+
+    test('writes only named product fields and round-trips', () {
+      final map = product.toFirestore();
+      expectKeysWithin(map, {
+        ProductFields.name,
+        ProductFields.brand,
+        ProductFields.categoryId,
+        ProductFields.packSize,
+        ProductFields.description,
+        ProductFields.imageUrls,
+        ProductFields.lowStockLevel,
+      });
+      expect(Product.fromFirestore('p1', map), product);
+    });
+
+    test('writes only the photos that are already uploaded', () {
+      final withPicked = product.copyWith(
+        photos: [...product.photos, ProductPhoto.picked(Uint8List(2))],
+      );
+      expect(withPicked.toFirestore()[ProductFields.imageUrls], [
+        'https://photos.test/a.jpg',
+      ]);
+    });
+
+    test('a category round-trips and needs a name', () {
+      const category = ProductCategory(id: 'c1', name: 'Dairy', sortOrder: 2);
+      expect(
+        ProductCategory.fromFirestore('c1', category.toFirestore()),
+        category,
+      );
+      expect(
+        () => ProductCategory.fromFirestore('c2', const {}),
+        throwsFormatException,
+      );
+    });
+
+    test('a branch row writes only the fields the inventory rule allows', () {
+      const row = BranchStock(price: 8.9, stock: 4, isHidden: true);
+      expect(row.toMap().keys.toSet(), {
+        InventoryFields.price,
+        InventoryFields.stock,
+        InventoryFields.isHidden,
+      });
+      expect(BranchStock.fromMap(row.toMap()), row);
     });
   });
 

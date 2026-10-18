@@ -13,10 +13,26 @@ final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
 /// changes (to call a Firestore service) and the screens stay the same.
 class DashboardRepository {
   /// Today's numbers for one branch.
+  ///
+  /// The numbers are sample data for the three sample branches. Any other
+  /// branch (for example one added in the Branches tab, which has a Firestore
+  /// id) has no orders yet, so it gets an empty summary instead of an error.
   Future<DashboardSummary> getSummary(String branchId) async {
-    return _sampleSummaries[branchId]!;
+    return _sampleSummaries[branchId] ?? _emptySummary;
   }
 }
+
+/// A branch with nothing to report yet.
+const _emptySummary = DashboardSummary(
+  ordersToday: 0,
+  ordersYesterday: 0,
+  ordersByHour: [],
+  revenue: 0,
+  driversOnRoad: 0,
+  totalDrivers: 0,
+  liveOrders: [],
+  activity: [],
+);
 
 const _sampleSummaries = {
   'ss15': DashboardSummary(

@@ -38,6 +38,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   firebase_auth: ^6.7.0
   firebase_core: ^4.15.0
+  firebase_storage: ^13.6.0
   flutter_map: ^8.3.2
   flutter_riverpod: ^3.4.3
   # Annotations for Freezed-generated models and sealed states. The code

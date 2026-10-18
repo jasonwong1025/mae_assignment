@@ -164,6 +164,10 @@ class ProductFields {
   static const String packSize = 'packSize';
   static const String description = 'description';
   static const String imageUrls = 'imageUrls';
+
+  /// Stock at or below this counts as low in the Inventory tab. Written by
+  /// the Store Admin app; the customer app ignores it.
+  static const String lowStockLevel = 'lowStockLevel';
 }
 
 /// Field keys in categories/{categoryId}.

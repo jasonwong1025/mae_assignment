@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/app/theme/app_theme.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
-import 'package:mae_assignment/features/store_admin/inventory/data/repositories/inventory_repository.dart';
 import 'package:mae_assignment/features/store_admin/sales/data/models/sales_period.dart';
 import 'package:mae_assignment/features/store_admin/sales/data/repositories/sales_repository.dart';
 import 'package:mae_assignment/features/store_admin/sales/presentation/ui/top_products_rows.dart';
@@ -13,7 +12,6 @@ import 'package:mae_assignment/shared/services/branch_service.dart';
 
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_branch_service.dart';
-import '../../helpers/fake_image_picker_service.dart';
 
 const _admin = AppUser(
   uid: 'uid-1',
@@ -46,7 +44,7 @@ Future<void> _pumpSales(WidgetTester tester, Size size) async {
 }
 
 SalesRepository _repository() {
-  return SalesRepository(InventoryRepository(FakeImagePickerService()));
+  return SalesRepository();
 }
 
 void main() {

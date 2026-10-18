@@ -13,6 +13,282 @@ part of 'inventory_item.dart';
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
+mixin _$BranchStock {
+
+/// Price at this branch, in ringgit.
+ double get price;/// Stock at this branch.
+ int get stock;/// True if hidden from customers at this branch.
+ bool get isHidden;
+/// Create a copy of BranchStock
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$BranchStockCopyWith<BranchStock> get copyWith => _$BranchStockCopyWithImpl<BranchStock>(this as BranchStock, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  final _this = this as BranchStock;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BranchStock&&(identical(other.price, _this.price) || other.price == _this.price)&&(identical(other.stock, _this.stock) || other.stock == _this.stock)&&(identical(other.isHidden, _this.isHidden) || other.isHidden == _this.isHidden));
+}
+
+
+@override
+int get hashCode {
+  final _this = this as BranchStock;
+  return Object.hash(runtimeType,_this.price,_this.stock,_this.isHidden);
+}
+
+@override
+String toString() {
+  final _this = this as BranchStock;
+  return 'BranchStock(price: ${_this.price}, stock: ${_this.stock}, isHidden: ${_this.isHidden})';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $BranchStockCopyWith<$Res>  {
+  factory $BranchStockCopyWith(BranchStock value, $Res Function(BranchStock) _then) = _$BranchStockCopyWithImpl;
+@useResult
+$Res call({
+ double price, int stock, bool isHidden
+});
+
+
+
+
+}
+/// @nodoc
+class _$BranchStockCopyWithImpl<$Res>
+    implements $BranchStockCopyWith<$Res> {
+  _$BranchStockCopyWithImpl(this._self, this._then);
+
+  final BranchStock _self;
+  final $Res Function(BranchStock) _then;
+
+/// Create a copy of BranchStock
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? price = null,Object? stock = null,Object? isHidden = null,}) {
+  return _then(BranchStock(
+price: null == price ? _self.price : price // ignore: cast_nullable_to_non_nullable
+as double,stock: null == stock ? _self.stock : stock // ignore: cast_nullable_to_non_nullable
+as int,isHidden: null == isHidden ? _self.isHidden : isHidden // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [BranchStock].
+extension BranchStockPatterns on BranchStock {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _BranchStock value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _BranchStock() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _BranchStock value)  $default,){
+final _that = this;
+switch (_that) {
+case _BranchStock():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _BranchStock value)?  $default,){
+final _that = this;
+switch (_that) {
+case _BranchStock() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double price,  int stock,  bool isHidden)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _BranchStock() when $default != null:
+return $default(_that.price,_that.stock,_that.isHidden);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double price,  int stock,  bool isHidden)  $default,) {final _that = this;
+switch (_that) {
+case _BranchStock():
+return $default(_that.price,_that.stock,_that.isHidden);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double price,  int stock,  bool isHidden)?  $default,) {final _that = this;
+switch (_that) {
+case _BranchStock() when $default != null:
+return $default(_that.price,_that.stock,_that.isHidden);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class _BranchStock extends BranchStock {
+  const _BranchStock({required this.price, required this.stock, required this.isHidden}): super._();
+  
+
+/// Price at this branch, in ringgit.
+@override final  double price;
+/// Stock at this branch.
+@override final  int stock;
+/// True if hidden from customers at this branch.
+@override final  bool isHidden;
+
+/// Create a copy of BranchStock
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$BranchStockCopyWith<_BranchStock> get copyWith => __$BranchStockCopyWithImpl<_BranchStock>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _BranchStock&&(identical(other.price, price) || other.price == price)&&(identical(other.stock, stock) || other.stock == stock)&&(identical(other.isHidden, isHidden) || other.isHidden == isHidden));
+}
+
+
+@override
+int get hashCode {
+    return Object.hash(runtimeType,price,stock,isHidden);
+}
+
+@override
+String toString() {
+    return 'BranchStock(price: $price, stock: $stock, isHidden: $isHidden)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$BranchStockCopyWith<$Res> implements $BranchStockCopyWith<$Res> {
+  factory _$BranchStockCopyWith(_BranchStock value, $Res Function(_BranchStock) _then) = __$BranchStockCopyWithImpl;
+@override @useResult
+$Res call({
+ double price, int stock, bool isHidden
+});
+
+
+
+
+}
+/// @nodoc
+class __$BranchStockCopyWithImpl<$Res>
+    implements _$BranchStockCopyWith<$Res> {
+  __$BranchStockCopyWithImpl(this._self, this._then);
+
+  final _BranchStock _self;
+  final $Res Function(_BranchStock) _then;
+
+/// Create a copy of BranchStock
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? price = null,Object? stock = null,Object? isHidden = null,}) {
+  return _then(_BranchStock(
+price: null == price ? _self.price : price // ignore: cast_nullable_to_non_nullable
+as double,stock: null == stock ? _self.stock : stock // ignore: cast_nullable_to_non_nullable
+as int,isHidden: null == isHidden ? _self.isHidden : isHidden // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
+
+/// @nodoc
 mixin _$InventoryItem {
 
  Product get product; String get branchId;/// Price at this branch, in ringgit.

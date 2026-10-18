@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mae_assignment/features/store_admin/inventory/data/repositories/inventory_repository.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
+import 'package:mae_assignment/features/store_admin/inventory/data/sample_inventory.dart';
 import 'package:mae_assignment/features/store_admin/sales/data/models/sale.dart';
 import 'package:mae_assignment/features/store_admin/sales/data/models/sales_period.dart';
 import 'package:mae_assignment/features/store_admin/sales/data/models/sales_report.dart';
@@ -7,16 +8,16 @@ import 'package:mae_assignment/features/store_admin/sales/data/sample_sales.dart
 import 'package:mae_assignment/shared/models/page_result.dart';
 
 final salesRepositoryProvider = Provider<SalesRepository>((ref) {
-  return SalesRepository(ref.watch(inventoryRepositoryProvider));
+  return SalesRepository();
 });
 
 /// Sales numbers for the Sales & revenue tab. Each branch is separate.
 /// No backend yet: works them out from sample sales kept in memory.
 class SalesRepository {
-  SalesRepository(this._inventory);
-
-  /// Gives the category names.
-  final InventoryRepository _inventory;
+  /// Names for the sample sales' category ids. The sales are sample data,
+  /// so they keep their own sample categories until Sales is connected to
+  /// Firestore (the live catalogue has different category ids).
+  final List<ProductCategory> _categories = sampleCategories();
 
   /// Sales of each branch, by branch id. Made on first use.
   final Map<String, List<Sale>> _sales = {};
@@ -25,8 +26,7 @@ class SalesRepository {
   Future<SalesReport> getReport(String branchId, SalesPeriod period) async {
     final sales = _salesIn(branchId, period);
     final categoryNames = {
-      for (final category in await _inventory.getCategories())
-        category.id: category.name,
+      for (final category in _categories) category.id: category.name,
     };
 
     // Revenue of each category, by category id.
@@ -72,8 +72,7 @@ class SalesRepository {
     int page = 1,
   }) async {
     final categoryNames = {
-      for (final category in await _inventory.getCategories())
-        category.id: category.name,
+      for (final category in _categories) category.id: category.name,
     };
 
     // Sales of each product, by product id.
