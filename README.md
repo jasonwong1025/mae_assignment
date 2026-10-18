@@ -82,91 +82,54 @@ npm test             # starts the emulator, runs the tests, shuts it down
 
 ### 3. End-to-end tests (Patrol, Android emulator + Firebase emulators)
 
-Patrol drives the real app on a managed Android emulator against the Firebase
-emulators, including native UI. This is the slow, device-dependent layer,
-reserved for a few whole-journey checks rather than everyday logic coverage.
-The app only talks to the emulators when started with
-`--dart-define=USE_FIREBASE_EMULATOR=true`; a normal run and every release build
-use the real backend. The Android emulator reaches the host emulators on
-`10.0.2.2` with no network setup. The runner installs the required emulator
-image if needed, creates a dedicated AVD, and boots it before running Patrol.
-
-Flows live in `integration_test/`. The first is the customer order journey
+[Patrol](https://patrol.leancode.co) drives the real app on an Android
+emulator against the Firebase emulators, including native UI. This is the
+slow layer, kept to a few whole-journey checks. Tests live in `patrol_test/`
+(Patrol's default folder); the first is the customer order journey
 (`customer_journey_test.dart`): sign in, browse, add to cart, place a delivery
-order, and track it. Patrol version pairing follows the
-[compatibility table](https://patrol.leancode.co/documentation/compatibility-table)
-(`patrol` in `pubspec.yaml` with `patrol_cli` installed separately). The native
-runner lives in `android/app/src/androidTest/`.
+order, and track it. The native runner lives in `android/app/src/androidTest/`.
 
-Install the Patrol CLI once (`dart pub global activate patrol_cli`), then:
+The app only talks to the emulators when started with
+`--dart-define=USE_FIREBASE_EMULATOR=true`; normal and release builds use the
+real backend. An Android emulator reaches the host's Firebase emulators on
+`10.0.2.2` with no network setup.
+
+One-time setup:
+
+- Install the Patrol CLI pinned to the `patrol` package
+  ([compatibility table](https://patrol.leancode.co/documentation/compatibility-table)):
+  `dart pub global activate patrol_cli 4.8.0`.
+- Create an Android emulator (API 35, x86_64, or arm64 on Apple Silicon) in
+  Android Studio's **Device Manager**. Hardware acceleration is required: on
+  Linux/WSL2 add yourself to the `kvm` group (`sudo gpasswd -a "$USER" kvm`,
+  then log in again); on Windows enable *Windows Hypervisor Platform*; macOS
+  needs nothing. See
+  [Configure hardware acceleration](https://developer.android.com/studio/run/emulator-acceleration).
+
+Each run:
 
 ```bash
-# 1. Start the emulators (Auth + Firestore).
+# 1. Start the Firebase emulators (Auth + Firestore).
 cd test_firebase
 npx firebase emulators:start --only auth,firestore --project mae-assignment-grocerly
 
-# 2. In another shell, seed the emulator with the catalogue and a test
-#    customer (an auth account plus one saved address). The --with-customer
-#    flag is refused against the real project.
+# 2. In another shell, seed the catalogue and a test customer (refused
+#    against the real project).
 cd test_firebase
 FIRESTORE_EMULATOR_HOST=localhost:8085 \
 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
 node seed.mjs --with-customer
 
-# 3. Run the flow. The runner checks the Firebase emulators, prepares and
-#    boots its dedicated Android AVD, then passes the emulator define.
-fvm dart run tool/run_e2e.dart
+# 3. Start your Android emulator (Device Manager, or:
+#    fvm flutter emulators --launch <id>), then run every test in patrol_test/.
+#    Add --device <id> if a phone is also connected (see `fvm flutter devices`).
+patrol test --dart-define=USE_FIREBASE_EMULATOR=true
 ```
 
-`tool/run_e2e.dart` is a cross-platform helper (same approach as
-`tool/check_firestore_paths.dart`) so it works on macOS, Windows and Linux.
-It defaults to the customer journey flow; pass `--target <file>` and any
-extra `patrol test` arguments to run a different flow.
-
-E2E always runs on an Android emulator, never on your phone, so keep using a
-real device for everyday `fvm flutter run`. Patrol over wireless adb stalls during
-APK install, and an emulator needs no network wiring to reach the host
-emulators. The runner picks the device in this order:
-
-1. `--device <serial>`, if you pass one.
-2. Any Android emulator already connected to adb. Phones are skipped.
-3. Its own AVD (`grocerly_e2e`), which it creates and boots headless. The
-   emulator keeps running afterwards, so later runs reuse it.
-
-One-time setup for the managed AVD, handled by the runner unless noted:
-
-- The first run downloads the Android emulator and an API 35 system image
-  (about 1 GB) through `sdkmanager`, then creates the AVD. The image matches
-  your CPU: `arm64-v8a` on Apple Silicon, `x86_64` elsewhere.
-- The emulator needs hardware acceleration, which each OS provides
-  differently:
-  - **macOS:** built in. Nothing to do.
-  - **Windows:** turn on *Windows Hypervisor Platform* (Windows Features)
-    and enable virtualization in the BIOS. Often already on if you use
-    WSL2 or Hyper-V.
-  - **Linux and WSL2 (manual, needs sudo):** your user needs access to
-    `/dev/kvm`. Run `sudo gpasswd -a "$USER" kvm`, then `newgrp kvm` (or log
-    out and back in). The runner detects this and prints the fix. WSL2 also
-    needs nested virtualization, which recent Windows 11 builds enable by
-    default.
-
-If the emulator still fails to start, the runner prints the emulator's own
-acceleration check, which names the missing piece.
-
-**WSL2 alternative:** instead of the emulator inside WSL2, start one on
-Windows (Android Studio's Device Manager), then attach it from WSL2 with
-`adb connect 127.0.0.1:5555` and run the runner as usual. It detects the
-attached emulator, so no KVM setup is needed in WSL2. This needs WSL's
-mirrored networking mode, so the emulator can reach the Firebase emulators in
-WSL2 through Windows. Use it if nested virtualization is unavailable or slow;
-it is not tested in this repo yet.
-
-The terminal shows only build/install phases, test steps, the summary, and a
-short excerpt of any error. The full Patrol and Gradle output goes to
-`build/e2e/patrol.log`. Pass `--verbose` to stream everything.
-
-Patrol generates `patrol_test/test_bundle.dart` on each run; it is
-git-ignored and must not be committed.
+Use an emulator for E2E and keep your phone for everyday `fvm flutter run`.
+Patrol uninstalls the app after each run. It generates
+`patrol_test/test_bundle.dart`, which is git-ignored and must not be
+committed.
 
 ## Code generation
 
@@ -202,11 +165,14 @@ the change follows the team guidelines:
   check that committed Freezed output is up to date, and `flutter test`.
 - **firestore-rules** job: runs the `test_firebase` rules tests against the
   Firestore emulator (self-managed by `firebase-tools`, no device).
-- **e2e** job: runs the Patrol customer journey on an Android emulator. It
-  opens `/dev/kvm` to the runner with a udev rule, starts and seeds the
-  Firebase emulators with `firebase emulators:exec`, and runs
-  `tool/run_e2e.dart`. On failure it uploads `build/e2e/patrol.log` and the
-  Android test reports as the `e2e-logs` artifact.
+- **e2e** job (pushes to `main` and manual runs only, not pull requests):
+  boots an Android emulator with
+  [android-emulator-runner](https://github.com/ReactiveCircus/android-emulator-runner),
+  starts and seeds the Firebase emulators with `firebase emulators:exec`, and
+  runs `patrol test`. The setup follows Google's
+  [Now in Android](https://github.com/android/nowinandroid) workflow
+  (`free-disk-space`, `.github/ci-gradle.properties`, `setup-gradle`). On
+  failure it uploads the Android test reports as the `e2e-reports` artifact.
 
 Firestore collection and document paths must go through the constants in
 `lib/core/firebase/firestore_paths.dart`, so each path lives in one place and
@@ -227,5 +193,5 @@ fvm flutter test
 ```
 
 The end-to-end flow is slower and needs the Firebase emulators, so it is not
-in this list. Run it with `fvm dart run tool/run_e2e.dart` when you change a
-customer journey (see "End-to-end tests" above); CI runs it on every push.
+in this list. Run it when you change a customer journey (see "End-to-end
+tests" above); CI runs it on every push to `main`.

@@ -89,7 +89,8 @@ dev_dependencies:
   # End-to-end UI testing (the test pyramid's top layer). Drives the real
   # app on a device against the Firebase emulators, and can tap native UI.
   # Paired with patrol_cli 4.8.0 (see the Patrol compatibility table).
-  # Run with: patrol test --target integration_test/<file>.dart
+  # Tests live in patrol_test/ (Patrol's default). See README "End-to-end
+  # tests" for how to run them.
   patrol: ^4.10.0
 
   very_good_analysis: ^11.0.0

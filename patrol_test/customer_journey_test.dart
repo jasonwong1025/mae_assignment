@@ -10,16 +10,9 @@ import 'support/waits.dart';
 /// confirm a delivery address -> place the order -> see live tracking ->
 /// go back to the orders list.
 ///
-/// Prerequisites (see the README "End-to-end tests" section):
-///   1. Firebase emulators running (auth + firestore).
-///   2. The emulator seeded with the catalogue and a test customer who has
-///      one saved address:
-///        cd test_firebase
-///        FIRESTORE_EMULATOR_HOST=localhost:8085 \
-///        FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
-///        node seed.mjs --with-customer
-///   3. Run `fvm dart run tool/run_e2e.dart`; the runner prepares the AVD
-///      and passes the emulator define to Patrol.
+/// Needs the Firebase emulators running and seeded with
+/// `node seed.mjs --with-customer`, and an Android emulator. See the README
+/// "End-to-end tests" section for the commands.
 void main() {
   patrolTest('customer places an order and tracks it', ($) async {
     await launchApp($);

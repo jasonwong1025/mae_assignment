@@ -104,59 +104,45 @@ jobs:
 
   e2e:
     name: E2E (Patrol on Android emulator)
+    # About 15-20 minutes, so it runs on pushes to main and on demand
+    # (Actions tab > CI > Run workflow), not on every pull request.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      # Linux runners expose /dev/kvm, but only to root. This udev rule opens
-      # it to the runner user so the emulator gets hardware acceleration.
+      # The runner starts with ~5 GB free; the emulator alone needs ~7 GB.
+      # Keep the Android SDK and the swap file (the job needs both).
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          android: false
+          tool-cache: false
+          large-packages: false
+          swap-storage: false
+
+      # From the android-emulator-runner README: lets the runner user use
+      # /dev/kvm, so the emulator is hardware accelerated.
       - name: Enable KVM
         run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
-            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      # The runner starts with only ~5 GB free; the emulator's data partition,
-      # the Gradle build and the APKs need more. Drop toolchains this job never
-      # uses (the Android SDK stays).
-      - name: Free disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
-            /usr/local/share/boost /opt/hostedtoolcache/CodeQL
-          df -h / | tail -1
+      - name: Copy CI gradle.properties
+        run: mkdir -p ~/.gradle && cp .github/ci-gradle.properties ~/.gradle/gradle.properties
 
-      # The runner has ~8 GB RAM, shared by Gradle, the Kotlin compiler, the
-      # emulator (2.5 GB guest) and the Firestore emulator. android/
-      # gradle.properties allows Gradle 8 GB for local machines; with that the
-      # runner runs out of memory and GitHub kills it mid-test. The user-level
-      # gradle.properties takes precedence over the project one, so this caps
-      # Gradle on CI only. Swap absorbs short peaks.
-      - name: Limit memory use
-        run: |
-          mkdir -p ~/.gradle
-          cat > ~/.gradle/gradle.properties <<'EOF'
-          org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError
-          org.gradle.workers.max=2
-          org.gradle.daemon=false
-          kotlin.compiler.execution.strategy=in-process
-          EOF
-          sudo fallocate -l 4G /swapfile-e2e
-          sudo chmod 600 /swapfile-e2e
-          sudo mkswap /swapfile-e2e > /dev/null
-          sudo swapon /swapfile-e2e
-          free -h
-
-      # Gradle and the Firestore emulator both run on the JVM. Caching Gradle
-      # speeds up the app build.
+      # Gradle and the Firestore emulator both run on the JVM.
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
-          cache: gradle
+
+      - name: Set up Gradle (build cache)
+        uses: gradle/actions/setup-gradle@v5
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -171,61 +157,46 @@ jobs:
           cache: npm
           cache-dependency-path: test_firebase/package-lock.json
 
-      # The Firebase CLI downloads the Auth/Firestore emulator binaries on
-      # first use; cache them (the CLI suggests this path).
+      # The Firebase CLI downloads the emulator binaries on first use and
+      # suggests caching this path on CI.
       - name: Cache Firebase emulators
         uses: actions/cache@v4
         with:
           path: ~/.cache/firebase/emulators
           key: firebase-emulators-${{ runner.os }}-${{ hashFiles('test_firebase/package-lock.json') }}
 
-      # The runner's Android SDK path, for caching what tool/run_e2e.dart
-      # installs into it.
-      - name: Locate Android SDK
-        id: android-sdk
-        run: echo "root=$ANDROID_HOME" >> "$GITHUB_OUTPUT"
-
-      # Cache the Android emulator and the system image the runner installs
-      # (about 1.5 GB), so later runs skip the download. Bump the key when
-      # the image in tool/run_e2e.dart changes.
-      - name: Cache Android emulator and system image
-        uses: actions/cache@v4
-        with:
-          path: |
-            ${{ steps.android-sdk.outputs.root }}/emulator
-            ${{ steps.android-sdk.outputs.root }}/system-images/android-35
-          key: android-emulator-${{ runner.os }}-android-35-google_apis-x86_64-v1
-
       - name: Install dependencies
         run: |
           flutter pub get --enforce-lockfile
           npm ci --prefix test_firebase
 
-      # Pinned to match the patrol package (see the Patrol compatibility
-      # table referenced in the README).
+      # Pinned to match the patrol package (Patrol compatibility table).
       - name: Install Patrol CLI
         run: |
           dart pub global activate patrol_cli 4.8.0
           echo "${PUB_CACHE:-$HOME/.pub-cache}/bin" >> "$GITHUB_PATH"
 
-      # emulators:exec starts Auth + Firestore, seeds them, runs the Patrol
-      # flow, and shuts the emulators down. tool/run_e2e.dart installs the
-      # Android system image, creates and boots the AVD, and runs Patrol.
+      # android-emulator-runner installs the system image, creates and boots
+      # the AVD, runs the script, then shuts the emulator down. Inside it,
+      # firebase emulators:exec starts Auth + Firestore, seeds them, runs
+      # Patrol, and stops them. The script must stay on one line (the action
+      # runs each line separately).
       - name: Run end-to-end tests
-        working-directory: test_firebase
-        run: |
-          npx firebase emulators:exec --only auth,firestore \
-            --project mae-assignment-grocerly \
-            "FIRESTORE_EMULATOR_HOST=localhost:8085 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 node seed.mjs --with-customer && cd .. && dart run tool/run_e2e.dart"
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disk-size: 6000M
+          emulator-boot-timeout: 900
+          working-directory: test_firebase
+          script: npx firebase emulators:exec --only auth,firestore --project mae-assignment-grocerly "FIRESTORE_EMULATOR_HOST=localhost:8085 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 node seed.mjs --with-customer && cd .. && patrol test --dart-define=USE_FIREBASE_EMULATOR=true"
 
-      # Also on cancel: a runner killed for running out of memory reports
-      # "cancelled", and the logs are what explain it.
-      - name: Upload E2E logs
+      - name: Upload test reports
         if: failure() || cancelled()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-logs
-          path: |
-            build/e2e/
-            build/app/reports/androidTests/
+          name: e2e-reports
+          path: build/app/reports/androidTests/
           if-no-files-found: ignore
