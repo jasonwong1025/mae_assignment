@@ -9,6 +9,7 @@ import 'package:mae_assignment/features/customer/account/presentation/views/save
 import 'package:mae_assignment/features/customer/cart/presentation/view_models/cart_view_model.dart';
 import 'package:mae_assignment/features/customer/cart/presentation/view_models/selected_address_view_model.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue_product.dart';
+import 'package:mae_assignment/features/customer/catalogue/presentation/ui/branch_picker_sheet.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/ui/product_card.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/ui/product_thumbnail.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/view_models/catalogue_filter_view_model.dart';
@@ -101,12 +102,21 @@ class _Catalogue extends ConsumerWidget {
             ),
         ],
         if (data.products.isEmpty)
-          const SliverFillRemaining(
+          SliverFillRemaining(
             hasScrollBody: false,
             child: EmptyState(
               icon: Icons.search_off_rounded,
               title: 'No products found',
-              message: 'Try another category or search term.',
+              message: filter.categoryId == null && !showExtras
+                  ? 'Try another search term, or another store.'
+                  : filter.categoryId == null
+                  ? 'This store has no products yet. Try another store.'
+                  : 'Try another category, search term, or store.',
+              action: OutlinedButton.icon(
+                onPressed: () => showBranchPicker(context),
+                icon: const Icon(Icons.storefront_outlined),
+                label: const Text('Change store'),
+              ),
             ),
           )
         else
@@ -210,11 +220,35 @@ class _Header extends ConsumerWidget {
                 .setSearchText(text),
           ),
           const SizedBox(height: AppSpacing.s),
-          Text(
-            _storeLine(branch),
-            style: textTheme.bodyMedium,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          Semantics(
+            button: true,
+            label: 'Change store',
+            child: InkWell(
+              onTap: () => showBranchPicker(context),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.storefront_outlined,
+                      size: 18,
+                      color: AppColors.darkGreen,
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Flexible(
+                      child: Text(
+                        _storeLine(branch),
+                        style: textTheme.bodyMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const Icon(Icons.keyboard_arrow_down_rounded),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),

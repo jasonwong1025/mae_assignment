@@ -27,6 +27,9 @@ class _EmptyCatalogueRepository implements CatalogueRepository {
   Future<CatalogueData> loadCatalogue(String branchId) async {
     return const CatalogueData(categories: [], products: []);
   }
+
+  @override
+  Future<bool> hasProducts(String branchId) async => true;
 }
 
 void main() {

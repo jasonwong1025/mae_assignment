@@ -17,6 +17,9 @@ class _FakeCatalogueRepository implements CatalogueRepository {
   @override
   Future<CatalogueData> loadCatalogue(String branchId) async =>
       CatalogueData(categories: const [], products: products);
+
+  @override
+  Future<bool> hasProducts(String branchId) async => true;
 }
 
 CatalogueProduct _product({int stock = 20}) => CatalogueProduct(

@@ -55,6 +55,9 @@ class _FakeCatalogueRepository implements CatalogueRepository {
     branchIds.add(branchId);
     return data;
   }
+
+  @override
+  Future<bool> hasProducts(String branchId) async => true;
 }
 
 class _OutOfOrderCatalogueRepository implements CatalogueRepository {
@@ -72,6 +75,9 @@ class _OutOfOrderCatalogueRepository implements CatalogueRepository {
     pending.add(request);
     return request.future;
   }
+
+  @override
+  Future<bool> hasProducts(String branchId) async => true;
 }
 
 CatalogueProduct _product(
@@ -380,6 +386,92 @@ void main() {
     expect(container.read(cartViewModelProvider).quantityOf('p1'), 1);
     // The cart badge now shows on the Cart tab.
     expect(find.text('1'), findsWidgets);
+  });
+
+  group('store picker', () {
+    final data = CatalogueData(
+      categories: const [],
+      products: [_product('p1', 'Milk')],
+    );
+
+    testWidgets('lists the stores and switches to the one tapped', (
+      tester,
+    ) async {
+      final repository = _FakeCatalogueRepository(data);
+      final branches = FakeBranchService();
+      await _pump(
+        tester,
+        data,
+        repository: repository,
+        branchService: branches,
+      );
+      expect(repository.branchIds, ['ss15']);
+
+      await tester.tap(find.textContaining('— open'));
+      await tester.pumpAndSettle();
+      expect(find.text('Choose a store'), findsOneWidget);
+      expect(find.text('Bukit Jalil'), findsOneWidget);
+
+      await tester.tap(find.text('Bukit Jalil'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Choose a store'), findsNothing);
+      expect(repository.branchIds.last, 'bukit-jalil');
+      expect(find.textContaining('Bukit Jalil'), findsOneWidget);
+    });
+
+    testWidgets('a cart with items is emptied only after confirming', (
+      tester,
+    ) async {
+      final container = await _pump(tester, data);
+      container.read(cartViewModelProvider.notifier).add(data.products.first);
+
+      await tester.tap(find.textContaining('— open'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Bukit Jalil'));
+      await tester.pumpAndSettle();
+      expect(find.text('Switch to Bukit Jalil?'), findsOneWidget);
+
+      await tester.tap(find.text('Keep my cart'));
+      await tester.pumpAndSettle();
+      expect(container.read(cartViewModelProvider).itemCount, 1);
+      expect(container.read(selectedBranchProvider).value?.id, 'ss15');
+
+      await tester.tap(find.text('Bukit Jalil'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Switch store'));
+      await tester.pumpAndSettle();
+      expect(container.read(cartViewModelProvider).isEmpty, isTrue);
+      expect(container.read(selectedBranchProvider).value?.id, 'bukit-jalil');
+    });
+
+    testWidgets('a temporarily closed store cannot be chosen', (tester) async {
+      final branches = FakeBranchService();
+      branches.branches[1] = branches.branches[1].withTemporarilyClosed(
+        closed: true,
+      );
+      await _pump(tester, data, branchService: branches);
+
+      await tester.tap(find.textContaining('— open'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Temporarily closed'), findsWidgets);
+      await tester.tap(find.text('Bukit Jalil'), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      expect(find.text('Choose a store'), findsOneWidget);
+    });
+
+    testWidgets('an empty store offers a way to change store', (tester) async {
+      await _pump(tester, const CatalogueData(categories: [], products: []));
+
+      expect(
+        find.text('This store has no products yet. Try another store.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Change store'));
+      await tester.pumpAndSettle();
+      expect(find.text('Choose a store'), findsOneWidget);
+    });
   });
 
   // Catalogue fits common phone widths at a real phone height, with no

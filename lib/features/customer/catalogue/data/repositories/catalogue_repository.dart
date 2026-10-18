@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/core/firebase/firestore_paths.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue_product.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/services/catalogue_service.dart';
 
@@ -42,6 +43,25 @@ class CatalogueRepository {
   CatalogueRepository(this._service);
 
   final CatalogueService _service;
+
+  /// Whether [branchId] has anything on its shelves: at least one visible
+  /// inventory entry in stock. One cheap read of the branch's inventory, used
+  /// to avoid defaulting a customer to an empty store. Throws
+  /// [CatalogueException] if Firestore cannot be reached.
+  Future<bool> hasProducts(String branchId) async {
+    try {
+      final inventory = await _service.fetchInventory(branchId);
+      return inventory.values.any((item) {
+        final stock = (item[InventoryFields.stock] as num?)?.toInt() ?? 0;
+        return item[InventoryFields.isHidden] != true && stock > 0;
+      });
+    } on Object {
+      throw const CatalogueException(
+        'Could not load the store. Please check your connection and try '
+        'again.',
+      );
+    }
+  }
 
   /// Loads the catalogue for [branchId]. Throws [CatalogueException] with a
   /// friendly message if Firestore cannot be reached.

@@ -55,6 +55,9 @@ class _FakeCatalogueRepository implements CatalogueRepository {
   @override
   Future<CatalogueData> loadCatalogue(String branchId) async =>
       CatalogueData(categories: const [], products: products);
+
+  @override
+  Future<bool> hasProducts(String branchId) async => true;
 }
 
 CatalogueProduct _product(String id, {double price = 4, int stock = 20}) {
@@ -89,7 +92,7 @@ void main() {
     )..listen(cartSyncProvider, (_, _) {}); // Mounted, as the app root does.
   }
 
-  Future<void> settle() => Future<void>.delayed(Duration.zero);
+  Future<void> settle() => pumpEventQueue();
 
   Cart cart() => container.read(cartViewModelProvider);
   CartViewModel notifier() => container.read(cartViewModelProvider.notifier);

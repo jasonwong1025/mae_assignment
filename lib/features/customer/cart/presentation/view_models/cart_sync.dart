@@ -17,8 +17,8 @@ import 'package:mae_assignment/features/customer/catalogue/presentation/view_mod
 /// - Sign-in (or app start with a live session): loads the saved cart,
 ///   resolves it against the selected branch's catalogue, and merges it in.
 /// - Every cart change after that is saved.
-/// - Sign-out or switching account: the cart and picked address are cleared,
-///   so one customer never sees another's cart.
+/// - Sign-out or switching account: the cart, picked address and chosen
+///   store are cleared, so one customer never sees another's.
 ///
 /// Nothing is saved until the saved cart has been read once, so a failed or
 /// slow load can never overwrite it with an empty cart. Saving is best
@@ -69,6 +69,7 @@ final Provider<void> cartSyncProvider = Provider<void>((ref) {
       loaded = false;
       ref.read(cartViewModelProvider.notifier).clear();
       ref.read(selectedAddressProvider.notifier).clear();
+      ref.read(branchChoiceProvider.notifier).clear();
       if (nextUid != null) unawaited(load(nextUid));
     }, fireImmediately: true)
     ..listen(cartViewModelProvider, (previous, next) {

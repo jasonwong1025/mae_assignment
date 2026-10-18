@@ -145,4 +145,45 @@ void main() {
       ),
     );
   });
+
+  group('hasProducts', () {
+    test('is true when something visible is in stock', () async {
+      stub(
+        products: const {},
+        inventory: {
+          'p1': {'price': 3.5, 'stock': 0},
+          'p2': {'price': 3.5, 'stock': 4},
+        },
+      );
+
+      expect(await repository.hasProducts('ss15'), isTrue);
+    });
+
+    test('is false for an empty branch', () async {
+      stub(products: const {}, inventory: const {});
+
+      expect(await repository.hasProducts('puchong'), isFalse);
+    });
+
+    test('is false when everything is hidden or out of stock', () async {
+      stub(
+        products: const {},
+        inventory: {
+          'p1': {'price': 3.5, 'stock': 9, 'isHidden': true},
+          'p2': {'price': 3.5, 'stock': 0},
+        },
+      );
+
+      expect(await repository.hasProducts('ss15'), isFalse);
+    });
+
+    test('wraps a Firestore failure in a CatalogueException', () async {
+      when(() => service.fetchInventory(any())).thenThrow(Exception('offline'));
+
+      await expectLater(
+        repository.hasProducts('ss15'),
+        throwsA(isA<CatalogueException>()),
+      );
+    });
+  });
 }
