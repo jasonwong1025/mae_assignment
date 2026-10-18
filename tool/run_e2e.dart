@@ -114,8 +114,7 @@ Future<String> _pickDevice(_AndroidSdk sdk, List<String> args) async {
   final connected = await _connectedEmulator(sdk);
   if (connected != null) {
     stdout.writeln('Using the connected emulator ($connected).');
-    await _waitForBootCompleted(sdk, connected, const Duration(minutes: 5));
-    return connected;
+    return await _waitForBoot(sdk, timeout: _bootTimeout);
   }
 
   return await _bootManagedAvd(sdk);
@@ -128,11 +127,12 @@ Future<String> _bootManagedAvd(_AndroidSdk sdk) async {
   await _ensureAvdExists(sdk);
   await _ensureKvmAccess();
 
-  stdout.writeln('Booting emulator "$_avdName" (headless)...');
-  // Detached: the emulator keeps running after this process, so the next
-  // run reuses it. -no-window suits CI/headless hosts; -no-snapshot gives a
-  // clean boot.
-  await Process.start(sdk.emulatorBinary, [
+  stdout.writeln(
+    'Booting emulator "$_avdName" (headless). A first boot can take a few '
+    'minutes; emulator output goes to $_emulatorLogPath.',
+  );
+  // -no-window suits CI/headless hosts; -no-snapshot gives a clean boot.
+  final pid = await _startEmulatorDetached(sdk, const [
     '-avd',
     _avdName,
     '-no-window',
@@ -141,14 +141,52 @@ Future<String> _bootManagedAvd(_AndroidSdk sdk) async {
     '-no-audio',
     '-gpu',
     'swiftshader_indirect',
-  ], mode: ProcessStartMode.detached);
+  ]);
 
-  final serial = await _waitForEmulator(sdk, const Duration(minutes: 3));
-  if (serial == null) {
-    await _failWithAccelCheck(sdk, 'The emulator did not start in time.');
+  return await _waitForBoot(sdk, emulatorPid: pid, timeout: _bootTimeout);
+}
+
+/// How long a cold boot may take. CI runners often need several minutes on
+/// first boot.
+const _bootTimeout = Duration(minutes: 10);
+
+/// Where the managed emulator's own output is written.
+const _emulatorLogPath = 'build/e2e/emulator.log';
+
+/// Starts the emulator so it keeps running after this script exits (the
+/// next run reuses it) and returns its pid. On macOS/Linux its output is
+/// redirected to [_emulatorLogPath], so a boot failure can be explained; a
+/// detached Windows process has no output to capture.
+Future<int> _startEmulatorDetached(
+  _AndroidSdk sdk,
+  List<String> emulatorArgs,
+) async {
+  File(_emulatorLogPath).parent.createSync(recursive: true);
+  final Process process;
+  if (Platform.isWindows) {
+    process = await Process.start(
+      sdk.emulatorBinary,
+      emulatorArgs,
+      environment: sdk.avdEnvironment,
+      mode: ProcessStartMode.detached,
+    );
+  } else {
+    // `exec` replaces the shell, so the pid is the emulator's own.
+    process = await Process.start(
+      'sh',
+      [
+        '-c',
+        r'log="$1"; shift; exec "$@" > "$log" 2>&1',
+        'sh',
+        _emulatorLogPath,
+        sdk.emulatorBinary,
+        ...emulatorArgs,
+      ],
+      environment: sdk.avdEnvironment,
+      mode: ProcessStartMode.detached,
+    );
   }
-  await _waitForBootCompleted(sdk, serial, const Duration(minutes: 5));
-  return serial;
+  return process.pid;
 }
 
 /// On Linux (including WSL2) the emulator needs hardware acceleration via
@@ -208,7 +246,9 @@ Future<void> _ensureEmulatorInstalled(_AndroidSdk sdk) async {
 
 /// Creates the managed AVD if it does not already exist.
 Future<void> _ensureAvdExists(_AndroidSdk sdk) async {
-  final existing = await _run(sdk.emulatorBinary, ['-list-avds']);
+  final existing = await _run(sdk.emulatorBinary, [
+    '-list-avds',
+  ], environment: sdk.avdEnvironment);
   final avds = const LineSplitter()
       .convert(existing ?? '')
       .map((l) => l.trim())
@@ -216,17 +256,22 @@ Future<void> _ensureAvdExists(_AndroidSdk sdk) async {
   if (avds.contains(_avdName)) return;
 
   stdout.writeln('Creating AVD "$_avdName" from $_systemImage...');
-  final process = await Process.start(sdk.avdmanager, [
-    'create',
-    'avd',
-    '--name',
-    _avdName,
-    '--package',
-    _systemImage,
-    '--device',
-    'pixel_6',
-    '--force',
-  ], runInShell: Platform.isWindows);
+  final process = await Process.start(
+    sdk.avdmanager,
+    [
+      'create',
+      'avd',
+      '--name',
+      _avdName,
+      '--package',
+      _systemImage,
+      '--device',
+      'pixel_6',
+      '--force',
+    ],
+    environment: sdk.avdEnvironment,
+    runInShell: Platform.isWindows,
+  );
   // avdmanager asks "Do you wish to create a custom hardware profile?";
   // answer "no" to take the device defaults.
   process.stdin.write('no\n');
@@ -269,55 +314,100 @@ Future<String?> _connectedEmulator(_AndroidSdk sdk) async {
   return null;
 }
 
-/// Polls adb until an emulator is connected or [timeout] elapses.
-Future<String?> _waitForEmulator(_AndroidSdk sdk, Duration timeout) async {
-  final deadline = DateTime.now().add(timeout);
+/// Waits until an emulator is connected and Android reports
+/// `sys.boot_completed`, printing progress so a slow boot does not look
+/// stuck. If [emulatorPid] is given (an emulator we started), fails early
+/// when that process exits. Returns the emulator's adb serial.
+Future<String> _waitForBoot(
+  _AndroidSdk sdk, {
+  required Duration timeout,
+  int? emulatorPid,
+}) async {
+  final started = DateTime.now();
+  final deadline = started.add(timeout);
+  var nextReport = started.add(const Duration(seconds: 30));
+
   while (DateTime.now().isBefore(deadline)) {
     final serial = await _connectedEmulator(sdk);
-    if (serial != null) return serial;
-    await Future<void>.delayed(const Duration(seconds: 2));
-  }
-  return null;
-}
-
-/// Polls `getprop sys.boot_completed` until Android has finished booting.
-Future<void> _waitForBootCompleted(
-  _AndroidSdk sdk,
-  String serial,
-  Duration timeout,
-) async {
-  final deadline = DateTime.now().add(timeout);
-  while (DateTime.now().isBefore(deadline)) {
-    final booted = await _run(sdk.adb, [
-      '-s',
-      serial,
-      'shell',
-      'getprop',
-      'sys.boot_completed',
-    ]);
-    if (booted?.trim() == '1') {
-      // Give the launcher a moment to settle after boot.
-      await Future<void>.delayed(const Duration(seconds: 2));
-      return;
+    if (serial != null) {
+      final booted = await _run(sdk.adb, [
+        '-s',
+        serial,
+        'shell',
+        'getprop',
+        'sys.boot_completed',
+      ]);
+      if (booted?.trim() == '1') {
+        // Give the launcher a moment to settle after boot.
+        await Future<void>.delayed(const Duration(seconds: 2));
+        stdout.writeln(
+          'Emulator booted in '
+          '${DateTime.now().difference(started).inSeconds}s.',
+        );
+        return serial;
+      }
     }
-    await Future<void>.delayed(const Duration(seconds: 2));
+
+    if (emulatorPid != null && !await _isProcessAlive(emulatorPid)) {
+      await _failBootWithDiagnostics(sdk, 'The emulator exited during boot.');
+    }
+
+    if (DateTime.now().isAfter(nextReport)) {
+      final waited = DateTime.now().difference(started).inSeconds;
+      stdout.writeln(
+        'Still waiting for the emulator to boot (${waited}s, '
+        '${serial == null ? 'not attached to adb yet' : 'attached as $serial'}'
+        ')...',
+      );
+      nextReport = DateTime.now().add(const Duration(seconds: 30));
+    }
+    await Future<void>.delayed(const Duration(seconds: 3));
   }
-  await _failWithAccelCheck(
+
+  await _failBootWithDiagnostics(
     sdk,
-    'The emulator started but Android did not finish booting in time.',
+    'The emulator did not finish booting within ${timeout.inMinutes} '
+    'minutes.',
   );
 }
 
-/// Fails with [message] plus the emulator's own acceleration report, which
-/// names the missing piece (KVM, WHPX, Hypervisor.framework) on every OS.
-Future<Never> _failWithAccelCheck(_AndroidSdk sdk, String message) async {
-  final result = await Process.run(sdk.emulatorBinary, [
-    '-accel-check',
-  ], runInShell: Platform.isWindows);
+/// True while process [pid] is running. Always true on Windows, where we
+/// cannot cheaply check; the boot timeout still applies there.
+Future<bool> _isProcessAlive(int pid) async {
+  if (Platform.isWindows) return true;
+  final result = await Process.run('kill', ['-0', '$pid']);
+  return result.exitCode == 0;
+}
+
+/// Fails with [message], the end of the emulator's own output, and its
+/// acceleration report, which names the missing piece (KVM, WHPX,
+/// Hypervisor.framework) on every OS.
+Future<Never> _failBootWithDiagnostics(_AndroidSdk sdk, String message) async {
+  final logFile = File(_emulatorLogPath);
+  final logTail = logFile.existsSync()
+      ? (const LineSplitter()
+                .convert(logFile.readAsStringSync())
+                .reversed
+                .take(40)
+                .toList()
+                .reversed)
+            .join('\n')
+      : '(no emulator log; it is only captured for an emulator this script '
+            'started on macOS/Linux)';
+
+  final result = await Process.run(
+    sdk.emulatorBinary,
+    ['-accel-check'],
+    environment: sdk.avdEnvironment,
+    runInShell: Platform.isWindows,
+  );
   final report = '${result.stdout}${result.stderr}'.trim();
+
   _fail(
     '$message\n'
-    'Emulator acceleration check:\n'
+    '--- Last lines of $_emulatorLogPath ---\n'
+    '$logTail\n'
+    '--- Emulator acceleration check ---\n'
     '${report.isEmpty ? '(no output)' : report}',
   );
 }
@@ -427,11 +517,16 @@ Future<bool> _tcpReachable(String host, int port) async {
 }
 
 /// Runs a command, returning stdout on success or null otherwise.
-Future<String?> _run(String executable, List<String> args) async {
+Future<String?> _run(
+  String executable,
+  List<String> args, {
+  Map<String, String>? environment,
+}) async {
   try {
     final result = await Process.run(
       executable,
       args,
+      environment: environment,
       runInShell: Platform.isWindows,
     );
     return result.exitCode == 0 ? result.stdout as String : null;
@@ -499,6 +594,22 @@ class _AndroidSdk {
 
   String get _exe => Platform.isWindows ? '.exe' : '';
   String get _bat => Platform.isWindows ? '.bat' : '';
+
+  /// Pins where AVDs live, for both avdmanager and the emulator. Without
+  /// it, on GitHub's Ubuntu 24.04 runners avdmanager follows XDG_CONFIG_HOME
+  /// and writes AVDs to ~/.config/.android/avd, while the emulator only
+  /// looks in ~/.android/avd, so it cannot find the AVD and exits at once
+  /// (actions/runner-images#11482). Keeps any ANDROID_AVD_HOME the
+  /// developer already set.
+  Map<String, String> get avdEnvironment {
+    final env = Platform.environment;
+    final existing = env['ANDROID_AVD_HOME'];
+    if (existing != null && existing.isNotEmpty) return const {};
+    final home = env['HOME'] ?? env['USERPROFILE'];
+    if (home == null) return const {};
+    final separator = Platform.pathSeparator;
+    return {'ANDROID_AVD_HOME': '$home$separator.android${separator}avd'};
+  }
 
   String get emulatorBinary => '$root/emulator/emulator$_exe';
   String get adb => '$root/platform-tools/adb$_exe';

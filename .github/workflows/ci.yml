@@ -119,12 +119,14 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      # Gradle and the Firestore emulator both run on the JVM.
+      # Gradle and the Firestore emulator both run on the JVM. Caching Gradle
+      # speeds up the app build.
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
+          cache: gradle
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -138,6 +140,31 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: test_firebase/package-lock.json
+
+      # The Firebase CLI downloads the Auth/Firestore emulator binaries on
+      # first use; cache them (the CLI suggests this path).
+      - name: Cache Firebase emulators
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}-${{ hashFiles('test_firebase/package-lock.json') }}
+
+      # The runner's Android SDK path, for caching what tool/run_e2e.dart
+      # installs into it.
+      - name: Locate Android SDK
+        id: android-sdk
+        run: echo "root=$ANDROID_HOME" >> "$GITHUB_OUTPUT"
+
+      # Cache the Android emulator and the system image the runner installs
+      # (about 1.5 GB), so later runs skip the download. Bump the key when
+      # the image in tool/run_e2e.dart changes.
+      - name: Cache Android emulator and system image
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ steps.android-sdk.outputs.root }}/emulator
+            ${{ steps.android-sdk.outputs.root }}/system-images/android-35
+          key: android-emulator-${{ runner.os }}-android-35-google_apis-x86_64-v1
 
       - name: Install dependencies
         run: |
@@ -167,6 +194,6 @@ jobs:
         with:
           name: e2e-logs
           path: |
-            build/e2e/patrol.log
+            build/e2e/
             build/app/reports/androidTests/
           if-no-files-found: ignore
