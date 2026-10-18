@@ -88,7 +88,7 @@ slow layer, kept to a few whole-journey checks. Tests live in `patrol_test/`
 (Patrol's default folder); the first is the customer order journey
 (`customer_journey_test.dart`): sign in, browse, add to cart, open the product
 details, restart the app and find the saved cart restored, place a delivery
-order, and track it. The seed script empties the test customer's saved cart, so
+order, track it, cancel it and order it again. The seed script empties the test customer's saved cart, so
 re-run it before each local run. The native runner lives in `android/app/src/androidTest/`.
 
 The app only talks to the emulators when started with

@@ -7,6 +7,7 @@ import 'package:mae_assignment/core/firebase/firestore_models.dart';
 import 'package:mae_assignment/core/firebase/firestore_paths.dart';
 import 'package:mae_assignment/core/firebase/firestore_refs.dart';
 import 'package:mae_assignment/shared/models/order.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 
 final Provider<OrderService> orderServiceProvider = Provider<OrderService>((
   ref,
@@ -57,6 +58,29 @@ class OrderService {
           final next = current + 1;
           transaction.set(counter, {CounterFields.value: next});
           return next;
+        })
+        .timeout(FirestoreConfig.readTimeout);
+  }
+
+  /// Cancels the order if it is still pending, and returns whether it did.
+  ///
+  /// The check and the write happen in one transaction, so an order a packer
+  /// has just started on is never cancelled from under them. `firestore.rules`
+  /// enforces the same thing on the server.
+  Future<bool> cancelOrder(String id) {
+    final document = _refs.order(id);
+    return _firestore
+        .runTransaction((transaction) async {
+          final snapshot = await transaction.get(document);
+          final status = snapshot.data()?[OrderFields.status];
+          if (!snapshot.exists || status != OrderStatus.pending.name) {
+            return false;
+          }
+          transaction.update(document, {
+            OrderFields.status: OrderStatus.cancelled.name,
+            OrderFields.statusSince: FieldValue.serverTimestamp(),
+          });
+          return true;
         })
         .timeout(FirestoreConfig.readTimeout);
   }

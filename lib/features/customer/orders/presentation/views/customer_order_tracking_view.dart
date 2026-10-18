@@ -5,6 +5,7 @@ import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/customer/orders/presentation/ui/order_actions.dart';
 import 'package:mae_assignment/features/customer/orders/presentation/view_models/customer_orders_view_model.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
@@ -82,6 +83,8 @@ class _OrderBody extends StatelessWidget {
           _ItemsCard(order: order),
           const SizedBox(height: AppSpacing.l),
           _TotalsCard(order: order),
+          const SizedBox(height: AppSpacing.l),
+          OrderActions(order: order),
         ],
       ),
     );

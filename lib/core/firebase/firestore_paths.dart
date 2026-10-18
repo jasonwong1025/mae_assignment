@@ -39,6 +39,10 @@ class FirestoreCollections {
   /// every change is atomic. Owner-only.
   static const String cart = 'cart';
 
+  /// reviews/{orderId} — a customer's rating of one completed order. The
+  /// document id is the order id, so an order can be rated only once.
+  static const String reviews = 'reviews';
+
   /// counters/{name} — monotonic counters (e.g. the order number sequence)
   /// incremented in a transaction. Not per-user: a customer cannot read
   /// other customers' orders, so the next order number comes from here
@@ -255,6 +259,32 @@ class OrderItemFields {
 
   /// Cover image URL, or absent if the product has none.
   static const String imageUrl = 'imageUrl';
+}
+
+/// Field keys in reviews/{orderId}.
+class ReviewFields {
+  ReviewFields._();
+
+  static const String orderNumber = 'orderNumber';
+  static const String branchId = 'branchId';
+  static const String customerId = 'customerId';
+  static const String customerName = 'customerName';
+
+  /// How the shopping experience went, 1 to 5.
+  static const String shoppingScore = 'shoppingScore';
+
+  /// Quality of the products, 1 to 5.
+  static const String productScore = 'productScore';
+
+  /// Delivery, 1 to 5. Present only for delivery orders.
+  static const String deliveryScore = 'deliveryScore';
+
+  /// Optional written feedback, at most [maxCommentLength] characters.
+  static const String comment = 'comment';
+  static const int maxCommentLength = 500;
+
+  /// Server time the review was written.
+  static const String createdAt = 'createdAt';
 }
 
 /// Field keys in users/{uid}/addresses/{addressId}.

@@ -142,11 +142,69 @@ service cloud.firestore {
         && request.resource.data.placedAt == request.time;
 
       // Staff advance an order's status (pack, ready, deliver, complete).
-      // The customer side does not update orders yet; cancellation comes
-      // with its own rule in a later slice.
       allow update: if isStaff();
 
+      // A customer may cancel their own order, but only while it is still
+      // pending (nobody has started packing it), and nothing else about the
+      // order may change.
+      allow update: if isOrderOwner()
+        && resource.data.status == 'pending'
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'statusSince'])
+        && request.resource.data.statusSince == request.time;
+
       allow delete: if false;
+    }
+
+    // A customer's rating of one completed order. The document id is the
+    // order id, so an order is rated once. Reviews are immutable: no update
+    // and no delete from the client.
+    match /reviews/{orderId} {
+      function order() {
+        return get(/databases/$(database)/documents/orders/$(orderId)).data;
+      }
+
+      function validScore(value) {
+        return value is int && value >= 1 && value <= 5;
+      }
+
+      // Owner reads their review, staff read all. `resource == null` lets the
+      // customer check whether they have rated yet (reading a document that
+      // does not exist would otherwise be denied, because resource.data is
+      // null).
+      allow read: if (request.auth != null
+          && (resource == null
+              || resource.data.customerId == request.auth.uid))
+        || isStaff();
+
+      // Only for the customer's own order, once it is completed, with
+      // scores from 1 to 5 and a delivery score exactly for delivery orders.
+      allow create: if request.auth != null
+        && request.resource.data.customerId == request.auth.uid
+        && order().customerId == request.auth.uid
+        && order().status == 'completed'
+        && request.resource.data.orderNumber == order().number
+        && request.resource.data.branchId == order().branchId
+        && request.resource.data.keys().hasOnly(
+            ['orderNumber', 'branchId', 'customerId', 'customerName',
+             'shoppingScore', 'productScore', 'deliveryScore', 'comment',
+             'createdAt'])
+        && request.resource.data.keys().hasAll(
+            ['orderNumber', 'branchId', 'customerId', 'customerName',
+             'shoppingScore', 'productScore', 'createdAt'])
+        && validScore(request.resource.data.shoppingScore)
+        && validScore(request.resource.data.productScore)
+        && (('deliveryScore' in request.resource.data)
+            == order().isDelivery)
+        && (!('deliveryScore' in request.resource.data)
+            || validScore(request.resource.data.deliveryScore))
+        && (!('comment' in request.resource.data)
+            || (request.resource.data.comment is string
+                && request.resource.data.comment.size() <= 500))
+        && request.resource.data.createdAt == request.time;
+
+      allow update, delete: if false;
     }
 
     // Monotonic counters, e.g. the order-number sequence. Any signed-in

@@ -65,6 +65,12 @@ class FirestoreRefs {
   DocumentReference<Map<String, dynamic>> order(String orderId) =>
       orders.doc(orderId);
 
+  // reviews/{orderId}
+  CollectionReference<Map<String, dynamic>> get reviews =>
+      _firestore.collection(FirestoreCollections.reviews);
+  DocumentReference<Map<String, dynamic>> review(String orderId) =>
+      reviews.doc(orderId);
+
   // counters/{name}
   DocumentReference<Map<String, dynamic>> counter(String name) =>
       _firestore.collection(FirestoreCollections.counters).doc(name);

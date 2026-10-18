@@ -219,4 +219,44 @@ void main() {
     expect(order.promoCode, Cart.promoFresh5);
     expect(order.discount, 5);
   });
+
+  group('cancelOrder', () {
+    test('cancels a pending order', () async {
+      when(() => service.cancelOrder('o1')).thenAnswer((_) async => true);
+
+      await repository.cancelOrder('o1');
+
+      verify(() => service.cancelOrder('o1')).called(1);
+    });
+
+    test('tells the customer when packing has already started', () async {
+      when(() => service.cancelOrder('o1')).thenAnswer((_) async => false);
+
+      await expectLater(
+        repository.cancelOrder('o1'),
+        throwsA(
+          isA<OrderException>().having(
+            (e) => e.message,
+            'message',
+            contains('can no longer be cancelled'),
+          ),
+        ),
+      );
+    });
+
+    test('turns a backend failure into a friendly error', () async {
+      when(() => service.cancelOrder('o1')).thenThrow(Exception('offline'));
+
+      await expectLater(
+        repository.cancelOrder('o1'),
+        throwsA(
+          isA<OrderException>().having(
+            (e) => e.message,
+            'message',
+            contains('Could not reach the server'),
+          ),
+        ),
+      );
+    });
+  });
 }

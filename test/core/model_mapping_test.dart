@@ -11,6 +11,7 @@ import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
 import 'package:mae_assignment/shared/models/customer_address.dart';
 import 'package:mae_assignment/shared/models/order.dart';
+import 'package:mae_assignment/shared/models/order_review.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/repositories/sample_branches.dart';
 
@@ -274,6 +275,59 @@ void main() {
     test('a driver is saved with a null branch so it is cleared on update', () {
       expect(worker.toFirestore()[UserFields.branchId], isNull);
       expect(worker.toFirestore().containsKey(UserFields.branchId), isTrue);
+    });
+  });
+
+  group('OrderReview', () {
+    const review = OrderReview(
+      id: 'o1',
+      orderNumber: 2301,
+      branchId: 'ss15',
+      customerId: 'u1',
+      customerName: 'Aisha',
+      shoppingScore: 5,
+      productScore: 4,
+      deliveryScore: 3,
+      comment: 'Fast and fresh',
+    );
+
+    test('writes only the fields the create rule allows and round-trips', () {
+      final map = review.toFirestore();
+      expectKeysWithin(map, {
+        ReviewFields.orderNumber,
+        ReviewFields.branchId,
+        ReviewFields.customerId,
+        ReviewFields.customerName,
+        ReviewFields.shoppingScore,
+        ReviewFields.productScore,
+        ReviewFields.deliveryScore,
+        ReviewFields.comment,
+      });
+      expect(OrderReview.fromFirestore('o1', map), review);
+    });
+
+    test('leaves out a missing delivery score and an empty comment', () {
+      final map = review
+          .copyWith(deliveryScore: null, comment: '')
+          .toFirestore();
+      expect(map.containsKey(ReviewFields.deliveryScore), isFalse);
+      expect(map.containsKey(ReviewFields.comment), isFalse);
+    });
+
+    test('is malformed without its scores', () {
+      expect(
+        () => OrderReview.fromFirestore('o1', {
+          ReviewFields.orderNumber: 1,
+          ReviewFields.branchId: 'ss15',
+          ReviewFields.customerId: 'u1',
+        }),
+        throwsFormatException,
+      );
+    });
+
+    test('averages the scores given', () {
+      expect(review.averageScore, 4);
+      expect(review.copyWith(deliveryScore: null).averageScore, 4.5);
     });
   });
 

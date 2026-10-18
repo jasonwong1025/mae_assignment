@@ -102,6 +102,21 @@ class OrderRepository {
     return order.copyWith(id: id);
   }
 
+  /// Cancels a pending order. Throws an [OrderException] if packing has
+  /// already started (or the order is gone), so the customer is told rather
+  /// than left guessing.
+  Future<void> cancelOrder(String orderId) {
+    return _run(() async {
+      final cancelled = await _service.cancelOrder(orderId);
+      if (!cancelled) {
+        throw const OrderException(
+          'This order can no longer be cancelled. Packing may already have '
+          'started.',
+        );
+      }
+    }, label: 'cancelOrder (orders/$orderId)');
+  }
+
   /// One order by id, or null if it does not exist.
   Future<Order?> getOrder(String id) => _run(() => _service.getOrder(id));
 

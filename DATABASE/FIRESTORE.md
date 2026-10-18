@@ -32,6 +32,7 @@ All paths are built in `FirestoreRefs`; services call it and never chain
 | `refs.branches` / `refs.branch(id)` | `branches` / `branches/{id}` |
 | `refs.inventory(branchId)` | `branches/{branchId}/inventory` |
 | `refs.orders` / `refs.order(id)` | `orders` / `orders/{id}` |
+| `refs.reviews` / `refs.review(orderId)` | `reviews` / `reviews/{orderId}` |
 | `refs.counter(name)` | `counters/{name}` |
 
 ## Conventions
@@ -195,8 +196,35 @@ optional `imageUrl`.
 Rules: the owner reads their orders and staff read all; a customer creates only
 their own order, starting `pending`, with `number, customerId, branchId, items,
 total, status, placedAt` and `placedAt == request.time`; staff update (advance
-status); nobody deletes. Index: `customerId` ascending + `placedAt` descending
+status); **a customer may cancel their own order only while it is `pending`**,
+changing nothing but `status` (to `cancelled`) and `statusSince`
+(`== request.time`), which `OrderService.cancelOrder` does in a transaction;
+nobody deletes. Index: `customerId` ascending + `placedAt` descending
 (`firestore.indexes.json`).
+
+## `reviews/{orderId}`
+
+A customer's rating of one completed order. The document id is the order id,
+so an order can be rated once. Reviews are immutable. Dart: `OrderReview`.
+Service: `ReviewService`. This is the contract the Store Admin Reviews tab will
+read when it is connected (driver attribution comes from the order).
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `orderNumber` | int | Required. Equals the order's `number`. |
+| `branchId` | string | Required. Equals the order's `branchId`. |
+| `customerId` | string | Required. The auth uid of the customer. |
+| `customerName` | string | Required. |
+| `shoppingScore` | int | Required, 1 to 5. |
+| `productScore` | int | Required, 1 to 5. |
+| `deliveryScore` | int | 1 to 5. Present **only** for delivery orders. |
+| `comment` | string | Optional, at most 500 characters. |
+| `createdAt` | timestamp | Server time. |
+
+Rules: the owner and staff read (a customer may also read a review that does not
+exist yet, to find out whether they have rated); a customer creates a review for
+their own order only once its status is `completed`, with exactly the fields
+above and `createdAt == request.time`; no update, no delete.
 
 ## `counters/{name}`
 

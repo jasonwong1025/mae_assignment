@@ -113,4 +113,37 @@ void main() {
         .firstWhere((o) => o?.status == OrderStatus.packing);
     expect(updated!.status, OrderStatus.packing);
   });
+
+  group('cancelOrder', () {
+    Future<Map<String, dynamic>> stored(String id) async {
+      final doc = await firestore
+          .collection(FirestoreCollections.orders)
+          .doc(id)
+          .get();
+      return doc.data()!;
+    }
+
+    test('cancels a pending order and stamps the server time', () async {
+      final id = await service.createOrder(_order(customerId: 'u1', number: 1));
+
+      expect(await service.cancelOrder(id), isTrue);
+
+      final data = await stored(id);
+      expect(data[OrderFields.status], 'cancelled');
+      expect(data.containsKey(OrderFields.statusSince), isTrue);
+    });
+
+    test('does not cancel an order that is already being packed', () async {
+      final id = await service.createOrder(
+        _order(customerId: 'u1', number: 1, status: OrderStatus.packing),
+      );
+
+      expect(await service.cancelOrder(id), isFalse);
+      expect((await stored(id))[OrderFields.status], 'packing');
+    });
+
+    test('returns false for an order that does not exist', () async {
+      expect(await service.cancelOrder('missing'), isFalse);
+    });
+  });
 }

@@ -120,6 +120,77 @@ describe("updating orders", () => {
     );
   });
 
+  test("the owner can cancel a pending order", async () => {
+    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
+    await assertSucceeds(
+      updateDoc(doc(db, "orders", "o-alice"), {
+        status: "cancelled",
+        statusSince: serverTimestamp(),
+      })
+    );
+  });
+
+  test("the owner cannot cancel once packing has started", async () => {
+    await seed(testEnv, async (db) => {
+      await setDoc(doc(db, "orders", "o-packing"), {
+        number: 2,
+        customerId: ALICE.uid,
+        branchId: "ss15",
+        items: [],
+        total: 0,
+        status: "packing",
+      });
+    });
+    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
+    await assertFails(
+      updateDoc(doc(db, "orders", "o-packing"), {
+        status: "cancelled",
+        statusSince: serverTimestamp(),
+      })
+    );
+  });
+
+  test("a cancel cannot change anything else on the order", async () => {
+    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
+    await assertFails(
+      updateDoc(doc(db, "orders", "o-alice"), {
+        status: "cancelled",
+        statusSince: serverTimestamp(),
+        total: 0.01,
+      })
+    );
+  });
+
+  test("a cancel must use the server time", async () => {
+    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
+    await assertFails(
+      updateDoc(doc(db, "orders", "o-alice"), {
+        status: "cancelled",
+        statusSince: new Date(0),
+      })
+    );
+  });
+
+  test("another customer cannot cancel someone else's order", async () => {
+    const db = firestoreForUser(testEnv, BOB.uid, BOB.email);
+    await assertFails(
+      updateDoc(doc(db, "orders", "o-alice"), {
+        status: "cancelled",
+        statusSince: serverTimestamp(),
+      })
+    );
+  });
+
+  test("the owner cannot move their order to any other status", async () => {
+    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
+    await assertFails(
+      updateDoc(doc(db, "orders", "o-alice"), {
+        status: "packing",
+        statusSince: serverTimestamp(),
+      })
+    );
+  });
+
   test("nobody can delete an order", async () => {
     const admin = firestoreForUser(testEnv, ADMIN.uid, ADMIN.email);
     await assertFails(deleteDoc(doc(admin, "orders", "o-alice")));

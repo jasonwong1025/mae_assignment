@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart' show find;
 import 'package:mae_assignment/features/customer/catalogue/presentation/ui/product_card.dart';
 import 'package:patrol/patrol.dart';
 
+import 'support/actions.dart';
 import 'support/patrol_app.dart';
 import 'support/waits.dart';
 
@@ -10,7 +11,7 @@ import 'support/waits.dart';
 /// sign in -> browse the catalogue -> add a product -> open its details and
 /// add more -> restart the app and find the cart restored -> open the cart ->
 /// confirm a delivery address -> place the order -> see live tracking ->
-/// go back to the orders list.
+/// cancel it -> order it again -> see the orders list.
 ///
 /// Needs the Firebase emulators running and seeded with
 /// `node seed.mjs --with-customer`, and an Android emulator. See the README
@@ -93,9 +94,19 @@ void main() {
     await waitForWidget($, $('Order tracking'), timeout: catalogueTimeout);
     await waitForWidget($, $('Pending'), timeout: catalogueTimeout);
 
-    // --- Back to the orders list -------------------------------------
-    // "Back to orders" is the back button's tooltip, not visible text.
-    await $(find.byTooltip('Back to orders')).tap();
+    // --- Cancel the pending order ------------------------------------
+    // Nobody has started packing it, so the customer can still cancel.
+    await tapByKey($, 'cancel_order_button');
+    await $(find.widgetWithText(FilledButton, 'Cancel order')).tap();
+    await waitForWidget($, $('Cancelled'), timeout: catalogueTimeout);
+
+    // --- Order again -------------------------------------------------
+    // A cancelled order can be put straight back in the cart.
+    await tapByKey($, 'reorder_button');
+    await waitForWidget($, $('Your cart'), timeout: catalogueTimeout);
+
+    // --- Orders list -------------------------------------------------
+    await $('Orders').tap();
     await waitForWidget($, $('Your orders'));
   });
 }
