@@ -4,7 +4,8 @@ import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue
 
 /// The customer's cart. Not autoDispose: it must survive moving between
 /// tabs (Home, Cart, Orders) and is only cleared when an order is placed.
-/// In memory for now; it will be persisted per user in a later slice.
+/// Held in memory; `cartSyncProvider` saves it per user to Firestore and
+/// restores it after a restart or sign-in.
 final NotifierProvider<CartViewModel, Cart> cartViewModelProvider =
     NotifierProvider<CartViewModel, Cart>(CartViewModel.new);
 
@@ -66,6 +67,26 @@ class CartViewModel extends Notifier<Cart> {
 
   /// Empties the cart (e.g. after an order is placed).
   void clear() => state = const Cart();
+
+  /// Merges a cart loaded from storage into the current one. Items the
+  /// customer already added in the meantime win; saved lines for other
+  /// products are appended, and quantities never pass the stock. The saved
+  /// fulfilment and promo are only used if the current cart is still empty.
+  void restore(Cart saved) {
+    final lines = [...state.lines];
+    for (final line in saved.lines) {
+      if (lines.any((existing) => existing.product.id == line.product.id)) {
+        continue;
+      }
+      lines.add(line);
+    }
+    final untouched = state.isEmpty && state.promoCode == null;
+    state = state.copyWith(
+      lines: lines,
+      fulfilment: untouched ? saved.fulfilment : state.fulfilment,
+      promoCode: untouched ? saved.promoCode : state.promoCode,
+    );
+  }
 
   void _setQuantity(CatalogueProduct product, int quantity) {
     if (quantity <= 0) {

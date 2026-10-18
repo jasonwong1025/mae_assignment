@@ -54,6 +54,23 @@ service cloud.firestore {
       match /addresses/{addressId} {
         allow read, write: if isOwner();
       }
+
+      // A customer's saved cart: a single document, private to the owner.
+      // Holds only product ids and quantities; prices and stock are read
+      // from the catalogue when the cart is loaded.
+      match /cart/{docId} {
+        allow read, delete: if isOwner();
+        allow create, update: if isOwner()
+          && docId == 'current'
+          && request.resource.data.keys()
+              .hasOnly(['lines', 'fulfilment', 'promoCode', 'updatedAt'])
+          && request.resource.data.keys()
+              .hasAll(['lines', 'fulfilment', 'updatedAt'])
+          && request.resource.data.lines is list
+          && request.resource.data.lines.size() <= 100
+          && request.resource.data.fulfilment in ['delivery', 'pickup']
+          && request.resource.data.updatedAt == request.time;
+      }
     }
 
     // Catalogue read access for the customer app.

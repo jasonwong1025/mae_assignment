@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/customer/cart/presentation/view_models/cart_view_model.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue_product.dart';
@@ -89,6 +91,26 @@ CatalogueProduct _product(
   );
 }
 
+/// Hosts the catalogue with a stub product route, so tapping a product can
+/// be checked without the real detail screen.
+GoRouter _router() => GoRouter(
+  initialLocation: AppRoutes.customerCatalogue,
+  routes: [
+    GoRoute(
+      path: AppRoutes.customerCatalogue,
+      builder: (context, state) => const CatalogueView(),
+      routes: [
+        GoRoute(
+          path: 'product/:productId',
+          builder: (context, state) => Scaffold(
+            body: Text('detail ${state.pathParameters['productId']}'),
+          ),
+        ),
+      ],
+    ),
+  ],
+);
+
 Future<ProviderContainer> _pump(
   WidgetTester tester,
   CatalogueData data, {
@@ -115,7 +137,7 @@ Future<ProviderContainer> _pump(
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: const MaterialApp(home: CatalogueView()),
+      child: MaterialApp.router(routerConfig: _router()),
     ),
   );
   await tester.pumpAndSettle();
@@ -316,6 +338,21 @@ void main() {
     expect(find.textContaining('cart'), findsNothing);
   });
 
+  testWidgets('tapping a product opens its details', (tester) async {
+    await _pump(
+      tester,
+      CatalogueData(
+        categories: const [],
+        products: [_product('p1', 'Roma tomato')],
+      ),
+    );
+
+    await tester.tap(find.text('Roma tomato'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('detail p1'), findsOneWidget);
+  });
+
   testWidgets('shows an empty state when nothing matches', (tester) async {
     await _pump(tester, const CatalogueData(categories: [], products: []));
 
@@ -383,7 +420,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: const MaterialApp(home: CatalogueView()),
+          child: MaterialApp.router(routerConfig: _router()),
         ),
       );
       await tester.pumpAndSettle();

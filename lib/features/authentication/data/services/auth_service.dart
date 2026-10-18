@@ -19,6 +19,11 @@ class AuthService {
 
   bool get isSignedIn => _auth.currentUser != null;
 
+  /// The signed-in uid, or null when signed out. Emits the current value on
+  /// listen and again whenever the user signs in or out.
+  Stream<String?> get uidChanges =>
+      _auth.authStateChanges().map((user) => user?.uid).distinct();
+
   Future<User> createAccount({
     required String email,
     required String password,

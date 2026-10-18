@@ -35,11 +35,52 @@ class FirestoreCollections {
   /// addresses, each with a map location. Owner-only.
   static const String addresses = 'addresses';
 
+  /// users/{uid}/cart/current — the customer's saved cart, one document so
+  /// every change is atomic. Owner-only.
+  static const String cart = 'cart';
+
   /// counters/{name} — monotonic counters (e.g. the order number sequence)
   /// incremented in a transaction. Not per-user: a customer cannot read
   /// other customers' orders, so the next order number comes from here
   /// rather than from scanning the orders collection.
   static const String counters = 'counters';
+}
+
+/// Document ids in users/{uid}/cart.
+class CartDocs {
+  CartDocs._();
+
+  /// The one cart a customer has.
+  static const String current = 'current';
+}
+
+/// Field keys in users/{uid}/cart/current.
+///
+/// Only ids and quantities are stored. Names, prices and stock come from the
+/// catalogue when the cart is loaded, so a saved cart never shows stale
+/// prices.
+class CartFields {
+  CartFields._();
+
+  /// Array of maps; see [CartLineFields].
+  static const String lines = 'lines';
+
+  /// A `FulfilmentMethod` name: "delivery" or "pickup".
+  static const String fulfilment = 'fulfilment';
+
+  /// Promo code applied, uppercased. Absent if none.
+  static const String promoCode = 'promoCode';
+
+  /// Server time of the last change.
+  static const String updatedAt = 'updatedAt';
+}
+
+/// Field keys for one entry in the cart's `lines` array.
+class CartLineFields {
+  CartLineFields._();
+
+  static const String productId = 'productId';
+  static const String quantity = 'quantity';
 }
 
 /// Document ids and field keys for counters/{name}.

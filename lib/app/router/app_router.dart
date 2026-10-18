@@ -10,6 +10,7 @@ import 'package:mae_assignment/features/authentication/presentation/views/regist
 import 'package:mae_assignment/features/customer/account/presentation/views/customer_account_view.dart';
 import 'package:mae_assignment/features/customer/cart/presentation/views/cart_view.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/views/catalogue_view.dart';
+import 'package:mae_assignment/features/customer/catalogue/presentation/views/product_detail_view.dart';
 import 'package:mae_assignment/features/customer/orders/presentation/views/customer_order_tracking_view.dart';
 import 'package:mae_assignment/features/customer/orders/presentation/views/customer_orders_view.dart';
 import 'package:mae_assignment/features/store_admin/branches/presentation/views/branches_view.dart';
@@ -48,6 +49,10 @@ class AppRoutes {
   static const String customerCart = '/shop/cart';
   static const String customerOrders = '/shop/orders';
   static const String customerAccount = '/shop/account';
+
+  /// One product's detail screen, pushed over Home.
+  static String customerProduct(String productId) =>
+      '$customerCatalogue/product/$productId';
 
   /// One customer order's tracking screen, pushed over Orders.
   static String customerOrder(String orderId) => '$customerOrders/$orderId';
@@ -188,6 +193,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.customerCatalogue,
         pageBuilder: (context, state) =>
             const NoTransitionPage(child: CatalogueView()),
+      ),
+      // One product's details, pushed over Home.
+      GoRoute(
+        path: '${AppRoutes.customerCatalogue}/product/:productId',
+        builder: (context, state) =>
+            ProductDetailView(productId: state.pathParameters['productId']!),
       ),
       GoRoute(
         path: AppRoutes.customerCart,

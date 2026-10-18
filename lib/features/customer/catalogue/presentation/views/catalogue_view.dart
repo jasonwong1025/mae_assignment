@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
@@ -40,12 +42,6 @@ class CatalogueView extends ConsumerWidget {
       );
   }
 
-  void _comingSoon(BuildContext context, String what) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$what is not connected yet.')));
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(catalogueViewModelProvider);
@@ -64,7 +60,8 @@ class CatalogueView extends ConsumerWidget {
           data: (data) => _Catalogue(
             data: data,
             onAdd: (product) => _addToCart(context, ref, product),
-            onOpen: (product) => _comingSoon(context, 'Product details'),
+            onOpen: (product) =>
+                context.push(AppRoutes.customerProduct(product.id)),
           ),
         ),
       ),

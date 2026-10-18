@@ -52,6 +52,9 @@ class AuthRepository {
 
   bool get isSignedIn => _authService.isSignedIn;
 
+  /// The signed-in uid (null when signed out), emitted on every change.
+  Stream<String?> get uidChanges => _authService.uidChanges;
+
   /// Creates a customer account. Public sign-up is for customers only;
   /// staff accounts are set up separately.
   Future<AppUser> signUp({

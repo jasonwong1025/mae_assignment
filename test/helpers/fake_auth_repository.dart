@@ -20,6 +20,13 @@ class FakeAuthRepository extends Fake implements AuthRepository {
   @override
   bool get isSignedIn => signedIn;
 
+  /// Emits nothing by default, so nothing reacts to sign-in changes. Tests
+  /// that need them replace this with their own controller's stream.
+  Stream<String?> uidStream = const Stream.empty();
+
+  @override
+  Stream<String?> get uidChanges => uidStream;
+
   @override
   Future<AppUser> signUp({
     required String name,
