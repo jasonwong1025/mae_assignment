@@ -1,34 +1,50 @@
-// Runs the Patrol end-to-end flow against a throwaway Android emulator (AVD),
-// fully automated so it works on a fresh machine for the whole team:
-//   1. Locates the Android SDK.
-//   2. Installs the `emulator` package and a system image if missing.
-//   3. Creates a dedicated AVD ("grocerly_e2e") if missing.
-//   4. Boots it (headless) and waits until it is ready.
-//   5. Checks the Firebase emulators are running on the host.
-//   6. Runs `patrol test` against the AVD (reaches the host on 10.0.2.2).
+// Runs the Patrol end-to-end flow on an Android emulator, fully automated so
+// it works on a fresh machine for the whole team and in CI:
+//   1. Checks the Firebase emulators are running on the host.
+//   2. Picks the device:
+//      - `--device <serial>` if given;
+//      - otherwise any Android emulator already connected to adb (including
+//        one running on the Windows host and attached from WSL2 with
+//        `adb connect`);
+//      - otherwise boots its own AVD ("grocerly_e2e"), installing the
+//        emulator and a system image matching this CPU on first use.
+//   3. Runs `patrol test` on it (an emulator reaches the host on 10.0.2.2).
 //
-// Why an AVD, not a physical device: APK installs over wireless adb stall,
-// and an AVD needs no network wiring to reach the host's Firebase emulators.
+// Why an emulator, not a phone: APK installs over wireless adb stall, and an
+// emulator needs no network wiring to reach the host's Firebase emulators.
 // Keep using a real device for everyday `flutter run`; use this for E2E.
 //
-// Run:  fvm dart run tool/run_e2e.dart [extra patrol test args]
+// Run:  fvm dart run tool/run_e2e.dart [--verbose] [extra patrol test args]
 // Written in Dart (like tool/check_firestore_paths.dart) so it runs the same
 // on macOS, Windows and Linux.
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ffi' show Abi;
 import 'dart:io';
 
 /// The AVD this script manages. Namespaced so it never clashes with AVDs the
 /// developer created themselves.
 const _avdName = 'grocerly_e2e';
 
-/// Pinned emulator image: API 35 (matches targetSdk), Google APIs (Play
-/// services for Firebase), x86_64 (fast on desktop hosts).
-const _systemImage = 'system-images;android-35;google_apis;x86_64';
-
-/// Firebase emulator ports from firebase.json (firestore, auth).
+/// Firestore emulator port from firebase.json.
 const _firestorePort = 8085;
+
+/// Where the full, unfiltered Patrol/Gradle output is written.
+const _logPath = 'build/e2e/patrol.log';
+
+/// System image for the managed AVD: API 35 (matches targetSdk) with Google
+/// APIs (Play services for Firebase). The ABI must match the host CPU: the
+/// emulator cannot run x86_64 images on Apple Silicon (or other arm64
+/// hosts), and arm64 images are slow on Intel/AMD.
+String get _systemImage => 'system-images;android-35;google_apis;$_imageAbi';
+
+String get _imageAbi {
+  final abi = Abi.current();
+  final isArm64Host =
+      abi == Abi.macosArm64 || abi == Abi.linuxArm64 || abi == Abi.windowsArm64;
+  return isArm64Host ? 'arm64-v8a' : 'x86_64';
+}
 
 Future<void> main(List<String> args) async {
   final sdk = _AndroidSdk.locate();
@@ -53,36 +69,258 @@ Future<void> main(List<String> args) async {
     );
   }
 
-  await _ensureEmulatorInstalled(sdk!);
-  await _ensureAvdExists(sdk);
-  final serial = await _ensureAvdRunning(sdk);
-
-  stdout.writeln('Emulator ready: $serial. Running the Patrol flow...');
+  final serial = await _pickDevice(sdk, args);
+  stdout.writeln('Device ready: $serial. Running the Patrol flow...');
 
   // Default to the customer journey flow unless the caller named a target.
-  final passedArgs = [...args];
-  if (!passedArgs.contains('--target')) {
-    passedArgs.insertAll(0, const [
+  final patrolArgs = args.where((a) => a != '--verbose').toList();
+  if (!patrolArgs.contains('--target')) {
+    patrolArgs.insertAll(0, const [
       '--target',
       'integration_test/customer_journey_test.dart',
     ]);
   }
-  if (!passedArgs.contains('--device') && !passedArgs.contains('-d')) {
-    passedArgs.addAll(['--device', serial]);
+  if (_requestedDevice(args) == null) {
+    patrolArgs.addAll(['--device', serial]);
   }
 
-  // On an AVD the SDK maps the emulator host to 10.0.2.2 automatically, so
-  // we only turn the emulator mode on.
+  // On an emulator the Firebase SDK maps the emulator host to 10.0.2.2
+  // automatically, so we only turn the emulator mode on.
   final command = [
     'test',
-    ...passedArgs,
+    ...patrolArgs,
     '--dart-define=USE_FIREBASE_EMULATOR=true',
   ];
   exit(await _runPatrolQuietly(command, verbose: args.contains('--verbose')));
 }
 
-/// Where the full, unfiltered Patrol/Gradle output is written.
-const _logPath = 'build/e2e/patrol.log';
+/// The value of `--device`/`-d` if the caller passed one, else null.
+String? _requestedDevice(List<String> args) {
+  for (var i = 0; i < args.length - 1; i++) {
+    if (args[i] == '--device' || args[i] == '-d') return args[i + 1];
+  }
+  return null;
+}
+
+/// Returns the adb serial to test on: the requested device, an emulator
+/// that is already connected, or our own AVD booted for the run.
+Future<String> _pickDevice(_AndroidSdk sdk, List<String> args) async {
+  final requested = _requestedDevice(args);
+  if (requested != null) {
+    stdout.writeln('Using the requested device ($requested).');
+    return requested;
+  }
+
+  final connected = await _connectedEmulator(sdk);
+  if (connected != null) {
+    stdout.writeln('Using the connected emulator ($connected).');
+    await _waitForBootCompleted(sdk, connected, const Duration(minutes: 5));
+    return connected;
+  }
+
+  return await _bootManagedAvd(sdk);
+}
+
+/// Installs what the managed AVD needs, boots it headless, and waits until
+/// Android has finished booting. Returns its adb serial.
+Future<String> _bootManagedAvd(_AndroidSdk sdk) async {
+  await _ensureEmulatorInstalled(sdk);
+  await _ensureAvdExists(sdk);
+  await _ensureKvmAccess();
+
+  stdout.writeln('Booting emulator "$_avdName" (headless)...');
+  // Detached: the emulator keeps running after this process, so the next
+  // run reuses it. -no-window suits CI/headless hosts; -no-snapshot gives a
+  // clean boot.
+  await Process.start(sdk.emulatorBinary, [
+    '-avd',
+    _avdName,
+    '-no-window',
+    '-no-snapshot',
+    '-no-boot-anim',
+    '-no-audio',
+    '-gpu',
+    'swiftshader_indirect',
+  ], mode: ProcessStartMode.detached);
+
+  final serial = await _waitForEmulator(sdk, const Duration(minutes: 3));
+  if (serial == null) {
+    await _failWithAccelCheck(sdk, 'The emulator did not start in time.');
+  }
+  await _waitForBootCompleted(sdk, serial, const Duration(minutes: 5));
+  return serial;
+}
+
+/// On Linux (including WSL2) the emulator needs hardware acceleration via
+/// /dev/kvm. Granting access is a one-time privileged host change we cannot
+/// do automatically, so detect it and fail fast with the exact fix rather
+/// than letting the emulator crash on boot. macOS and Windows use their own
+/// hypervisors and skip this check.
+Future<void> _ensureKvmAccess() async {
+  if (!Platform.isLinux) return;
+  if (!File('/dev/kvm').existsSync()) {
+    _fail(
+      '/dev/kvm is missing, so the emulator cannot use hardware '
+      'acceleration.\n'
+      'Enable virtualization (VT-x/AMD-V) in your BIOS. On WSL2, also enable '
+      'nested virtualization, or run the emulator on Windows and attach it '
+      'from WSL2 (see the README).',
+    );
+  }
+  // Check real read/write access rather than group membership, so access
+  // granted by a udev rule (as in CI) also counts.
+  final access = await Process.run('sh', [
+    '-c',
+    'test -r /dev/kvm && test -w /dev/kvm',
+  ]);
+  if (access.exitCode == 0) return;
+
+  _fail(
+    'Your user cannot access /dev/kvm, so the emulator cannot start.\n'
+    'Grant KVM access once (needs sudo), then apply it to this shell:\n'
+    '  sudo gpasswd -a "\$USER" kvm\n'
+    '  newgrp kvm   # or log out and back in\n'
+    'Then re-run this command.',
+  );
+}
+
+/// Installs the `emulator` package and the system image if either is missing.
+/// Licenses are auto-accepted; downloads only happen when absent.
+Future<void> _ensureEmulatorInstalled(_AndroidSdk sdk) async {
+  final needEmulator = !File(sdk.emulatorBinary).existsSync();
+  final needImage = !Directory(
+    '${sdk.root}/${_systemImage.replaceAll(';', '/')}',
+  ).existsSync();
+
+  if (!needEmulator && !needImage) return;
+
+  final packages = <String>[
+    if (needEmulator) 'emulator',
+    if (needImage) _systemImage,
+  ];
+  stdout.writeln(
+    'Installing Android packages (one-time, may download ~1GB): '
+    '${packages.join(', ')}',
+  );
+  final ok = await _runSdkManager(sdk, packages);
+  if (!ok) _fail('Failed to install: ${packages.join(', ')}');
+}
+
+/// Creates the managed AVD if it does not already exist.
+Future<void> _ensureAvdExists(_AndroidSdk sdk) async {
+  final existing = await _run(sdk.emulatorBinary, ['-list-avds']);
+  final avds = const LineSplitter()
+      .convert(existing ?? '')
+      .map((l) => l.trim())
+      .toList();
+  if (avds.contains(_avdName)) return;
+
+  stdout.writeln('Creating AVD "$_avdName" from $_systemImage...');
+  final process = await Process.start(sdk.avdmanager, [
+    'create',
+    'avd',
+    '--name',
+    _avdName,
+    '--package',
+    _systemImage,
+    '--device',
+    'pixel_6',
+    '--force',
+  ], runInShell: Platform.isWindows);
+  // avdmanager asks "Do you wish to create a custom hardware profile?";
+  // answer "no" to take the device defaults.
+  process.stdin.write('no\n');
+  await process.stdin.close();
+  final out = await process.stdout.transform(utf8.decoder).join();
+  final err = await process.stderr.transform(utf8.decoder).join();
+  if (await process.exitCode != 0) {
+    _fail('Failed to create AVD:\n$out\n$err');
+  }
+}
+
+/// Serials of every device adb reports as ready.
+Future<List<String>> _connectedSerials(_AndroidSdk sdk) async {
+  final out = await _run(sdk.adb, ['devices']);
+  return [
+    for (final line in const LineSplitter().convert(out ?? ''))
+      if (line.trim().split(RegExp(r'\s+')) case [final serial, 'device'])
+        serial,
+  ];
+}
+
+/// True for an Android emulator. Local emulators have `emulator-*` serials;
+/// one attached over the network (e.g. from the Windows host into WSL2) has
+/// an ip:port serial, so also check the build props every emulator sets.
+Future<bool> _isEmulator(_AndroidSdk sdk, String serial) async {
+  if (serial.startsWith('emulator-')) return true;
+  for (final prop in const ['ro.boot.qemu', 'ro.kernel.qemu']) {
+    final value = await _run(sdk.adb, ['-s', serial, 'shell', 'getprop', prop]);
+    if (value?.trim() == '1') return true;
+  }
+  return false;
+}
+
+/// The first connected Android emulator, or null. Physical devices are
+/// skipped.
+Future<String?> _connectedEmulator(_AndroidSdk sdk) async {
+  for (final serial in await _connectedSerials(sdk)) {
+    if (await _isEmulator(sdk, serial)) return serial;
+  }
+  return null;
+}
+
+/// Polls adb until an emulator is connected or [timeout] elapses.
+Future<String?> _waitForEmulator(_AndroidSdk sdk, Duration timeout) async {
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    final serial = await _connectedEmulator(sdk);
+    if (serial != null) return serial;
+    await Future<void>.delayed(const Duration(seconds: 2));
+  }
+  return null;
+}
+
+/// Polls `getprop sys.boot_completed` until Android has finished booting.
+Future<void> _waitForBootCompleted(
+  _AndroidSdk sdk,
+  String serial,
+  Duration timeout,
+) async {
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    final booted = await _run(sdk.adb, [
+      '-s',
+      serial,
+      'shell',
+      'getprop',
+      'sys.boot_completed',
+    ]);
+    if (booted?.trim() == '1') {
+      // Give the launcher a moment to settle after boot.
+      await Future<void>.delayed(const Duration(seconds: 2));
+      return;
+    }
+    await Future<void>.delayed(const Duration(seconds: 2));
+  }
+  await _failWithAccelCheck(
+    sdk,
+    'The emulator started but Android did not finish booting in time.',
+  );
+}
+
+/// Fails with [message] plus the emulator's own acceleration report, which
+/// names the missing piece (KVM, WHPX, Hypervisor.framework) on every OS.
+Future<Never> _failWithAccelCheck(_AndroidSdk sdk, String message) async {
+  final result = await Process.run(sdk.emulatorBinary, [
+    '-accel-check',
+  ], runInShell: Platform.isWindows);
+  final report = '${result.stdout}${result.stderr}'.trim();
+  _fail(
+    '$message\n'
+    'Emulator acceleration check:\n'
+    '${report.isEmpty ? '(no output)' : report}',
+  );
+}
 
 /// Runs patrol, writing everything to [_logPath] and printing only what a
 /// developer needs: progress phases, test steps, the summary, and the error
@@ -92,19 +330,17 @@ Future<int> _runPatrolQuietly(
   List<String> command, {
   required bool verbose,
 }) async {
-  final patrolArgs = command.where((a) => a != '--verbose').toList();
   final logFile = File(_logPath)..parent.createSync(recursive: true);
-  final log = logFile.openWrite()..writeln('patrol ${patrolArgs.join(' ')}');
+  final log = logFile.openWrite()..writeln('patrol ${command.join(' ')}');
   stdout
     ..writeln('Running Patrol (full log: $_logPath)')
     ..writeln(
-      'First run builds and installs the app; this takes a few '
-      'minutes.',
+      'First run builds and installs the app; this takes a few minutes.',
     );
 
   final process = await Process.start(
     'patrol',
-    patrolArgs,
+    command,
     runInShell: Platform.isWindows,
   );
 
@@ -175,165 +411,6 @@ bool _isUsefulLine(String text) {
   return markers.any(text.contains);
 }
 
-/// On Linux the x86_64 emulator needs hardware acceleration via /dev/kvm,
-/// which requires the user to be in the `kvm` group. This is a one-time
-/// privileged host change we cannot do automatically, so detect it and fail
-/// fast with the exact fix rather than letting the emulator crash on boot.
-Future<void> _ensureKvmAccess() async {
-  if (!Platform.isLinux) return;
-  if (!File('/dev/kvm').existsSync()) {
-    _fail(
-      '/dev/kvm is missing. Enable virtualization (VT-x/AMD-V) in your BIOS, '
-      'or run the Patrol flow on a machine/CI runner with KVM.',
-    );
-  }
-  final groups = await _run('id', ['-nG']);
-  if (groups != null && groups.split(RegExp(r'\s+')).contains('kvm')) return;
-
-  _fail(
-    'Your user cannot access /dev/kvm, so the x86_64 emulator cannot start.\n'
-    'Grant KVM access once (needs sudo), then apply it to this shell:\n'
-    '  sudo gpasswd -a "\$USER" kvm\n'
-    '  newgrp kvm   # or log out and back in\n'
-    'Then re-run this command.',
-  );
-}
-
-/// Installs the `emulator` package and the system image if either is missing.
-/// Licenses are auto-accepted; downloads only happen when absent.
-Future<void> _ensureEmulatorInstalled(_AndroidSdk sdk) async {
-  final needEmulator = !File(sdk.emulatorBinary).existsSync();
-  final needImage = !Directory(
-    '${sdk.root}/${_systemImage.replaceAll(';', '/')}',
-  ).existsSync();
-
-  if (!needEmulator && !needImage) return;
-
-  final packages = <String>[
-    if (needEmulator) 'emulator',
-    if (needImage) _systemImage,
-  ];
-  stdout.writeln(
-    'Installing Android packages (one-time, may download ~1GB): '
-    '${packages.join(', ')}',
-  );
-  // `yes` pipes license acceptances to sdkmanager.
-  final ok = await _runInherit(sdk.sdkmanager, packages, acceptLicenses: true);
-  if (!ok) _fail('Failed to install: ${packages.join(', ')}');
-}
-
-/// Creates the managed AVD if it does not already exist.
-Future<void> _ensureAvdExists(_AndroidSdk sdk) async {
-  final existing = await _run(sdk.emulatorBinary, ['-list-avds']);
-  final avds = const LineSplitter()
-      .convert(existing ?? '')
-      .map((l) => l.trim())
-      .toList();
-  if (avds.contains(_avdName)) return;
-
-  stdout.writeln('Creating AVD "$_avdName" from $_systemImage...');
-  final process = await Process.start(sdk.avdmanager, [
-    'create',
-    'avd',
-    '--name',
-    _avdName,
-    '--package',
-    _systemImage,
-    '--device',
-    'pixel_6',
-    '--force',
-  ], runInShell: Platform.isWindows);
-  // avdmanager asks "Do you wish to create a custom hardware profile?";
-  // answer "no" to take the device defaults.
-  process.stdin.write('no\n');
-  await process.stdin.close();
-  final out = await process.stdout.transform(utf8.decoder).join();
-  final err = await process.stderr.transform(utf8.decoder).join();
-  if (await process.exitCode != 0) {
-    _fail('Failed to create AVD:\n$out\n$err');
-  }
-}
-
-/// Boots the AVD if it is not already running and returns its adb serial.
-Future<String> _ensureAvdRunning(_AndroidSdk sdk) async {
-  final already = await _runningAvdSerial(sdk);
-  if (already != null) {
-    stdout.writeln('Emulator already running ($already).');
-    return already;
-  }
-
-  await _ensureKvmAccess();
-  stdout.writeln('Booting emulator "$_avdName" (headless)...');
-  // Detached: the emulator keeps running after this process; we just wait
-  // for it to come up. -no-window keeps CI/headless hosts happy; -no-snapshot
-  // gives a clean boot each run.
-  await Process.start(sdk.emulatorBinary, [
-    '-avd',
-    _avdName,
-    '-no-window',
-    '-no-snapshot',
-    '-no-boot-anim',
-    '-gpu',
-    'swiftshader_indirect',
-  ], mode: ProcessStartMode.detached);
-
-  // Wait for a device to attach, then for Android to finish booting.
-  final serial = await _waitForDevice(sdk, const Duration(minutes: 3));
-  if (serial == null) _fail('Emulator did not attach to adb in time.');
-  await _waitForBootCompleted(sdk, serial!, const Duration(minutes: 3));
-  return serial;
-}
-
-/// The serial of a running emulator (emulator-*), or null.
-Future<String?> _runningAvdSerial(_AndroidSdk sdk) async {
-  final out = await _run(sdk.adb, ['devices']);
-  for (final line in const LineSplitter().convert(out ?? '')) {
-    final parts = line.trim().split(RegExp(r'\s+'));
-    if (parts.length == 2 &&
-        parts[1] == 'device' &&
-        parts[0].startsWith('emulator-')) {
-      return parts[0];
-    }
-  }
-  return null;
-}
-
-/// Polls adb until an emulator serial appears or [timeout] elapses.
-Future<String?> _waitForDevice(_AndroidSdk sdk, Duration timeout) async {
-  final deadline = DateTime.now().add(timeout);
-  while (DateTime.now().isBefore(deadline)) {
-    final serial = await _runningAvdSerial(sdk);
-    if (serial != null) return serial;
-    await Future<void>.delayed(const Duration(seconds: 2));
-  }
-  return null;
-}
-
-/// Polls `getprop sys.boot_completed` until the emulator has finished booting.
-Future<void> _waitForBootCompleted(
-  _AndroidSdk sdk,
-  String serial,
-  Duration timeout,
-) async {
-  final deadline = DateTime.now().add(timeout);
-  while (DateTime.now().isBefore(deadline)) {
-    final booted = await _run(sdk.adb, [
-      '-s',
-      serial,
-      'shell',
-      'getprop',
-      'sys.boot_completed',
-    ]);
-    if (booted?.trim() == '1') {
-      // Give the launcher a moment to settle after boot.
-      await Future<void>.delayed(const Duration(seconds: 2));
-      return;
-    }
-    await Future<void>.delayed(const Duration(seconds: 2));
-  }
-  _fail('Emulator booted but Android did not report boot_completed in time.');
-}
-
 /// True if a TCP connection to [host]:[port] succeeds quickly.
 Future<bool> _tcpReachable(String host, int port) async {
   try {
@@ -363,32 +440,23 @@ Future<String?> _run(String executable, List<String> args) async {
   }
 }
 
-/// Runs a command with inherited stdio (so progress shows). When
-/// [acceptLicenses] is set, feeds "y" repeatedly to stdin for sdkmanager.
-Future<bool> _runInherit(
-  String executable,
-  List<String> args, {
-  bool acceptLicenses = false,
-}) async {
+/// Runs sdkmanager for [packages], accepting license prompts and showing
+/// its progress.
+Future<bool> _runSdkManager(_AndroidSdk sdk, List<String> packages) async {
   final process = await Process.start(
-    executable,
-    args,
-    mode: acceptLicenses
-        ? ProcessStartMode.normal
-        : ProcessStartMode.inheritStdio,
+    sdk.sdkmanager,
+    packages,
     runInShell: Platform.isWindows,
   );
-  if (acceptLicenses) {
-    // Accept any license prompts; sdkmanager reads one "y" per line.
-    process.stdin.write('y\n' * 50);
-    await process.stdin.close();
-    unawaited(process.stdout.pipe(stdout));
-    unawaited(process.stderr.pipe(stderr));
-  }
+  // sdkmanager reads one "y" per license prompt.
+  process.stdin.write('y\n' * 50);
+  await process.stdin.close();
+  unawaited(process.stdout.pipe(stdout));
+  unawaited(process.stderr.pipe(stderr));
   return (await process.exitCode) == 0;
 }
 
-void _fail(String message) {
+Never _fail(String message) {
   stderr.writeln('\n$message');
   exit(1);
 }

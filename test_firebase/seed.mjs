@@ -26,10 +26,15 @@ import { getAuth } from "firebase-admin/auth";
 
 const PROJECT_ID = "mae-assignment-grocerly";
 
-const app = initializeApp({
-  credential: applicationDefault(),
-  projectId: PROJECT_ID,
-});
+// The emulators accept any caller, so no credentials are needed there. This
+// keeps the seed working in CI and on machines without gcloud set up. The
+// real project still uses Application Default Credentials.
+const ON_EMULATOR = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
+const app = initializeApp(
+  ON_EMULATOR
+    ? { projectId: PROJECT_ID }
+    : { credential: applicationDefault(), projectId: PROJECT_ID },
+);
 const db = getFirestore(app);
 
 // `--with-customer` also creates a test customer (auth account + profile +

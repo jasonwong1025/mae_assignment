@@ -123,20 +123,43 @@ fvm dart run tool/run_e2e.dart
 It defaults to the customer journey flow; pass `--target <file>` and any
 extra `patrol test` arguments to run a different flow.
 
-E2E runs on the runner's own AVD (`grocerly_e2e`), never on your phone, so
-keep using a real device for everyday `flutter run`. Patrol over wireless adb
-stalls during APK install, and an AVD needs no network wiring to reach the
-host emulators.
+E2E always runs on an Android emulator, never on your phone, so keep using a
+real device for everyday `fvm flutter run`. Patrol over wireless adb stalls during
+APK install, and an emulator needs no network wiring to reach the host
+emulators. The runner picks the device in this order:
 
-One-time setup, handled by the runner unless noted:
+1. `--device <serial>`, if you pass one.
+2. Any Android emulator already connected to adb. Phones are skipped.
+3. Its own AVD (`grocerly_e2e`), which it creates and boots headless. The
+   emulator keeps running afterwards, so later runs reuse it.
+
+One-time setup for the managed AVD, handled by the runner unless noted:
 
 - The first run downloads the Android emulator and an API 35 system image
-  (about 1 GB) through `sdkmanager`, then creates the AVD. Later runs reuse
-  them and take under a minute once the emulator is booted.
-- **Linux only, manual:** the emulator needs KVM. If the runner reports that
-  your user cannot access `/dev/kvm`, run `sudo gpasswd -a "$USER" kvm`, then
-  `newgrp kvm` (or log out and back in). macOS and Windows use their built-in
-  hypervisors.
+  (about 1 GB) through `sdkmanager`, then creates the AVD. The image matches
+  your CPU: `arm64-v8a` on Apple Silicon, `x86_64` elsewhere.
+- The emulator needs hardware acceleration, which each OS provides
+  differently:
+  - **macOS:** built in. Nothing to do.
+  - **Windows:** turn on *Windows Hypervisor Platform* (Windows Features)
+    and enable virtualization in the BIOS. Often already on if you use
+    WSL2 or Hyper-V.
+  - **Linux and WSL2 (manual, needs sudo):** your user needs access to
+    `/dev/kvm`. Run `sudo gpasswd -a "$USER" kvm`, then `newgrp kvm` (or log
+    out and back in). The runner detects this and prints the fix. WSL2 also
+    needs nested virtualization, which recent Windows 11 builds enable by
+    default.
+
+If the emulator still fails to start, the runner prints the emulator's own
+acceleration check, which names the missing piece.
+
+**WSL2 alternative:** instead of the emulator inside WSL2, start one on
+Windows (Android Studio's Device Manager), then attach it from WSL2 with
+`adb connect 127.0.0.1:5555` and run the runner as usual. It detects the
+attached emulator, so no KVM setup is needed in WSL2. This needs WSL's
+mirrored networking mode, so the emulator can reach the Firebase emulators in
+WSL2 through Windows. Use it if nested virtualization is unavailable or slow;
+it is not tested in this repo yet.
 
 The terminal shows only build/install phases, test steps, the summary, and a
 short excerpt of any error. The full Patrol and Gradle output goes to
@@ -179,6 +202,11 @@ the change follows the team guidelines:
   check that committed Freezed output is up to date, and `flutter test`.
 - **firestore-rules** job: runs the `test_firebase` rules tests against the
   Firestore emulator (self-managed by `firebase-tools`, no device).
+- **e2e** job: runs the Patrol customer journey on an Android emulator. It
+  opens `/dev/kvm` to the runner with a udev rule, starts and seeds the
+  Firebase emulators with `firebase emulators:exec`, and runs
+  `tool/run_e2e.dart`. On failure it uploads `build/e2e/patrol.log` and the
+  Android test reports as the `e2e-logs` artifact.
 
 Firestore collection and document paths must go through the constants in
 `lib/core/firebase/firestore_paths.dart`, so each path lives in one place and
@@ -198,5 +226,6 @@ fvm flutter test
 (cd test_firebase && npm test)
 ```
 
-Patrol end-to-end tests are not in CI yet; they need a device or emulator and
-are run manually.
+The end-to-end flow is slower and needs the Firebase emulators, so it is not
+in this list. Run it with `fvm dart run tool/run_e2e.dart` when you change a
+customer journey (see "End-to-end tests" above); CI runs it on every push.
