@@ -451,9 +451,22 @@ Future<bool> _runSdkManager(_AndroidSdk sdk, List<String> packages) async {
   // sdkmanager reads one "y" per license prompt.
   process.stdin.write('y\n' * 50);
   await process.stdin.close();
-  unawaited(process.stdout.pipe(stdout));
-  unawaited(process.stderr.pipe(stderr));
+  // Forward output line by line. Do not use pipe(stdout): it closes our own
+  // stdout when sdkmanager finishes, and the next message we print then
+  // crashes the script (exit 255).
+  await Future.wait([
+    _forwardLines(process.stdout, stdout),
+    _forwardLines(process.stderr, stderr),
+  ]);
   return (await process.exitCode) == 0;
+}
+
+/// Copies [source] to [sink] line by line, leaving [sink] open.
+Future<void> _forwardLines(Stream<List<int>> source, IOSink sink) {
+  return source
+      .transform(utf8.decoder)
+      .transform(const LineSplitter())
+      .forEach(sink.writeln);
 }
 
 Never _fail(String message) {
