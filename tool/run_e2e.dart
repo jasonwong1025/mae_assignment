@@ -91,7 +91,9 @@ Future<void> main(List<String> args) async {
     ...patrolArgs,
     '--dart-define=USE_FIREBASE_EMULATOR=true',
   ];
-  exit(await _runPatrolQuietly(command, verbose: args.contains('--verbose')));
+  exit(
+    await _runPatrolQuietly(sdk, command, verbose: args.contains('--verbose')),
+  );
 }
 
 /// The value of `--device`/`-d` if the caller passed one, else null.
@@ -443,6 +445,7 @@ Future<Never> _failBootWithDiagnostics(_AndroidSdk sdk, String message) async {
 /// of a failing step. Gradle/plugin warnings stay in the log file. Pass
 /// `--verbose` to stream everything instead.
 Future<int> _runPatrolQuietly(
+  _AndroidSdk sdk,
   List<String> command, {
   required bool verbose,
 }) async {
@@ -454,11 +457,25 @@ Future<int> _runPatrolQuietly(
       'First run builds and installs the app; this takes a few minutes.',
     );
 
+  // patrol calls `adb` from PATH, which CI runners (and some dev machines)
+  // don't have, so put this SDK's platform-tools first.
+  final pathSeparator = Platform.isWindows ? ';' : ':';
   final process = await Process.start(
     'patrol',
     command,
+    environment: {
+      'PATH': [
+        sdk.platformTools,
+        Platform.environment['PATH'] ?? '',
+      ].join(pathSeparator),
+    },
     runInShell: Platform.isWindows,
   );
+
+  // When patrol fails before any step runs (build, install, tooling), the
+  // cause is in its last lines; keep them to print on failure.
+  final recent = <String>[];
+  var sawFailedStep = false;
 
   // Exception blocks can run to thousands of lines (render tree dumps), so
   // show only the first few blocks, each cut to its header and message.
@@ -474,6 +491,14 @@ Future<int> _runPatrolQuietly(
       return;
     }
     final text = line.trimRight();
+    if (text.contains('❌')) sawFailedStep = true;
+    // Skip stack frames so the kept lines are the error messages.
+    if (text.isNotEmpty &&
+        !text.startsWith('#') &&
+        !text.startsWith('<asynchronous')) {
+      recent.add(text);
+      if (recent.length > 6) recent.removeAt(0);
+    }
     if (text.contains('EXCEPTION CAUGHT')) {
       errorBlocks++;
       errorLinesLeft = errorBlocks <= maxErrorBlocks ? maxLinesPerBlock : 0;
@@ -507,6 +532,11 @@ Future<int> _runPatrolQuietly(
   await done;
   await log.close();
 
+  if (code != 0 && !verbose && !sawFailedStep) {
+    stdout
+      ..writeln('--- Last lines of $_logPath ---')
+      ..writeln(recent.join('\n'));
+  }
   stdout.writeln(
     code == 0
         ? '\nE2E passed.'
@@ -640,6 +670,7 @@ class _AndroidSdk {
   }
 
   String get emulatorBinary => '$root/emulator/emulator$_exe';
+  String get platformTools => '$root${Platform.pathSeparator}platform-tools';
   String get adb => '$root/platform-tools/adb$_exe';
   String get sdkmanager => '$root/cmdline-tools/latest/bin/sdkmanager$_bat';
   String get avdmanager => '$root/cmdline-tools/latest/bin/avdmanager$_bat';
