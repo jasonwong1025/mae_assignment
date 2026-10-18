@@ -70,17 +70,34 @@ class FirebaseEmulators {
     }
 
     final emulatorHost = host;
+
+    // The SDK rewrites "localhost"/"127.0.0.1" to 10.0.2.2 on Android,
+    // assuming an AVD. On a physical device reached over an `adb reverse`
+    // tunnel the emulator really is on the device's localhost, so that
+    // rewrite breaks the connection. Disable it when the host was set
+    // explicitly (the override); keep the default behaviour otherwise.
+    const override = String.fromEnvironment('FIREBASE_EMULATOR_HOST');
+    final automaticHostMapping = override.isEmpty;
+
     FirebaseFirestore.instance.useFirestoreEmulator(
       emulatorHost,
       _firestorePort,
+      automaticHostMapping: automaticHostMapping,
     );
     // useAuthEmulator returns a Future we intentionally do not await here;
     // connect() is a one-shot setup call made before any auth use.
-    unawaited(FirebaseAuth.instance.useAuthEmulator(emulatorHost, _authPort));
+    unawaited(
+      FirebaseAuth.instance.useAuthEmulator(
+        emulatorHost,
+        _authPort,
+        automaticHostMapping: automaticHostMapping,
+      ),
+    );
 
     debugPrint(
       'Firebase emulators: Auth $emulatorHost:$_authPort, '
-      'Firestore $emulatorHost:$_firestorePort',
+      'Firestore $emulatorHost:$_firestorePort '
+      '(host mapping: $automaticHostMapping)',
     );
   }
 

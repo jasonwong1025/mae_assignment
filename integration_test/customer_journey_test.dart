@@ -40,8 +40,13 @@ void main() {
     await $('Customer').tap();
 
     // --- Catalogue (Home) --------------------------------------------
-    // Wait for a seeded product to confirm the catalogue loaded.
-    await $.waitUntilVisible($('Fresh milk 1L'));
+    // The catalogue reads the branch and products from Firestore, so give it
+    // longer than the default 10s. Anchor first on the always-present
+    // "DELIVER TO" header (proves the catalogue frame rendered even if the
+    // product grid is still loading), then on a seeded product.
+    const catalogueTimeout = Duration(seconds: 30);
+    await $('DELIVER TO').waitUntilVisible(timeout: catalogueTimeout);
+    await $('Fresh milk 1L').waitUntilVisible(timeout: catalogueTimeout);
 
     // Add the first product to the cart via its "+" button (the add button
     // on each product card uses Icons.add_rounded).

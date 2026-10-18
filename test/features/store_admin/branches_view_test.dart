@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:mae_assignment/app/theme/app_theme.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
+import 'package:mae_assignment/features/store_admin/branches/presentation/ui/branch_detail_panel.dart';
 import 'package:mae_assignment/features/store_admin/branches/presentation/views/branches_view.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/repositories/inventory_repository.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
@@ -141,8 +142,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('OPENING HOURS'), findsOneWidget);
-    // Puchong is closed on Sundays.
-    expect(find.text('Closed'), findsOneWidget);
+    // Puchong is closed on Sundays. Scope to the detail panel: the branch
+    // list row also shows a live "Closed" when the branch is outside its
+    // hours right now, so an unscoped find.text('Closed') is time-dependent.
+    expect(
+      find.descendant(
+        of: find.byType(BranchDetailPanel),
+        matching: find.text('Closed'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Temporarily closing a branch', (tester) async {

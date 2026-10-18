@@ -86,8 +86,10 @@ reserved for a few whole-journey checks rather than everyday logic coverage.
 The app only talks to the emulators when started with
 `--dart-define=USE_FIREBASE_EMULATOR=true`; a normal run and every release build
 use the real backend. An Android emulator image reaches the host emulators on
-`10.0.2.2` with no network setup; a physical device needs the host's LAN
-address via `--dart-define=FIREBASE_EMULATOR_HOST=<host-ip>`.
+`10.0.2.2` with no network setup; a physical device reaches them over an
+`adb reverse` tunnel (so the app connects on `localhost`), which the runner
+sets up automatically. The tunnel works regardless of Wi-Fi/router isolation,
+unlike pointing the device at the host's LAN address.
 
 Flows live in `integration_test/`. The first is the customer order journey
 (`customer_journey_test.dart`): sign in, browse, add to cart, place a delivery
@@ -111,12 +113,17 @@ FIRESTORE_EMULATOR_HOST=localhost:8085 \
 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
 node seed.mjs --with-customer
 
-# 3. With a device/emulator connected, run the flow. An Android AVD reaches
-#    the host on 10.0.2.2 automatically; a physical device needs the host ip.
-patrol test --target integration_test/customer_journey_test.dart \
-  --dart-define=USE_FIREBASE_EMULATOR=true
-#   physical device: add --dart-define=FIREBASE_EMULATOR_HOST=<host-ip>
+# 3. With a device/emulator connected, run the flow. The runner checks the
+#    emulators are up, detects an AVD (reaches the host on 10.0.2.2) versus a
+#    physical device (sets up `adb reverse` port tunnels), and passes the
+#    right defines for you.
+fvm dart run tool/run_e2e.dart
 ```
+
+`tool/run_e2e.dart` is a cross-platform helper (same approach as
+`tool/check_firestore_paths.dart`) so it works on macOS, Windows and Linux.
+It defaults to the customer journey flow; pass `--target <file>` and any
+extra `patrol test` arguments to run a different flow.
 
 Patrol generates `integration_test/test_bundle.dart` on each run; it is
 git-ignored and must not be committed.
