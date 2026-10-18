@@ -245,17 +245,22 @@ Future<void> _ensureEmulatorInstalled(_AndroidSdk sdk) async {
 }
 
 /// Creates the managed AVD if it does not already exist.
+///
+/// The AVD is created at an explicit `--path` inside [_AndroidSdk.avdHome],
+/// and its pointer `.ini` is written there if avdmanager put it elsewhere.
+/// Some avdmanager builds (e.g. on GitHub's Ubuntu 24.04 runners) ignore
+/// ANDROID_AVD_HOME and follow XDG_CONFIG_HOME instead, which leaves the
+/// emulator unable to find the AVD (actions/runner-images#11482).
 Future<void> _ensureAvdExists(_AndroidSdk sdk) async {
-  final existing = await _run(sdk.emulatorBinary, [
-    '-list-avds',
-  ], environment: sdk.avdEnvironment);
-  final avds = const LineSplitter()
-      .convert(existing ?? '')
-      .map((l) => l.trim())
-      .toList();
-  if (avds.contains(_avdName)) return;
+  final separator = Platform.pathSeparator;
+  final avdHome = sdk.avdHome;
+  final iniFile = File('$avdHome$separator$_avdName.ini');
+  final avdDir = Directory('$avdHome$separator$_avdName.avd');
+  final configFile = File('${avdDir.path}${separator}config.ini');
+  if (iniFile.existsSync() && configFile.existsSync()) return;
 
   stdout.writeln('Creating AVD "$_avdName" from $_systemImage...');
+  Directory(avdHome).createSync(recursive: true);
   final process = await Process.start(
     sdk.avdmanager,
     [
@@ -267,6 +272,8 @@ Future<void> _ensureAvdExists(_AndroidSdk sdk) async {
       _systemImage,
       '--device',
       'pixel_6',
+      '--path',
+      avdDir.path,
       '--force',
     ],
     environment: sdk.avdEnvironment,
@@ -276,10 +283,28 @@ Future<void> _ensureAvdExists(_AndroidSdk sdk) async {
   // answer "no" to take the device defaults.
   process.stdin.write('no\n');
   await process.stdin.close();
-  final out = await process.stdout.transform(utf8.decoder).join();
-  final err = await process.stderr.transform(utf8.decoder).join();
-  if (await process.exitCode != 0) {
-    _fail('Failed to create AVD:\n$out\n$err');
+  final outFuture = process.stdout.transform(utf8.decoder).join();
+  final errFuture = process.stderr.transform(utf8.decoder).join();
+  final exitCode = await process.exitCode;
+  final details = '${await outFuture}\n${await errFuture}'.trim();
+  if (exitCode != 0) _fail('Failed to create AVD:\n$details');
+
+  if (!configFile.existsSync()) {
+    _fail(
+      'avdmanager reported success but ${configFile.path} is missing.\n'
+      '$details',
+    );
+  }
+  if (!iniFile.existsSync()) {
+    // avdmanager wrote the pointer file somewhere else; write our own so the
+    // emulator (which reads ANDROID_AVD_HOME) can find the AVD.
+    final target = _systemImage.split(';')[1];
+    iniFile.writeAsStringSync(
+      'avd.ini.encoding=UTF-8\n'
+      'path=${avdDir.absolute.path}\n'
+      'path.rel=avd$separator$_avdName.avd\n'
+      'target=$target\n',
+    );
   }
 }
 
@@ -601,14 +626,16 @@ class _AndroidSdk {
   /// looks in ~/.android/avd, so it cannot find the AVD and exits at once
   /// (actions/runner-images#11482). Keeps any ANDROID_AVD_HOME the
   /// developer already set.
-  Map<String, String> get avdEnvironment {
+  Map<String, String> get avdEnvironment => {'ANDROID_AVD_HOME': avdHome};
+
+  /// The directory holding the AVD `.ini` files the emulator reads.
+  String get avdHome {
     final env = Platform.environment;
     final existing = env['ANDROID_AVD_HOME'];
-    if (existing != null && existing.isNotEmpty) return const {};
-    final home = env['HOME'] ?? env['USERPROFILE'];
-    if (home == null) return const {};
+    if (existing != null && existing.isNotEmpty) return existing;
+    final home = env['HOME'] ?? env['USERPROFILE'] ?? '.';
     final separator = Platform.pathSeparator;
-    return {'ANDROID_AVD_HOME': '$home$separator.android${separator}avd'};
+    return '$home$separator.android${separator}avd';
   }
 
   String get emulatorBinary => '$root/emulator/emulator$_exe';
