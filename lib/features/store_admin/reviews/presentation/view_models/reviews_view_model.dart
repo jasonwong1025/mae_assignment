@@ -35,8 +35,10 @@ class ReviewsViewModel extends AsyncNotifier<ReviewsState> {
   Future<ReviewsState> build() async {
     // Runs again when the branch, search, a filter or the page changes.
     final filter = ref.watch(reviewsFilterViewModelProvider);
-    final branchState = await ref.watch(branchViewModelProvider.future);
+    // Read before the first await: the provider can be disposed while it
+    // waits (for example on sign-out), and a disposed ref cannot be used.
     final repository = ref.watch(reviewsRepositoryProvider);
+    final branchState = await ref.watch(branchViewModelProvider.future);
     final branchId = branchState.selected.id;
 
     return ReviewsState(

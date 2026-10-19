@@ -32,8 +32,10 @@ class SalesViewModel extends AsyncNotifier<SalesState> {
   Future<SalesState> build() async {
     // Runs again when the branch, period or page changes.
     final filter = ref.watch(salesFilterViewModelProvider);
-    final branchState = await ref.watch(branchViewModelProvider.future);
+    // Read before the first await: the provider can be disposed while it
+    // waits (for example on sign-out), and a disposed ref cannot be used.
     final repository = ref.watch(salesRepositoryProvider);
+    final branchState = await ref.watch(branchViewModelProvider.future);
     final branchId = branchState.selected.id;
 
     return SalesState(

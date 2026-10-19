@@ -10,6 +10,10 @@
 // without a flag uses):
 //   node seed.mjs
 //
+// If creating the worker logins fails with "Project ... has been deleted",
+// your gcloud login points at an old quota project. Run it once with
+//   GOOGLE_CLOUD_QUOTA_PROJECT=mae-assignment-grocerly node seed.mjs
+//
 // Target the local emulator instead:
 //   FIRESTORE_EMULATOR_HOST=localhost:8085 node seed.mjs
 //

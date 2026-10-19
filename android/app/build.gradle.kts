@@ -29,6 +29,13 @@ android {
 
         // Patrol end-to-end tests run through this instrumentation runner.
         testInstrumentationRunner = "pl.leancode.patrol.PatrolJUnitRunner"
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
+    }
+
+    // Patrol's Dart test service handles one native test per instrumentation
+    // invocation. Isolate the bundled journeys so each gets a fresh service.
+    testOptions {
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
 
     buildTypes {
@@ -50,4 +57,7 @@ flutter {
     source = "../.."
 }
 
+dependencies {
+    androidTestUtil("androidx.test:orchestrator:1.5.1")
+}
 

@@ -20,8 +20,10 @@ class OrdersViewModel extends StreamNotifier<List<Order>> {
   Stream<List<Order>> build() async* {
     // Watching the branch means this starts again, with the new branch,
     // every time the admin switches.
-    final branchState = await ref.watch(branchViewModelProvider.future);
+    // Read before the first await: the provider can be disposed while it
+    // waits (for example on sign-out), and a disposed ref cannot be used.
     final repository = ref.watch(ordersRepositoryProvider);
+    final branchState = await ref.watch(branchViewModelProvider.future);
 
     // Pass on every list the repository sends.
     yield* repository.watchBoardOrders(branchState.selected.id);

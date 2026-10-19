@@ -19,8 +19,10 @@ class DashboardViewModel extends AsyncNotifier<DashboardSummary> {
   Future<DashboardSummary> build() async {
     // Watching the branch means this runs again, with the new branch,
     // every time the admin switches.
-    final branchState = await ref.watch(branchViewModelProvider.future);
+    // Read before the first await: the provider can be disposed while it
+    // waits (for example on sign-out), and a disposed ref cannot be used.
     final repository = ref.watch(dashboardRepositoryProvider);
+    final branchState = await ref.watch(branchViewModelProvider.future);
     final branch = branchState.selected;
     return await repository.getSummary(
       branch.id,

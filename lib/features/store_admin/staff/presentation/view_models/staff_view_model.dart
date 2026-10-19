@@ -20,8 +20,10 @@ class StaffViewModel extends AsyncNotifier<PageResult<Worker>> {
   Future<PageResult<Worker>> build() async {
     // Runs again when the branch, search text or page changes.
     final filter = ref.watch(staffFilterViewModelProvider);
-    final branchState = await ref.watch(branchViewModelProvider.future);
+    // Read before the first await: the provider can be disposed while it
+    // waits (for example on sign-out), and a disposed ref cannot be used.
     final repository = ref.watch(staffRepositoryProvider);
+    final branchState = await ref.watch(branchViewModelProvider.future);
 
     return await repository.getWorkers(
       branchState.selected.id,

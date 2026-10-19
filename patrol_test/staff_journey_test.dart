@@ -52,7 +52,7 @@ void main() {
     await waitForWidget($, $('#2287'), timeout: loadTimeout);
     await $('#2287').scrollTo().tap();
     await waitForWidget($, $('Order #2287'));
-    await $('Start packing').scrollTo().tap();
+    // Opening a pending task from My Tasks starts packing it.
     await waitForWidget($, $('Review & mark ready'), timeout: loadTimeout);
 
     // --- Packer signs out ---------------------------------------------
@@ -66,10 +66,17 @@ void main() {
     // --- Admin sees the order being packed ----------------------------
     await _signIn($, 'e2e.admin@grocerly.test', 'Password123!', 'Store Admin');
     await _openOrders($);
-    await waitForWidget($, $('Packing'), timeout: loadTimeout);
-    await $(find.textContaining('Packing')).first.tap();
+    // On a phone the board shows one status tab at a time: #2287 has moved
+    // from Pending to Packing.
+    await waitForWidget(
+      $,
+      $(find.textContaining('Packing ')),
+      timeout: loadTimeout,
+    );
+    await $(find.textContaining('Packing ')).first.tap();
     await $.pumpAndSettle();
     await waitForWidget($, $('#2287'), timeout: loadTimeout);
+    await waitForWidget($, $('Hakim'));
   });
 }
 

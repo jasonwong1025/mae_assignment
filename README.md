@@ -146,24 +146,24 @@ Each run:
 cd test_firebase
 npx firebase emulators:start --only auth,firestore --project mae-assignment-grocerly
 
-# 2. In another shell, seed the catalogue, the demo staff, orders and
-#    history, plus a test customer and admin (the customer and admin are
-#    refused against the real project).
+# 2. In another shell, start your Android emulator (Device Manager, or:
+#    fvm flutter emulators --launch <id>), then run the E2E command.
+#    It seeds the catalogue, staff, orders, test customer and admin before
+#    every run, because these journeys change the saved cart and order #2287.
 cd test_firebase
-FIRESTORE_EMULATOR_HOST=localhost:8085 \
-FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
-node seed.mjs --with-customer
-
-# 3. Start your Android emulator (Device Manager, or:
-#    fvm flutter emulators --launch <id>), then run every test in patrol_test/.
-#    Add --device <id> if a phone is also connected (see `fvm flutter devices`).
-patrol test --dart-define=USE_FIREBASE_EMULATOR=true
+npm run e2e -- emulator-5554
 ```
 
 Use an emulator for E2E and keep your phone for everyday `fvm flutter run`.
 Patrol uninstalls the app after each run. It generates
 `patrol_test/test_bundle.dart`, which is git-ignored and must not be
-committed.
+committed. Android Test Orchestrator runs each journey in its own
+instrumentation process and clears app data between journeys; it does not
+clear the Firebase emulator. To run one journey with `patrol test --target`,
+seed first using the command above or rerun
+`node seed.mjs --with-customer` from `test_firebase/` with
+`FIRESTORE_EMULATOR_HOST=localhost:8085` and
+`FIREBASE_AUTH_EMULATOR_HOST=localhost:9099`.
 
 ## Code conventions
 
