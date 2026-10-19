@@ -46,11 +46,9 @@ class CatalogueView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(catalogueViewModelProvider);
-    final cartCount = ref.watch(cartCountProvider);
 
     return CustomerScaffold(
       currentTab: CustomerTab.home,
-      cartCount: cartCount,
       child: SafeArea(
         child: state.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -127,7 +125,31 @@ class _Catalogue extends ConsumerWidget {
   }
 }
 
-/// Deliver-to address, profile avatar, search box, and the store line.
+/// The cart, opened as a page over Home. The badge counts the items in it.
+class _CartButton extends ConsumerWidget {
+  const _CartButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(cartCountProvider);
+    return IconButton.filledTonal(
+      key: const Key('cart_button'),
+      tooltip: count == 0 ? 'Cart' : 'Cart, $count items',
+      style: IconButton.styleFrom(
+        backgroundColor: AppColors.greenTint,
+        foregroundColor: AppColors.darkGreen,
+      ),
+      onPressed: () => context.push(AppRoutes.customerCart),
+      icon: Badge(
+        isLabelVisible: count > 0,
+        label: Text('$count'),
+        child: const Icon(Icons.shopping_cart_outlined),
+      ),
+    );
+  }
+}
+
+/// Deliver-to address, cart button, search box, and the store line.
 class _Header extends ConsumerWidget {
   const _Header({required this.branch});
 
@@ -203,14 +225,7 @@ class _Header extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.m),
-              const CircleAvatar(
-                radius: 20,
-                backgroundColor: AppColors.greenTint,
-                child: Icon(
-                  Icons.person_outline_rounded,
-                  color: AppColors.darkGreen,
-                ),
-              ),
+              const _CartButton(),
             ],
           ),
           const SizedBox(height: AppSpacing.m),

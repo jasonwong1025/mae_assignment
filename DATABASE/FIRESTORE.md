@@ -27,6 +27,7 @@ All paths are built in `FirestoreRefs`; services call it and never chain
 | `refs.users` / `refs.user(uid)` | `users` / `users/{uid}` |
 | `refs.addresses(uid)` / `refs.address(uid, id)` | `users/{uid}/addresses` / `users/{uid}/addresses/{id}` |
 | `refs.cart(uid)` | `users/{uid}/cart/current` |
+| `refs.groceryList(uid)` | `users/{uid}/groceryList/current` |
 | `refs.products` / `refs.product(id)` | `products` / `products/{id}` |
 | `refs.categories` | `categories` |
 | `refs.branches` / `refs.branch(id)` | `branches` / `branches/{id}` |
@@ -112,6 +113,31 @@ prices.
 
 Rules: only the document id `current`; keys limited to the four above;
 `updatedAt == request.time`. An empty cart deletes the document.
+
+### `users/{uid}/groceryList/current`
+
+The customer's grocery list (the Grocery tab): things they plan to buy, typed
+or scanned from a written list. One document so every change is atomic. Dart:
+`GroceryItem`. Service: `GroceryListService`. Owner only. Only the words, the
+quantity and an optional chosen product id are stored; which product an item
+means, its price and its stock are worked out from the catalogue each time the
+list is shown (`GroceryRow`), so a saved list never goes stale.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `items` | array of map | `{id: string, name: string, quantity: int, productId?: string}`, at most 100. |
+| `updatedAt` | timestamp | Server time. |
+
+Rules: only the document id `current`; keys limited to the two above;
+`updatedAt == request.time`. An empty list deletes the document.
+
+Scanning a written list is not stored anywhere: ML Kit's document scanner
+takes the photo and ML Kit text recognition reads it, both on the phone
+(`ListScanService`, Android only). `GroceryTextParser` turns the text into
+items and `GroceryMatcher` matches an item to a catalogue product by word
+(plurals, word beginnings and small typos allowed). The customer reviews what
+was read before it joins the list, and what was matched before it goes to the
+cart.
 
 ## `products/{productId}`
 

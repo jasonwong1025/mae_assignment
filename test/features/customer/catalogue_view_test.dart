@@ -103,6 +103,14 @@ GoRouter _router() => GoRouter(
   initialLocation: AppRoutes.customerCatalogue,
   routes: [
     GoRoute(
+      path: AppRoutes.customerCart,
+      builder: (context, state) => const Scaffold(body: Text('CART PAGE')),
+    ),
+    GoRoute(
+      path: AppRoutes.customerGrocery,
+      builder: (context, state) => const Scaffold(body: Text('GROCERY PAGE')),
+    ),
+    GoRoute(
       path: AppRoutes.customerCatalogue,
       builder: (context, state) => const CatalogueView(),
       routes: [
@@ -384,8 +392,83 @@ void main() {
     await tester.pump();
 
     expect(container.read(cartViewModelProvider).quantityOf('p1'), 1);
-    // The cart badge now shows on the Cart tab.
+    // The cart badge now shows on the cart button in the header.
     expect(find.text('1'), findsWidgets);
+  });
+
+  group('cart button and navigation', () {
+    final data = CatalogueData(
+      categories: const [],
+      products: [_product('p1', 'Roma tomato')],
+    );
+
+    testWidgets('the header has a cart button instead of a profile avatar', (
+      tester,
+    ) async {
+      await _pump(tester, data);
+
+      expect(find.byKey(const Key('cart_button')), findsOneWidget);
+      expect(find.byIcon(Icons.shopping_cart_outlined), findsOneWidget);
+      // No profile avatar in the header (the Account tab has its own icon).
+      expect(find.byType(CircleAvatar), findsNothing);
+    });
+
+    testWidgets('the cart button shows how many items are in the cart', (
+      tester,
+    ) async {
+      final container = await _pump(tester, data);
+      expect(find.byType(Badge), findsOneWidget);
+      expect(tester.widget<Badge>(find.byType(Badge)).isLabelVisible, isFalse);
+
+      container.read(cartViewModelProvider.notifier)
+        ..add(_product('p1', 'Roma tomato'))
+        ..add(_product('p1', 'Roma tomato'));
+      await tester.pump();
+
+      expect(tester.widget<Badge>(find.byType(Badge)).isLabelVisible, isTrue);
+      expect(find.byTooltip('Cart, 2 items'), findsOneWidget);
+    });
+
+    testWidgets('tapping the cart button opens the cart page', (tester) async {
+      await _pump(tester, data);
+
+      await tester.tap(find.byKey(const Key('cart_button')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('CART PAGE'), findsOneWidget);
+    });
+
+    testWidgets('the bottom navigation is Home, Grocery, Orders, Account', (
+      tester,
+    ) async {
+      await _pump(tester, data);
+
+      final bar = find.byType(NavigationBar);
+      for (final label in ['Home', 'Grocery', 'Orders', 'Account']) {
+        expect(
+          find.descendant(of: bar, matching: find.text(label)),
+          findsOneWidget,
+        );
+      }
+      expect(
+        find.descendant(of: bar, matching: find.text('Cart')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('the Grocery tab opens the grocery page', (tester) async {
+      await _pump(tester, data);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Grocery'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('GROCERY PAGE'), findsOneWidget);
+    });
   });
 
   group('store picker', () {

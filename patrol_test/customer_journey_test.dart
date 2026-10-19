@@ -78,9 +78,26 @@ void main() {
     await $(find.byTooltip('Back')).tap();
     await waitForWidget($, $('DELIVER TO'));
 
+    // --- Grocery list ------------------------------------------------
+    // The Grocery tab: add an item no store sells, see it has no match,
+    // then take it off again so the next run starts clean.
+    await $('Grocery').tap();
+    await waitForWidget($, $('Grocery list'));
+    await $(find.byKey(const Key('grocery_input'))).enterText('zzqx widget');
+    await $(find.byKey(const Key('grocery_add_button'))).tap();
+    await waitForWidget(
+      $,
+      $('No match at this store'),
+      timeout: catalogueTimeout,
+    );
+    await $(find.byTooltip('Remove zzqx widget')).tap();
+    await waitForWidget($, $('Your list is empty'));
+    await $('Home').tap();
+    await waitForWidget($, $('DELIVER TO'), timeout: catalogueTimeout);
+
     // --- Cart --------------------------------------------------------
-    // Open the Cart tab from the bottom navigation.
-    await $('Cart').tap();
+    // The cart button at the top right of Home opens the cart page.
+    await $(find.byKey(const Key('cart_button'))).tap();
     await waitForWidget($, $('Your cart'));
 
     // The seeded customer already has a default address, so it is used by
@@ -106,6 +123,9 @@ void main() {
     await waitForWidget($, $('Your cart'), timeout: catalogueTimeout);
 
     // --- Orders list -------------------------------------------------
+    // The cart is a page, not a tab: go back to Home for the tab bar.
+    await $(find.byTooltip('Back')).tap();
+    await waitForWidget($, $('DELIVER TO'), timeout: catalogueTimeout);
     await $('Orders').tap();
     await waitForWidget($, $('Your orders'));
   });

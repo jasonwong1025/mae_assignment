@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/authentication/presentation/views/home_placeholder_view.dart';
 import 'package:mae_assignment/features/authentication/presentation/views/login_view.dart';
@@ -11,6 +10,7 @@ import 'package:mae_assignment/features/customer/account/presentation/views/cust
 import 'package:mae_assignment/features/customer/cart/presentation/views/cart_view.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/views/catalogue_view.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/views/product_detail_view.dart';
+import 'package:mae_assignment/features/customer/grocery/presentation/views/grocery_view.dart';
 import 'package:mae_assignment/features/customer/orders/presentation/views/customer_order_tracking_view.dart';
 import 'package:mae_assignment/features/customer/orders/presentation/views/customer_orders_view.dart';
 import 'package:mae_assignment/features/store_admin/branches/presentation/views/branches_view.dart';
@@ -45,6 +45,7 @@ class AppRoutes {
   // Customer (mobile). Four tabs: Home (catalogue), Cart, Orders, Account.
   static const String customerCatalogue = '/shop';
   static const String customerCart = '/shop/cart';
+  static const String customerGrocery = '/shop/grocery';
   static const String customerOrders = '/shop/orders';
   static const String customerAccount = '/shop/account';
 
@@ -219,10 +220,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) =>
             ProductDetailView(productId: state.pathParameters['productId']!),
       ),
+      // The cart is a page opened from Home's cart button, not a tab.
       GoRoute(
         path: AppRoutes.customerCart,
+        builder: (context, state) => const CartView(),
+      ),
+      GoRoute(
+        path: AppRoutes.customerGrocery,
         pageBuilder: (context, state) =>
-            const NoTransitionPage(child: CartView()),
+            const NoTransitionPage(child: GroceryView()),
       ),
       GoRoute(
         path: AppRoutes.customerOrders,

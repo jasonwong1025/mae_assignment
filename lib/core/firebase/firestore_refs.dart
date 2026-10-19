@@ -39,6 +39,11 @@ class FirestoreRefs {
   DocumentReference<Map<String, dynamic>> cart(String uid) =>
       user(uid).collection(FirestoreCollections.cart).doc(CartDocs.current);
 
+  // users/{uid}/groceryList/current
+  DocumentReference<Map<String, dynamic>> groceryList(String uid) => user(
+    uid,
+  ).collection(FirestoreCollections.groceryList).doc(GroceryListDocs.current);
+
   // products/{productId}
   CollectionReference<Map<String, dynamic>> get products =>
       _firestore.collection(FirestoreCollections.products);

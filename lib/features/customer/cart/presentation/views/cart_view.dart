@@ -11,8 +11,6 @@ import 'package:mae_assignment/features/customer/cart/presentation/view_models/c
 import 'package:mae_assignment/features/customer/cart/presentation/view_models/checkout_view_model.dart';
 import 'package:mae_assignment/features/customer/cart/presentation/view_models/selected_address_view_model.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/ui/product_thumbnail.dart';
-import 'package:mae_assignment/features/customer/shell/customer_routes.dart';
-import 'package:mae_assignment/features/customer/shell/presentation/ui/customer_scaffold.dart';
 import 'package:mae_assignment/shared/models/customer_address.dart';
 import 'package:mae_assignment/shared/repositories/address_repository.dart';
 import 'package:mae_assignment/shared/repositories/order_repository.dart';
@@ -58,17 +56,30 @@ class _CartViewState extends ConsumerState<CartView> {
     final cart = ref.watch(cartViewModelProvider);
     final isPlacing = ref.watch(checkoutViewModelProvider);
 
-    return CustomerScaffold(
-      currentTab: CustomerTab.cart,
-      cartCount: cart.itemCount,
-      child: cart.isEmpty
-          ? const _EmptyCart()
-          : _CartContent(
-              cart: cart,
-              noteController: _noteController,
-              isPlacing: isPlacing,
-              onPlaceOrder: _placeOrder,
-            ),
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          tooltip: 'Back',
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => context.canPop()
+              ? context.pop()
+              : context.go(AppRoutes.customerCatalogue),
+        ),
+      ),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: cart.isEmpty
+              ? const _EmptyCart()
+              : _CartContent(
+                  cart: cart,
+                  noteController: _noteController,
+                  isPlacing: isPlacing,
+                  onPlaceOrder: _placeOrder,
+                ),
+        ),
+      ),
     );
   }
 }
@@ -82,7 +93,7 @@ class _EmptyCart extends StatelessWidget {
       child: EmptyState(
         icon: Icons.shopping_cart_outlined,
         title: 'Your cart is empty',
-        message: 'Add items from the Home tab to get started.',
+        message: 'Add items from Home to get started.',
       ),
     );
   }

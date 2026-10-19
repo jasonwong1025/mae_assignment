@@ -9,11 +9,11 @@ enum CustomerTab {
     Icons.home_rounded,
     AppRoutes.customerCatalogue,
   ),
-  cart(
-    'Cart',
-    Icons.shopping_cart_outlined,
-    Icons.shopping_cart_rounded,
-    AppRoutes.customerCart,
+  grocery(
+    'Grocery',
+    Icons.checklist_rtl_outlined,
+    Icons.checklist_rtl_rounded,
+    AppRoutes.customerGrocery,
   ),
   orders(
     'Orders',

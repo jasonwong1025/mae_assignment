@@ -6,7 +6,6 @@ import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/customer/account/presentation/views/saved_addresses_view.dart';
-import 'package:mae_assignment/features/customer/cart/presentation/view_models/cart_view_model.dart';
 import 'package:mae_assignment/features/customer/shell/customer_routes.dart';
 import 'package:mae_assignment/features/customer/shell/presentation/ui/customer_scaffold.dart';
 
@@ -34,7 +33,6 @@ class CustomerAccountView extends ConsumerWidget {
 
     return CustomerScaffold(
       currentTab: CustomerTab.account,
-      cartCount: ref.watch(cartCountProvider),
       child: SafeArea(
         child: ListView(
           padding: EdgeInsets.zero,

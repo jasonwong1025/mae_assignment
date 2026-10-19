@@ -5,7 +5,6 @@ import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
-import 'package:mae_assignment/features/customer/cart/presentation/view_models/cart_view_model.dart';
 import 'package:mae_assignment/features/customer/orders/presentation/ui/shortage_replies.dart';
 import 'package:mae_assignment/features/customer/orders/presentation/view_models/customer_orders_view_model.dart';
 import 'package:mae_assignment/features/customer/shell/customer_routes.dart';
@@ -25,7 +24,6 @@ class CustomerOrdersView extends ConsumerWidget {
 
     return CustomerScaffold(
       currentTab: CustomerTab.orders,
-      cartCount: ref.watch(cartCountProvider),
       child: ordersAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => ErrorState(

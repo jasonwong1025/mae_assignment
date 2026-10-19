@@ -39,6 +39,11 @@ class FirestoreCollections {
   /// every change is atomic. Owner-only.
   static const String cart = 'cart';
 
+  /// users/{uid}/groceryList/current — the customer's grocery list (things
+  /// they plan to buy, typed or scanned from a written list), one document
+  /// so every change is atomic. Owner-only.
+  static const String groceryList = 'groceryList';
+
   /// reviews/{orderId} — a customer's rating of one completed order. The
   /// document id is the order id, so an order can be rated only once.
   static const String reviews = 'reviews';
@@ -90,6 +95,41 @@ class CartLineFields {
 
   static const String productId = 'productId';
   static const String quantity = 'quantity';
+}
+
+/// Document ids in users/{uid}/groceryList.
+class GroceryListDocs {
+  GroceryListDocs._();
+
+  /// The one list a customer has.
+  static const String current = 'current';
+}
+
+/// Field keys in users/{uid}/groceryList/current.
+class GroceryListFields {
+  GroceryListFields._();
+
+  /// Array of maps; see [GroceryItemFields].
+  static const String items = 'items';
+
+  /// Server time of the last change.
+  static const String updatedAt = 'updatedAt';
+}
+
+/// Field keys for one entry in the grocery list's `items` array.
+class GroceryItemFields {
+  GroceryItemFields._();
+
+  /// Unique within the list.
+  static const String id = 'id';
+
+  /// What the customer wrote, e.g. "fresh milk".
+  static const String name = 'name';
+  static const String quantity = 'quantity';
+
+  /// The product the customer picked for this item. Absent when the app
+  /// should find the best match itself.
+  static const String productId = 'productId';
 }
 
 /// Document ids and field keys for counters/{name}.

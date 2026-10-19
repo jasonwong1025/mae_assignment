@@ -82,6 +82,20 @@ service cloud.firestore {
         allow read, write: if isOwner();
       }
 
+      // A customer's grocery list: a single document, private to the owner.
+      // Each item is a name, a quantity and, once the customer picks one, a
+      // product id; the match with the catalogue is worked out in the app.
+      match /groceryList/{docId} {
+        allow read, delete: if isOwner();
+        allow create, update: if isOwner()
+          && docId == 'current'
+          && request.resource.data.keys().hasOnly(['items', 'updatedAt'])
+          && request.resource.data.keys().hasAll(['items', 'updatedAt'])
+          && request.resource.data.items is list
+          && request.resource.data.items.size() <= 100
+          && request.resource.data.updatedAt == request.time;
+      }
+
       // A customer's saved cart: a single document, private to the owner.
       // Holds only product ids and quantities; prices and stock are read
       // from the catalogue when the cart is loaded.
