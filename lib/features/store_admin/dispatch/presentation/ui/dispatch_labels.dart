@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_state.dart';
-import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/shared/models/order.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 
 /// Free drivers are green, busy blue, offline grey.
 Color driverColor(DispatchDriver driver) {

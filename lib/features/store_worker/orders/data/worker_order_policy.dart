@@ -1,6 +1,7 @@
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
+import 'package:mae_assignment/shared/models/verification_method.dart';
 
 /// The rules for what a Store Worker may see and do with an order.
 ///
@@ -23,14 +24,14 @@ class WorkerOrderPolicy {
 
   /// Active and assigned to the order's branch. Only Packing Staff have a
   /// branch; drivers are never "in" one (they are limited by assignment).
-  static bool _inBranch(WorkerProfile worker, WorkerOrder order) {
+  static bool _inBranch(WorkerProfile worker, Order order) {
     return worker.isActive &&
         worker.branchId != null &&
         worker.branchId == order.branchId;
   }
 
   /// My Packing Tasks: orders assigned to this packer at their branch.
-  static bool canViewPackingTask(WorkerProfile worker, WorkerOrder order) {
+  static bool canViewPackingTask(WorkerProfile worker, Order order) {
     return worker.isPackingStaff &&
         _inBranch(worker, order) &&
         order.packerId == worker.id;
@@ -38,7 +39,7 @@ class WorkerOrderPolicy {
 
   /// Ready for Pickup: every ready self-pickup order at the packer's
   /// branch, whoever packed it.
-  static bool canViewPickupOrder(WorkerProfile worker, WorkerOrder order) {
+  static bool canViewPickupOrder(WorkerProfile worker, Order order) {
     return worker.isPackingStaff &&
         _inBranch(worker, order) &&
         order.isPickup &&
@@ -46,7 +47,7 @@ class WorkerOrderPolicy {
   }
 
   /// Pickups this packer handed over themselves.
-  static bool canViewCompletedPickup(WorkerProfile worker, WorkerOrder order) {
+  static bool canViewCompletedPickup(WorkerProfile worker, Order order) {
     return worker.isPackingStaff &&
         _inBranch(worker, order) &&
         order.isPickup &&
@@ -58,7 +59,7 @@ class WorkerOrderPolicy {
   /// packed and ready but not yet verified by their driver. Read-only, so
   /// any packer can find the bag when a driver asks; only the driver
   /// collects it.
-  static bool canViewWaitingForDriver(WorkerProfile worker, WorkerOrder order) {
+  static bool canViewWaitingForDriver(WorkerProfile worker, Order order) {
     return worker.isPackingStaff &&
         _inBranch(worker, order) &&
         order.isDelivery &&
@@ -70,7 +71,7 @@ class WorkerOrderPolicy {
   /// Opening a ready delivery order at the packer's branch, read-only, to
   /// find the bag for its driver. Stays open after the driver verifies it
   /// (still ready), so the packer sees it was collected.
-  static bool canViewBranchDelivery(WorkerProfile worker, WorkerOrder order) {
+  static bool canViewBranchDelivery(WorkerProfile worker, Order order) {
     return worker.isPackingStaff &&
         _inBranch(worker, order) &&
         order.isDelivery &&
@@ -80,7 +81,7 @@ class WorkerOrderPolicy {
 
   /// My Deliveries: delivery orders assigned to this driver, from any
   /// branch, in any status, including while still being packed.
-  static bool canViewDelivery(WorkerProfile worker, WorkerOrder order) {
+  static bool canViewDelivery(WorkerProfile worker, Order order) {
     // Any branch: drivers are not tied to one. What limits them is that
     // HQ assigned the delivery to them.
     return worker.isDeliveryDriver &&
@@ -90,7 +91,7 @@ class WorkerOrderPolicy {
   }
 
   /// True if the worker may open the order's details at all.
-  static bool canViewOrder(WorkerProfile worker, WorkerOrder order) {
+  static bool canViewOrder(WorkerProfile worker, Order order) {
     return canViewPackingTask(worker, order) ||
         canViewPickupOrder(worker, order) ||
         canViewCompletedPickup(worker, order) ||
@@ -102,7 +103,7 @@ class WorkerOrderPolicy {
   // Packing: pending -> packing -> ready, by the assigned packer only.
   // ---------------------------------------------------------------------
 
-  static String? _packerCheck(WorkerProfile worker, WorkerOrder order) {
+  static String? _packerCheck(WorkerProfile worker, Order order) {
     if (!worker.isActive) return _inactiveMessage;
     if (!worker.isPackingStaff) return 'Only Packing Staff can pack orders.';
     if (worker.branchId != order.branchId) return _otherBranchMessage;
@@ -113,7 +114,7 @@ class WorkerOrderPolicy {
     return null;
   }
 
-  static String? checkStartPacking(WorkerProfile worker, WorkerOrder order) {
+  static String? checkStartPacking(WorkerProfile worker, Order order) {
     final error = _packerCheck(worker, order);
     if (error != null) return error;
     if (order.status != OrderStatus.pending) {
@@ -125,7 +126,7 @@ class WorkerOrderPolicy {
   /// Ticking or unticking [lineId] on the checklist.
   static String? checkEditChecklist(
     WorkerProfile worker,
-    WorkerOrder order,
+    Order order,
     String lineId,
   ) {
     final error = _packerCheck(worker, order);
@@ -140,7 +141,7 @@ class WorkerOrderPolicy {
     return null;
   }
 
-  static String? checkMarkReady(WorkerProfile worker, WorkerOrder order) {
+  static String? checkMarkReady(WorkerProfile worker, Order order) {
     final error = _packerCheck(worker, order);
     if (error != null) return error;
     if (order.status == OrderStatus.pending) {
@@ -162,7 +163,7 @@ class WorkerOrderPolicy {
   // Self-pickup: ready -> completed, by any active packer at the branch.
   // ---------------------------------------------------------------------
 
-  static String? checkCompletePickup(WorkerProfile worker, WorkerOrder order) {
+  static String? checkCompletePickup(WorkerProfile worker, Order order) {
     if (!worker.isActive) return _inactiveMessage;
     if (!worker.isPackingStaff) {
       return 'Only Packing Staff can hand over pickup orders.';
@@ -189,7 +190,7 @@ class WorkerOrderPolicy {
   // by the assigned driver only.
   // ---------------------------------------------------------------------
 
-  static String? _driverCheck(WorkerProfile worker, WorkerOrder order) {
+  static String? _driverCheck(WorkerProfile worker, Order order) {
     if (!worker.isActive) return _inactiveMessage;
     if (!worker.isDeliveryDriver) {
       return 'Only Delivery Drivers can deliver orders.';
@@ -206,10 +207,7 @@ class WorkerOrderPolicy {
     return null;
   }
 
-  static String? checkVerifyCollection(
-    WorkerProfile worker,
-    WorkerOrder order,
-  ) {
+  static String? checkVerifyCollection(WorkerProfile worker, Order order) {
     final error = _driverCheck(worker, order);
     if (error != null) return error;
     switch (order.status) {
@@ -230,7 +228,7 @@ class WorkerOrderPolicy {
   /// Manual: the collection code printed on the bag label. QR: the bag
   /// label's payload.
   static String? checkCollectionCode(
-    WorkerOrder order,
+    Order order,
     VerificationMethod method,
     String code,
   ) {
@@ -249,12 +247,12 @@ class WorkerOrderPolicy {
   }
 
   /// Spaces and letter case are ignored, so "k7p 4qa" matches "K7P4QA".
-  static bool _matchesCollectionCode(WorkerOrder order, String typed) {
+  static bool _matchesCollectionCode(Order order, String typed) {
     final cleaned = typed.replaceAll(RegExp(r'\s'), '').toUpperCase();
     return cleaned == order.collectionCode;
   }
 
-  static String? checkStartDelivery(WorkerProfile worker, WorkerOrder order) {
+  static String? checkStartDelivery(WorkerProfile worker, Order order) {
     final error = _driverCheck(worker, order);
     if (error != null) return error;
     switch (order.status) {
@@ -275,10 +273,7 @@ class WorkerOrderPolicy {
     }
   }
 
-  static String? checkCompleteDelivery(
-    WorkerProfile worker,
-    WorkerOrder order,
-  ) {
+  static String? checkCompleteDelivery(WorkerProfile worker, Order order) {
     final error = _driverCheck(worker, order);
     if (error != null) return error;
     switch (order.status) {

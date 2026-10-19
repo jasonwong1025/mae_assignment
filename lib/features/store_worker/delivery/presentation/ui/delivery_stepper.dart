@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 
 /// The stages of a delivery, in order.
@@ -8,7 +8,7 @@ const _steps = ['Packing', 'Ready', 'Verified', 'On the way', 'Delivered'];
 
 /// How many stages [order] has finished, from the point of view of the
 /// driver [workerId]. A bag verified by a previous driver does not count.
-int deliveryStepsDone(WorkerOrder order, String workerId) {
+int deliveryStepsDone(Order order, String workerId) {
   switch (order.status) {
     case OrderStatus.pending:
     case OrderStatus.packing:
@@ -32,7 +32,7 @@ class DeliveryStepper extends StatelessWidget {
     super.key,
   });
 
-  final WorkerOrder order;
+  final Order order;
   final String workerId;
 
   @override

@@ -2,17 +2,16 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:mae_assignment/app/theme/app_colors.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/packing/data/services/label_print_service.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 
 /// Preview of the bag label, drawn from the same PDF that is printed, so
 /// the packer sees exactly what will come out of the printer.
 class BagLabelCard extends ConsumerStatefulWidget {
   const BagLabelCard({required this.order, super.key});
 
-  final WorkerOrder order;
+  final Order order;
 
   @override
   ConsumerState<BagLabelCard> createState() => _BagLabelCardState();

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
-import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
 import 'package:mae_assignment/features/store_admin/orders/presentation/view_models/orders_view_model.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/ui/order_status_label.dart';
 
 /// Everything about one order: customer, delivery, items, payment and
@@ -110,9 +109,9 @@ class _OrderDetails extends StatelessWidget {
         ),
         _InfoRow(
           icon: Icons.badge_outlined,
-          text: order.assignedWorker == null
+          text: order.handledBy == null
               ? 'No staff assigned yet'
-              : 'Handled by ${order.assignedWorker}',
+              : 'Handled by ${order.handledBy}',
         ),
         if (order.customerNote != null)
           _InfoRow(

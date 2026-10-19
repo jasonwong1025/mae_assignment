@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_theme.dart';
-import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
 import 'package:mae_assignment/features/store_admin/orders/presentation/ui/order_detail_panel.dart';
 import 'package:mae_assignment/features/store_admin/orders/presentation/ui/orders_board.dart';
 import 'package:mae_assignment/features/store_admin/orders/presentation/ui/orders_status_tabs.dart';
@@ -11,6 +10,8 @@ import 'package:mae_assignment/features/store_admin/orders/presentation/view_mod
 import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_scaffold.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_sidebar.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
+import 'package:mae_assignment/shared/models/order.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 
 /// Store admin Orders tab: a live board of today's orders for the
 /// selected branch, one column per status. Tapping an order shows its

@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
 import 'package:mae_assignment/features/store_admin/orders/data/repositories/orders_repository.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 
 final StreamNotifierProvider<OrdersViewModel, List<Order>>
 ordersViewModelProvider =

@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 
 /// Final check before an order is marked ready: every product and
 /// quantity, then Mark as ready. The X in the top-right corner closes the
 /// sheet and keeps packing.
 /// Returns true if they marked it ready.
-Future<bool> showPackingReviewSheet(BuildContext context, WorkerOrder order) {
+Future<bool> showPackingReviewSheet(BuildContext context, Order order) {
   return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
@@ -23,7 +23,7 @@ Future<bool> showPackingReviewSheet(BuildContext context, WorkerOrder order) {
 class _PackingReviewSheet extends StatelessWidget {
   const _PackingReviewSheet({required this.order});
 
-  final WorkerOrder order;
+  final Order order;
 
   @override
   Widget build(BuildContext context) {

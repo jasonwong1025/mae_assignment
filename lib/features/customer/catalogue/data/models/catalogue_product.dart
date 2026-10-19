@@ -29,6 +29,10 @@ abstract class CatalogueProduct with _$CatalogueProduct {
     required int stock,
     @Default('') String description,
 
+    /// Name of the category, e.g. "Dairy & Eggs", filled in by the
+    /// repository from the categories. Copied onto order lines at checkout.
+    @Default('') String categoryName,
+
     /// Image URLs; the first is the cover. Empty shows a placeholder.
     @Default(<String>[]) List<String> imageUrls,
   }) = _CatalogueProduct;
@@ -42,6 +46,7 @@ abstract class CatalogueProduct with _$CatalogueProduct {
     required String id,
     required Map<String, dynamic> product,
     required Map<String, dynamic> inventory,
+    String categoryName = '',
   }) {
     if (inventory[InventoryFields.isHidden] == true) return null;
     try {
@@ -54,6 +59,7 @@ abstract class CatalogueProduct with _$CatalogueProduct {
         price: inventory.requiredDecimal(InventoryFields.price),
         stock: inventory.requiredInteger(InventoryFields.stock),
         description: product.string(ProductFields.description),
+        categoryName: categoryName,
         imageUrls: product.strings(ProductFields.imageUrls),
       );
     } on FormatException {

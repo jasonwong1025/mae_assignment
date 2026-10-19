@@ -6,9 +6,9 @@ import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/store_worker/history/presentation/view_models/worker_history_view_model.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/ui/pickup_order_card.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
 
 /// How far back My history looks.
@@ -184,7 +184,7 @@ class _HistoryList extends StatelessWidget {
     required this.onRangeChanged,
   });
 
-  final List<WorkerOrder> orders;
+  final List<Order> orders;
   final bool isPacker;
   final _HistoryRange range;
 
@@ -193,13 +193,13 @@ class _HistoryList extends StatelessWidget {
   final ValueChanged<_HistoryRange> onRangeChanged;
 
   /// When the worker finished the order: packed (ready) or delivered.
-  DateTime? _doneAt(WorkerOrder order) {
+  DateTime? _doneAt(Order order) {
     return isPacker ? order.readyAt : order.completedAt;
   }
 
   /// True if [order] matches the search: by order number (a leading "#" is
   /// ignored) or customer name, ignoring capital letters.
-  bool _matches(WorkerOrder order) {
+  bool _matches(Order order) {
     final text = search.trim().toLowerCase().replaceFirst('#', '');
     if (text.isEmpty) return true;
     return order.number.toString().contains(text) ||
@@ -220,7 +220,7 @@ class _HistoryList extends StatelessWidget {
     }).toList();
 
     // Group by day, keeping newest first.
-    final byDay = <DateTime, List<WorkerOrder>>{};
+    final byDay = <DateTime, List<Order>>{};
     for (final order in shown) {
       final at = _doneAt(order)!;
       byDay

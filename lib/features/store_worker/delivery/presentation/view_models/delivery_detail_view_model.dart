@@ -1,14 +1,23 @@
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/shared/models/order.dart';
+import 'package:mae_assignment/shared/models/verification_method.dart';
+
+/// The delivery proof photo of one order, or null if there is none. Read
+/// when the order changes; the photo is saved before the order says it
+/// has one.
+final proofPhotoProvider = Provider.autoDispose.family<Uint8List?, String>(
+  (ref, orderId) =>
+      ref.watch(workerOrdersRepositoryProvider).proofPhotoFor(orderId),
+);
 
 /// One provider per order id.
 final deliveryDetailViewModelProvider = StreamNotifierProvider.autoDispose
-    .family<DeliveryDetailViewModel, WorkerOrder?, String>(
+    .family<DeliveryDetailViewModel, Order?, String>(
       DeliveryDetailViewModel.new,
     );
 
@@ -21,13 +30,13 @@ final deliveryDetailViewModelProvider = StreamNotifierProvider.autoDispose
 /// - AsyncError: loading failed
 ///
 /// Actions return an error message to show, or null if they worked.
-class DeliveryDetailViewModel extends StreamNotifier<WorkerOrder?> {
+class DeliveryDetailViewModel extends StreamNotifier<Order?> {
   DeliveryDetailViewModel(this.orderId);
 
   final String orderId;
 
   @override
-  Stream<WorkerOrder?> build() async* {
+  Stream<Order?> build() async* {
     final worker = ref.watch(workerSessionProvider);
     if (worker == null) {
       yield null;

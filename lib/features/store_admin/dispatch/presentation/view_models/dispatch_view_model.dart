@@ -3,8 +3,8 @@ import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver.
 import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver_location.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/repositories/dispatch_repository.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_state.dart';
-import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 
 /// This branch's deliveries. Updates when an order changes.
 final StreamProvider<List<Order>> _deliveriesProvider =

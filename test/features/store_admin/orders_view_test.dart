@@ -3,13 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/app/theme/app_theme.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
-import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/admin_board_statuses.dart';
 import 'package:mae_assignment/features/store_admin/orders/presentation/ui/order_card.dart';
 import 'package:mae_assignment/features/store_admin/orders/presentation/ui/order_detail_panel.dart';
 import 'package:mae_assignment/features/store_admin/orders/presentation/ui/orders_board.dart';
 import 'package:mae_assignment/features/store_admin/orders/presentation/view_models/orders_filter_view_model.dart';
 import 'package:mae_assignment/features/store_admin/orders/presentation/views/orders_view.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
+import 'package:mae_assignment/shared/models/order.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/services/branch_service.dart';
 
 import '../../helpers/fake_auth_repository.dart';
@@ -47,7 +49,11 @@ Future<void> _pumpOrders(WidgetTester tester, Size size) async {
 
 Order _order(int number, OrderStatus status, int minutesAgo) {
   return Order(
+    id: 'ord-$number',
     number: number,
+    customerId: 'customer-$number',
+    branchId: 'ss15',
+    branchName: 'SS15 Subang',
     customerName: 'Customer $number',
     customerPhone: '0123456789',
     status: status,
@@ -59,11 +65,29 @@ Order _order(int number, OrderStatus status, int minutesAgo) {
     ).subtract(Duration(minutes: minutesAgo)),
     isDelivery: true,
     items: const [
-      OrderItem(name: 'Milk', quantity: 2, unitPrice: 7.90),
-      OrderItem(name: 'Oat milk', quantity: 1, unitPrice: 12),
+      OrderItem(
+        lineId: 'L1',
+        productId: 'p1',
+        name: 'Milk',
+        brand: '',
+        packSize: '',
+        quantity: 2,
+        unitPrice: 7.90,
+      ),
+      OrderItem(
+        lineId: 'L2',
+        productId: 'p2',
+        name: 'Oat milk',
+        brand: '',
+        packSize: '',
+        quantity: 1,
+        unitPrice: 12,
+      ),
     ],
+    subtotal: 27.80,
     deliveryFee: 5,
-    timeline: const [],
+    discount: 0,
+    total: 32.80,
   );
 }
 
@@ -78,6 +102,10 @@ void main() {
       expect(order.itemCount, 3);
       expect(order.subtotal, closeTo(27.80, 0.001));
       expect(order.total, closeTo(32.80, 0.001));
+      expect(
+        order.items.fold<double>(0, (sum, item) => sum + item.lineTotal),
+        closeTo(order.subtotal, 0.001),
+      );
     });
   });
 

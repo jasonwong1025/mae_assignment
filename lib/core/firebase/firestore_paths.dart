@@ -243,6 +243,96 @@ class OrderFields {
 
   /// Server time the order last changed status.
   static const String statusSince = 'statusSince';
+
+  /// When the customer was promised the order (pickup or delivery time).
+  static const String dueAt = 'dueAt';
+
+  /// Where the bag is collected from: the branch's address.
+  static const String branchAddress = 'branchAddress';
+
+  // Assignment, written by Store Admin (HQ).
+  static const String packerId = 'packerId';
+  static const String packerName = 'packerName';
+  static const String packerAssignedAt = 'packerAssignedAt';
+  static const String driverId = 'driverId';
+  static const String driverName = 'driverName';
+  static const String driverAssignedAt = 'driverAssignedAt';
+
+  // Fulfilment, written by the Store Worker app.
+
+  /// Line ids already packed (array of strings).
+  static const String packedLineIds = 'packedLineIds';
+  static const String packingStartedAt = 'packingStartedAt';
+  static const String readyAt = 'readyAt';
+  static const String readyBy = 'readyBy';
+
+  /// A `VerificationMethod` name.
+  static const String pickupVerification = 'pickupVerification';
+  static const String pickupCompletedBy = 'pickupCompletedBy';
+  static const String pickupCompletedByName = 'pickupCompletedByName';
+  static const String collectionVerification = 'collectionVerification';
+  static const String collectionVerifiedBy = 'collectionVerifiedBy';
+  static const String collectionVerifiedAt = 'collectionVerifiedAt';
+  static const String outForDeliveryAt = 'outForDeliveryAt';
+  static const String deliveredBy = 'deliveredBy';
+  static const String deliveredByName = 'deliveredByName';
+
+  /// Download URL of the delivery proof photo.
+  static const String proofPhotoUrl = 'proofPhotoUrl';
+  static const String completedAt = 'completedAt';
+
+  /// Fields only the customer app writes, at checkout. Nobody else may
+  /// change them afterwards.
+  static const List<String> checkoutKeys = [
+    number,
+    customerId,
+    customerName,
+    customerPhone,
+    branchId,
+    branchName,
+    branchAddress,
+    isDelivery,
+    address,
+    addressLocation,
+    customerNote,
+    items,
+    promoCode,
+    subtotal,
+    deliveryFee,
+    discount,
+    total,
+    placedAt,
+  ];
+
+  /// Fields Store Admin may change.
+  static const List<String> assignmentKeys = [
+    dueAt,
+    packerId,
+    packerName,
+    packerAssignedAt,
+    driverId,
+    driverName,
+    driverAssignedAt,
+  ];
+
+  /// Fields the Store Worker app may change.
+  static const List<String> fulfilmentKeys = [
+    packedLineIds,
+    packingStartedAt,
+    readyAt,
+    readyBy,
+    pickupVerification,
+    pickupCompletedBy,
+    pickupCompletedByName,
+    collectionVerification,
+    collectionVerifiedBy,
+    collectionVerifiedAt,
+    outForDeliveryAt,
+    deliveredBy,
+    deliveredByName,
+    proofPhotoUrl,
+    completedAt,
+  ];
 }
 
 /// Field keys for one entry in the orders/{orderId}.items array.
@@ -263,6 +353,13 @@ class OrderItemFields {
 
   /// Cover image URL, or absent if the product has none.
   static const String imageUrl = 'imageUrl';
+
+  /// Category id and name at checkout; absent on older orders.
+  static const String categoryId = 'categoryId';
+  static const String category = 'category';
+
+  /// Product description at checkout; absent if empty.
+  static const String description = 'description';
 }
 
 /// Field keys in reviews/{orderId}.

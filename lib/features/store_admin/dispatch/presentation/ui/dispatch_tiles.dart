@@ -3,7 +3,7 @@ import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/dispatch_labels.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_state.dart';
-import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 
 /// One driver in the drivers list, e.g. "● Amir Hamzah · Delivering #2290".
 class DriverTile extends StatelessWidget {

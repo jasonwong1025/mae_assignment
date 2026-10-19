@@ -1,10 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-
 import 'package:mae_assignment/app/theme/app_colors.dart';
-import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/admin_board_statuses.dart';
 import 'package:mae_assignment/features/store_admin/orders/presentation/ui/order_card.dart';
+import 'package:mae_assignment/shared/models/order.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/ui/order_status_label.dart';
 
 /// Orders of one status, in the order they should be listed:
@@ -14,11 +15,11 @@ List<Order> ordersWithStatus(List<Order> orders, OrderStatus status) {
   final result = orders.where((order) => order.status == status).toList();
 
   if (status.isFinished) {
-    result.sort((a, b) => b.statusSince.compareTo(a.statusSince));
+    result.sort((a, b) => b.statusStartedAt.compareTo(a.statusStartedAt));
     return result;
   }
 
-  result.sort((a, b) => a.statusSince.compareTo(b.statusSince));
+  result.sort((a, b) => a.statusStartedAt.compareTo(b.statusStartedAt));
   return result;
 }
 

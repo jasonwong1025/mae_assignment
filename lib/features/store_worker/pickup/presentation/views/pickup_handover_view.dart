@@ -5,14 +5,15 @@ import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/bag_label_screen.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/product_details_sheet.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/ui/pickup_order_card.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/view_models/pickup_handover_view_model.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_notice.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
+import 'package:mae_assignment/shared/models/verification_method.dart';
 import 'package:mae_assignment/shared/ui/bottom_action_bar.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
 import 'package:mae_assignment/shared/ui/order_status_label.dart';
@@ -38,7 +39,7 @@ class _PickupHandoverViewState extends ConsumerState<PickupHandoverView> {
   bool _isLeaving = false;
 
   /// The last version of the order shown, for while the screen closes.
-  WorkerOrder? _lastOrder;
+  Order? _lastOrder;
 
   void _goBack() {
     if (context.canPop()) {
@@ -68,7 +69,7 @@ class _PickupHandoverViewState extends ConsumerState<PickupHandoverView> {
   }
 
   /// After the tick: back to Ready for Pickup with a success message.
-  void _afterHandover(WorkerOrder order) {
+  void _afterHandover(Order order) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -175,7 +176,7 @@ class _HandoverContent extends StatelessWidget {
     required this.onBack,
   });
 
-  final WorkerOrder order;
+  final Order order;
   final String workerId;
   final Future<bool> Function() onComplete;
 
@@ -279,7 +280,7 @@ class _HandoverContent extends StatelessWidget {
 class _CustomerHeader extends StatelessWidget {
   const _CustomerHeader({required this.order, required this.workerId});
 
-  final WorkerOrder order;
+  final Order order;
   final String workerId;
 
   @override
@@ -401,7 +402,7 @@ class _IconLine extends StatelessWidget {
 class _StatusNotice extends StatelessWidget {
   const _StatusNotice({required this.order, required this.workerId});
 
-  final WorkerOrder order;
+  final Order order;
   final String workerId;
 
   @override
@@ -491,7 +492,7 @@ class _StatusNotice extends StatelessWidget {
 class _ItemRow extends StatelessWidget {
   const _ItemRow({required this.item, required this.onTap});
 
-  final WorkerOrderItem item;
+  final OrderItem item;
   final VoidCallback onTap;
 
   @override

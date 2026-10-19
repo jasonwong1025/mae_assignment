@@ -16,9 +16,9 @@ T _$identity<T>(T value) => value;
 mixin _$DeliveryGroups {
 
 /// On the way now; the driver's current job.
- List<WorkerOrder> get outForDelivery;/// Packed and waiting at the branch for this driver.
- List<WorkerOrder> get readyToCollect;/// Assigned but still being packed; visible, but cannot be collected yet.
- List<WorkerOrder> get beingPacked;
+ List<Order> get outForDelivery;/// Packed and waiting at the branch for this driver.
+ List<Order> get readyToCollect;/// Assigned but still being packed; visible, but cannot be collected yet.
+ List<Order> get beingPacked;
 /// Create a copy of DeliveryGroups
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -54,7 +54,7 @@ abstract mixin class $DeliveryGroupsCopyWith<$Res>  {
   factory $DeliveryGroupsCopyWith(DeliveryGroups value, $Res Function(DeliveryGroups) _then) = _$DeliveryGroupsCopyWithImpl;
 @useResult
 $Res call({
- List<WorkerOrder> outForDelivery, List<WorkerOrder> readyToCollect, List<WorkerOrder> beingPacked
+ List<Order> outForDelivery, List<Order> readyToCollect, List<Order> beingPacked
 });
 
 
@@ -74,9 +74,9 @@ class _$DeliveryGroupsCopyWithImpl<$Res>
 @pragma('vm:prefer-inline') @override $Res call({Object? outForDelivery = null,Object? readyToCollect = null,Object? beingPacked = null,}) {
   return _then(DeliveryGroups(
 outForDelivery: null == outForDelivery ? _self.outForDelivery : outForDelivery // ignore: cast_nullable_to_non_nullable
-as List<WorkerOrder>,readyToCollect: null == readyToCollect ? _self.readyToCollect : readyToCollect // ignore: cast_nullable_to_non_nullable
-as List<WorkerOrder>,beingPacked: null == beingPacked ? _self.beingPacked : beingPacked // ignore: cast_nullable_to_non_nullable
-as List<WorkerOrder>,
+as List<Order>,readyToCollect: null == readyToCollect ? _self.readyToCollect : readyToCollect // ignore: cast_nullable_to_non_nullable
+as List<Order>,beingPacked: null == beingPacked ? _self.beingPacked : beingPacked // ignore: cast_nullable_to_non_nullable
+as List<Order>,
   ));
 }
 
@@ -161,7 +161,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<WorkerOrder> outForDelivery,  List<WorkerOrder> readyToCollect,  List<WorkerOrder> beingPacked)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<Order> outForDelivery,  List<Order> readyToCollect,  List<Order> beingPacked)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DeliveryGroups() when $default != null:
 return $default(_that.outForDelivery,_that.readyToCollect,_that.beingPacked);case _:
@@ -182,7 +182,7 @@ return $default(_that.outForDelivery,_that.readyToCollect,_that.beingPacked);cas
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<WorkerOrder> outForDelivery,  List<WorkerOrder> readyToCollect,  List<WorkerOrder> beingPacked)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<Order> outForDelivery,  List<Order> readyToCollect,  List<Order> beingPacked)  $default,) {final _that = this;
 switch (_that) {
 case _DeliveryGroups():
 return $default(_that.outForDelivery,_that.readyToCollect,_that.beingPacked);case _:
@@ -202,7 +202,7 @@ return $default(_that.outForDelivery,_that.readyToCollect,_that.beingPacked);cas
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<WorkerOrder> outForDelivery,  List<WorkerOrder> readyToCollect,  List<WorkerOrder> beingPacked)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<Order> outForDelivery,  List<Order> readyToCollect,  List<Order> beingPacked)?  $default,) {final _that = this;
 switch (_that) {
 case _DeliveryGroups() when $default != null:
 return $default(_that.outForDelivery,_that.readyToCollect,_that.beingPacked);case _:
@@ -217,31 +217,31 @@ return $default(_that.outForDelivery,_that.readyToCollect,_that.beingPacked);cas
 
 
 class _DeliveryGroups extends DeliveryGroups {
-  const _DeliveryGroups({ List<WorkerOrder> outForDelivery = const <WorkerOrder>[],  List<WorkerOrder> readyToCollect = const <WorkerOrder>[],  List<WorkerOrder> beingPacked = const <WorkerOrder>[]}): _outForDelivery = outForDelivery,_readyToCollect = readyToCollect,_beingPacked = beingPacked,super._();
+  const _DeliveryGroups({ List<Order> outForDelivery = const <Order>[],  List<Order> readyToCollect = const <Order>[],  List<Order> beingPacked = const <Order>[]}): _outForDelivery = outForDelivery,_readyToCollect = readyToCollect,_beingPacked = beingPacked,super._();
   
 
 /// On the way now; the driver's current job.
- final  List<WorkerOrder> _outForDelivery;
+ final  List<Order> _outForDelivery;
 /// On the way now; the driver's current job.
-@override@JsonKey() List<WorkerOrder> get outForDelivery {
+@override@JsonKey() List<Order> get outForDelivery {
   if (_outForDelivery is EqualUnmodifiableListView) return _outForDelivery;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_outForDelivery);
 }
 
 /// Packed and waiting at the branch for this driver.
- final  List<WorkerOrder> _readyToCollect;
+ final  List<Order> _readyToCollect;
 /// Packed and waiting at the branch for this driver.
-@override@JsonKey() List<WorkerOrder> get readyToCollect {
+@override@JsonKey() List<Order> get readyToCollect {
   if (_readyToCollect is EqualUnmodifiableListView) return _readyToCollect;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_readyToCollect);
 }
 
 /// Assigned but still being packed; visible, but cannot be collected yet.
- final  List<WorkerOrder> _beingPacked;
+ final  List<Order> _beingPacked;
 /// Assigned but still being packed; visible, but cannot be collected yet.
-@override@JsonKey() List<WorkerOrder> get beingPacked {
+@override@JsonKey() List<Order> get beingPacked {
   if (_beingPacked is EqualUnmodifiableListView) return _beingPacked;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_beingPacked);
@@ -280,7 +280,7 @@ abstract mixin class _$DeliveryGroupsCopyWith<$Res> implements $DeliveryGroupsCo
   factory _$DeliveryGroupsCopyWith(_DeliveryGroups value, $Res Function(_DeliveryGroups) _then) = __$DeliveryGroupsCopyWithImpl;
 @override @useResult
 $Res call({
- List<WorkerOrder> outForDelivery, List<WorkerOrder> readyToCollect, List<WorkerOrder> beingPacked
+ List<Order> outForDelivery, List<Order> readyToCollect, List<Order> beingPacked
 });
 
 
@@ -300,9 +300,9 @@ class __$DeliveryGroupsCopyWithImpl<$Res>
 @override @pragma('vm:prefer-inline') $Res call({Object? outForDelivery = null,Object? readyToCollect = null,Object? beingPacked = null,}) {
   return _then(_DeliveryGroups(
 outForDelivery: null == outForDelivery ? _self._outForDelivery : outForDelivery // ignore: cast_nullable_to_non_nullable
-as List<WorkerOrder>,readyToCollect: null == readyToCollect ? _self._readyToCollect : readyToCollect // ignore: cast_nullable_to_non_nullable
-as List<WorkerOrder>,beingPacked: null == beingPacked ? _self._beingPacked : beingPacked // ignore: cast_nullable_to_non_nullable
-as List<WorkerOrder>,
+as List<Order>,readyToCollect: null == readyToCollect ? _self._readyToCollect : readyToCollect // ignore: cast_nullable_to_non_nullable
+as List<Order>,beingPacked: null == beingPacked ? _self._beingPacked : beingPacked // ignore: cast_nullable_to_non_nullable
+as List<Order>,
   ));
 }
 

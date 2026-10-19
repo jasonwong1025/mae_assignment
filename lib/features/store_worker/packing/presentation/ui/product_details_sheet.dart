@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_item_tile.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 
 /// Shows one product's details in a sheet: a large photo, name,
 /// description, brand, category, pack size, price and (highlighted) the
@@ -14,7 +13,7 @@ import 'package:mae_assignment/features/store_worker/packing/presentation/ui/pac
 /// has a button to mark the product packed or not packed.
 Future<void> showProductDetailsSheet(
   BuildContext context, {
-  required WorkerOrderItem item,
+  required OrderItem item,
   required bool isPacked,
   ValueChanged<bool>? onChanged,
 }) {

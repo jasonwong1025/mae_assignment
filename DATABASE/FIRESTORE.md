@@ -179,10 +179,21 @@ the admin chose). Dart: `BranchStock`. Service: `InventoryService`.
 
 ## `orders/{orderId}`
 
-One document per placed order; the shared contract between the customer,
-Store Worker and Store Admin apps. Dart: `Order`, `OrderItem` (the customer
-side; the admin and worker apps still use sample-backed models). Service:
-`OrderService`.
+One document per placed order: the single contract shared by the customer,
+Store Worker and Store Admin apps. Dart: `Order`, `OrderItem`, `OrderEvent`,
+`VerificationMethod` (all in `lib/shared/models/`). The customer app reads and
+writes it through `OrderService`; the admin and worker apps use the same
+models but still keep their orders in memory (sample data) for now.
+
+Every field belongs to one write group, and `firestore.rules` lets each role
+write only its own group (`OrderFields.checkoutKeys`, `assignmentKeys`,
+`fulfilmentKeys` mirror the lists in the rules):
+
+| Group | Written by | When |
+| --- | --- | --- |
+| Checkout | Customer app | Once, when the order is created. Nobody changes it afterwards. |
+| Assignment | Store Admin | Assigning a packer or driver, setting the due time. |
+| Fulfilment | Store Worker | Packing, handover, delivery. |
 
 | Field | Type | Notes |
 | --- | --- | --- |
@@ -199,16 +210,48 @@ side; the admin and worker apps still use sample-backed models). Service:
 | `subtotal`, `deliveryFee`, `discount`, `total` | number | Captured at checkout so totals never drift. |
 | `status` | string | `pending`, `packing`, `ready`, `outForDelivery`, `completed`, `cancelled`. |
 | `placedAt` | timestamp | Server time. |
-| `statusSince` | timestamp | Server time of the last status change. |
+| `statusSince` | timestamp | Server time of the last status change. Written with `status` by whoever changes it. |
+| `branchAddress` | string | Checkout. Where the bag is collected, shown to drivers. |
+
+Assignment fields (Store Admin; all optional):
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `dueAt` | timestamp | When the customer was promised the order. |
+| `packerId`, `packerName`, `packerAssignedAt` | string, string, timestamp | A worker only sees a packing task when `packerId` is theirs. Nothing assigns a packer to a customer order yet. |
+| `driverId`, `driverName`, `driverAssignedAt` | string, string, timestamp | Delivery orders only. |
+
+Fulfilment fields (Store Worker; all optional):
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `packedLineIds` | array of string | Line ids ticked off while packing. |
+| `packingStartedAt`, `readyAt` | timestamp | |
+| `readyBy` | string | Worker id of the packer who marked it ready. |
+| `pickupVerification` | string | `VerificationMethod` name: `qr` or `manual`. |
+| `pickupCompletedBy`, `pickupCompletedByName` | string | Who handed a pickup order over. |
+| `collectionVerification`, `collectionVerifiedBy`, `collectionVerifiedAt` | string, string, timestamp | The driver checking the bag. |
+| `outForDeliveryAt` | timestamp | |
+| `deliveredBy`, `deliveredByName` | string | |
+| `proofPhotoUrl` | string | Download URL of the delivery photo. The worker mock keeps the bytes in memory for now; uploading to Storage is not built yet. |
+| `completedAt` | timestamp | Pickup or delivery done. |
 
 Each `items` entry: `lineId` (unique in the order), `productId`, `name`,
-`brand`, `packSize`, `quantity`, `unitPrice` (price at checkout), and an
-optional `imageUrl`.
+`brand`, `packSize`, `quantity`, `unitPrice` (price at checkout), and
+optional `categoryId`, `category` (name), `description` and `imageUrl`.
+
+The admin timeline ("Packing started", "Driver Kumar assigned", ...) is not
+stored: `Order.timeline` works it out from the timestamps above. The bag
+label's `collectionCode` is also not stored. It is computed from the order id,
+so it is a mock only and not secure; the real version needs a random code made
+and checked on the server.
 
 Rules: the owner reads their orders and staff read all; a customer creates only
 their own order, starting `pending`, with `number, customerId, branchId, items,
-total, status, placedAt` and `placedAt == request.time`; staff update (advance
-status); **a customer may cancel their own order only while it is `pending`**,
+total, status, placedAt` and `placedAt == request.time`, and only checkout
+fields (plus `status`, `statusSince`); the admin updates only assignment fields,
+`status` and `statusSince`; a worker updates only fulfilment fields, `status`
+and `statusSince`; both need a valid status; **a customer may cancel their own order only while it is `pending`**,
 changing nothing but `status` (to `cancelled`) and `statusSince`
 (`== request.time`), which `OrderService.cancelOrder` does in a transaction;
 nobody deletes. Index: `customerId` ascending + `placedAt` descending

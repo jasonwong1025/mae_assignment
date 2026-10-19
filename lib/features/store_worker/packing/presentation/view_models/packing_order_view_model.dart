@@ -1,15 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/worker_order_policy.dart';
 import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 
 /// One provider per order id.
 final packingOrderViewModelProvider = StreamNotifierProvider.autoDispose
-    .family<PackingOrderViewModel, WorkerOrder?, String>(
-      PackingOrderViewModel.new,
-    );
+    .family<PackingOrderViewModel, Order?, String>(PackingOrderViewModel.new);
 
 /// State for the packing screen of one order.
 /// - AsyncLoading: waiting for the order
@@ -20,13 +18,13 @@ final packingOrderViewModelProvider = StreamNotifierProvider.autoDispose
 /// - AsyncError: loading failed
 ///
 /// Actions return an error message to show, or null if they worked.
-class PackingOrderViewModel extends StreamNotifier<WorkerOrder?> {
+class PackingOrderViewModel extends StreamNotifier<Order?> {
   PackingOrderViewModel(this.orderId);
 
   final String orderId;
 
   @override
-  Stream<WorkerOrder?> build() async* {
+  Stream<Order?> build() async* {
     final worker = ref.watch(workerSessionProvider);
     if (worker == null) {
       yield null;

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 
 part 'orders_filter_view_model.freezed.dart';
 

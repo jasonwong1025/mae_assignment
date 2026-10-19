@@ -6,13 +6,13 @@ import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/features/store_worker/delivery/data/services/camera_service.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/expandable_photo.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 
 /// Asks for a photo of the delivery before the order is marked
 /// delivered. Returns the photo, or null if the driver closes the sheet.
 Future<Uint8List?> showProofOfDeliverySheet(
   BuildContext context, {
-  required WorkerOrder order,
+  required Order order,
 }) {
   return showModalBottomSheet<Uint8List>(
     context: context,
@@ -25,7 +25,7 @@ Future<Uint8List?> showProofOfDeliverySheet(
 class _ProofOfDeliverySheet extends ConsumerStatefulWidget {
   const _ProofOfDeliverySheet({required this.order});
 
-  final WorkerOrder order;
+  final Order order;
 
   @override
   ConsumerState<_ProofOfDeliverySheet> createState() =>

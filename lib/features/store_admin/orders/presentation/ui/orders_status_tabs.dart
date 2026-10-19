@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-
-import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/features/store_admin/orders/data/admin_board_statuses.dart';
 import 'package:mae_assignment/features/store_admin/orders/presentation/ui/order_card.dart';
 import 'package:mae_assignment/features/store_admin/orders/presentation/ui/orders_board.dart';
+import 'package:mae_assignment/shared/models/order.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 
 /// The board for phones: six columns do not fit, so the statuses become
 /// a row of tabs and only the chosen status is listed.

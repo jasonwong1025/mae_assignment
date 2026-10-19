@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_state.dart';
-import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
 
 /// "ASSIGN #2292" box: pick a free driver and press "Assign driver".

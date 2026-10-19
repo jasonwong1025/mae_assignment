@@ -172,10 +172,61 @@ service cloud.firestore {
         && request.resource.data.keys().hasAll(
             ['number', 'customerId', 'branchId', 'items', 'total', 'status',
              'placedAt'])
+        && request.resource.data.keys().hasOnly(checkoutKeys().concat(
+            ['status', 'statusSince']))
         && request.resource.data.placedAt == request.time;
 
-      // Staff advance an order's status (pack, ready, deliver, complete).
-      allow update: if isStaff();
+      // The fields the customer app writes at checkout. Nobody changes
+      // them afterwards.
+      function checkoutKeys() {
+        return ['number', 'customerId', 'customerName', 'customerPhone',
+                'branchId', 'branchName', 'branchAddress', 'isDelivery',
+                'address', 'addressLocation', 'customerNote', 'items',
+                'promoCode', 'subtotal', 'deliveryFee', 'discount', 'total',
+                'placedAt'];
+      }
+
+      // Fields Store Admin may change: who the order is assigned to, and
+      // when it is due.
+      function assignmentKeys() {
+        return ['dueAt', 'packerId', 'packerName', 'packerAssignedAt',
+                'driverId', 'driverName', 'driverAssignedAt'];
+      }
+
+      // Fields the Store Worker app may change while fulfilling the order.
+      function fulfilmentKeys() {
+        return ['packedLineIds', 'packingStartedAt', 'readyAt', 'readyBy',
+                'pickupVerification', 'pickupCompletedBy',
+                'pickupCompletedByName', 'collectionVerification',
+                'collectionVerifiedBy', 'collectionVerifiedAt',
+                'outForDeliveryAt', 'deliveredBy', 'deliveredByName',
+                'proofPhotoUrl', 'completedAt'];
+      }
+
+      function changedKeys() {
+        return request.resource.data.diff(resource.data).affectedKeys();
+      }
+
+      function validStatus() {
+        return request.resource.data.status in
+          ['pending', 'packing', 'ready', 'outForDelivery', 'completed',
+           'cancelled'];
+      }
+
+      // Store Admin assigns packers and drivers and sets the due time, and
+      // can move the status. It cannot touch the checkout fields (customer,
+      // items, money) or the worker's fulfilment fields.
+      allow update: if isAdmin()
+        && validStatus()
+        && changedKeys().hasOnly(
+            assignmentKeys().concat(['status', 'statusSince']));
+
+      // Store Workers record the fulfilment of an order and move the status
+      // along. They cannot touch the checkout fields or the assignment.
+      allow update: if isStaff() && !isAdmin()
+        && validStatus()
+        && changedKeys().hasOnly(
+            fulfilmentKeys().concat(['status', 'statusSince']));
 
       // A customer may cancel their own order, but only while it is still
       // pending (nobody has started packing it), and nothing else about the

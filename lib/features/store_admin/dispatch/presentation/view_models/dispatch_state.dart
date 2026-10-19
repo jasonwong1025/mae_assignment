@@ -2,8 +2,9 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver_location.dart';
-import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
+import 'package:mae_assignment/shared/models/order.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 
 part 'dispatch_state.freezed.dart';
 
@@ -42,7 +43,7 @@ abstract class DispatchDriver with _$DispatchDriver {
 
     final points = [location.position, ...location.stops];
     // Ready orders: the trip ends at the branch; show the rest too.
-    final customer = order?.location;
+    final customer = order?.addressLocation;
     if (order?.status == OrderStatus.ready && customer != null) {
       points.add(customer);
     }
@@ -139,7 +140,7 @@ abstract class DispatchState with _$DispatchState {
         final aWaits = a.driverId == null;
         final bWaits = b.driverId == null;
         if (aWaits != bWaits) return aWaits ? -1 : 1;
-        return a.statusSince.compareTo(b.statusSince);
+        return a.statusStartedAt.compareTo(b.statusStartedAt);
       });
 
     return DispatchState(

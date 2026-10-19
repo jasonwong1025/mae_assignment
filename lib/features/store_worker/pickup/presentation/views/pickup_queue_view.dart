@@ -6,11 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/ui/pickup_order_card.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/view_models/pickup_queue_view_model.dart';
 import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_scaffold.dart';
 import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
 
 /// Packing Staff "Ready for Pickup" tab: every ready self-pickup order at
@@ -47,13 +47,13 @@ class _PickupQueueViewState extends ConsumerState<PickupQueueView> {
     super.dispose();
   }
 
-  void _openOrder(WorkerOrder order) {
+  void _openOrder(Order order) {
     unawaited(context.push(AppRoutes.workerPickupOrder(order.id)));
   }
 
   /// True if [order] matches the search box: by order number (a leading
   /// "#" is ignored) or by customer name, ignoring capital letters.
-  bool _matches(WorkerOrder order) {
+  bool _matches(Order order) {
     final text = _search.trim().toLowerCase().replaceFirst('#', '');
     if (text.isEmpty) return true;
     return order.number.toString().contains(text) ||

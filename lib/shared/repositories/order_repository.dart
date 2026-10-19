@@ -68,6 +68,7 @@ class OrderRepository {
       customerPhone: customer.phone,
       branchId: branch.id,
       branchName: branch.name,
+      branchAddress: branch.address,
       isDelivery: isDelivery,
       items: [
         for (final line in cart.lines)
@@ -79,6 +80,9 @@ class OrderRepository {
             packSize: line.product.packSize,
             quantity: line.quantity,
             unitPrice: line.product.price,
+            categoryId: line.product.categoryId,
+            category: line.product.categoryName,
+            description: line.product.description,
             imageUrl: line.product.coverImageUrl,
           ),
       ],

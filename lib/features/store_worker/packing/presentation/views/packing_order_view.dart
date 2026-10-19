@@ -5,7 +5,6 @@ import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/worker_order_policy.dart';
 import 'package:mae_assignment/features/store_worker/packing/data/services/label_print_service.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/bag_label_card.dart';
@@ -16,6 +15,7 @@ import 'package:mae_assignment/features/store_worker/packing/presentation/ui/pro
 import 'package:mae_assignment/features/store_worker/packing/presentation/view_models/packing_order_view_model.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_notice.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/ui/bottom_action_bar.dart';
 import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
@@ -82,7 +82,7 @@ class _PackingOrderViewState extends ConsumerState<PackingOrderView> {
     if (error != null) _showMessage(error);
   }
 
-  Future<void> _reviewAndMarkReady(WorkerOrder order) async {
+  Future<void> _reviewAndMarkReady(Order order) async {
     final confirmed = await showPackingReviewSheet(context, order);
     if (!confirmed || !mounted) return;
 
@@ -97,7 +97,7 @@ class _PackingOrderViewState extends ConsumerState<PackingOrderView> {
   }
 
   /// The order with the ticks still being saved applied on top.
-  WorkerOrder _withSavingTicks(WorkerOrder order) {
+  Order _withSavingTicks(Order order) {
     if (_savingTicks.isEmpty) return order;
     final lines = {...order.packedLineIds};
     _savingTicks.forEach((lineId, packed) {
@@ -212,7 +212,7 @@ class _PackingContent extends StatelessWidget {
     required this.onBack,
   });
 
-  final WorkerOrder order;
+  final Order order;
 
   /// True while the checklist can be ticked.
   final bool canEdit;
@@ -239,12 +239,12 @@ class _PackingContent extends StatelessWidget {
 
     // Null while the checklist cannot be ticked (before Start packing, or
     // read-only orders).
-    ValueChanged<bool>? onChanged(WorkerOrderItem item) {
+    ValueChanged<bool>? onChanged(OrderItem item) {
       if (!canEdit) return null;
       return (value) => onSetPacked(item.lineId, value);
     }
 
-    Widget tile(WorkerOrderItem item) {
+    Widget tile(OrderItem item) {
       return Padding(
         padding: const EdgeInsets.only(bottom: AppSpacing.s),
         child: PackingItemTile(
@@ -309,12 +309,15 @@ class _PackingContent extends StatelessWidget {
 class _OrderHeader extends StatelessWidget {
   const _OrderHeader({required this.order});
 
-  final WorkerOrder order;
+  final Order order;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final minutes = Formatters.minutesSince(order.packerAssignedAt);
+    final assignedAt = order.packerAssignedAt ?? order.placedAt;
+    final minutes = assignedAt == null
+        ? 0
+        : Formatters.minutesSince(assignedAt);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -412,7 +415,7 @@ class _OrderHeader extends StatelessWidget {
 class _StatusBanner extends StatelessWidget {
   const _StatusBanner({required this.order});
 
-  final WorkerOrder order;
+  final Order order;
 
   @override
   Widget build(BuildContext context) {
@@ -515,7 +518,7 @@ class _ActionBar extends StatelessWidget {
     required this.onBack,
   });
 
-  final WorkerOrder order;
+  final Order order;
   final bool canStart;
   final bool isBusy;
   final bool isSaving;
@@ -567,7 +570,7 @@ class _ActionBar extends StatelessWidget {
 class _ReadySuccess extends ConsumerStatefulWidget {
   const _ReadySuccess({required this.order});
 
-  final WorkerOrder order;
+  final Order order;
 
   @override
   ConsumerState<_ReadySuccess> createState() => _ReadySuccessState();

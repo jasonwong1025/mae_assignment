@@ -91,6 +91,15 @@ extension FieldReaders on Map<String, dynamic> {
     return fallback;
   }
 
+  /// An enum saved by name, or null if missing or unknown.
+  E? enumOrNull<E extends Enum>(String key, List<E> values) {
+    final value = this[key];
+    for (final candidate in values) {
+      if (candidate.name == value) return candidate;
+    }
+    return null;
+  }
+
   /// An array of maps (for example order items). Entries that are not maps
   /// are skipped.
   List<Map<String, dynamic>> maps(String key) {
@@ -117,3 +126,6 @@ extension FieldReaders on Map<String, dynamic> {
 GeoPoint toGeoPoint(LatLng location) {
   return GeoPoint(location.latitude, location.longitude);
 }
+
+/// A `DateTime` as a Firestore `Timestamp`, for models that write a time.
+Timestamp toTimestamp(DateTime time) => Timestamp.fromDate(time);

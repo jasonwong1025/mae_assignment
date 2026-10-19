@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 
 part 'delivery_tasks_view_model.freezed.dart';
@@ -18,13 +18,13 @@ deliveryTasksViewModelProvider =
 abstract class DeliveryGroups with _$DeliveryGroups {
   const factory DeliveryGroups({
     /// On the way now; the driver's current job.
-    @Default(<WorkerOrder>[]) List<WorkerOrder> outForDelivery,
+    @Default(<Order>[]) List<Order> outForDelivery,
 
     /// Packed and waiting at the branch for this driver.
-    @Default(<WorkerOrder>[]) List<WorkerOrder> readyToCollect,
+    @Default(<Order>[]) List<Order> readyToCollect,
 
     /// Assigned but still being packed; visible, but cannot be collected yet.
-    @Default(<WorkerOrder>[]) List<WorkerOrder> beingPacked,
+    @Default(<Order>[]) List<Order> beingPacked,
   }) = _DeliveryGroups;
 
   const DeliveryGroups._();
@@ -34,7 +34,7 @@ abstract class DeliveryGroups with _$DeliveryGroups {
   /// Each section puts the most urgent (earliest due) first. Ready to
   /// collect also keeps each branch's orders together, so the driver
   /// collects everything at one store in one trip.
-  factory DeliveryGroups.from(List<WorkerOrder> orders) {
+  factory DeliveryGroups.from(List<Order> orders) {
     return DeliveryGroups(
       outForDelivery: _byDue([
         for (final order in orders)
@@ -55,7 +55,7 @@ abstract class DeliveryGroups with _$DeliveryGroups {
 
   /// Earliest due first; orders with no due time go last. Stable, so ties
   /// keep the repository's order.
-  static List<WorkerOrder> _byDue(List<WorkerOrder> orders) {
+  static List<Order> _byDue(List<Order> orders) {
     final indexed = orders.indexed.toList()
       ..sort((a, b) {
         final byDue = _compareDue(a.$2, b.$2);
@@ -66,16 +66,16 @@ abstract class DeliveryGroups with _$DeliveryGroups {
 
   /// Branches in the order of their most urgent order, then by due time
   /// within each branch.
-  static List<WorkerOrder> _byBranchThenDue(List<WorkerOrder> orders) {
+  static List<Order> _byBranchThenDue(List<Order> orders) {
     final sorted = _byDue(orders);
-    final byBranch = <String, List<WorkerOrder>>{};
+    final byBranch = <String, List<Order>>{};
     for (final order in sorted) {
       byBranch.putIfAbsent(order.branchId, () => []).add(order);
     }
     return [for (final group in byBranch.values) ...group];
   }
 
-  static int _compareDue(WorkerOrder a, WorkerOrder b) {
+  static int _compareDue(Order a, Order b) {
     final dueA = a.dueAt;
     final dueB = b.dueAt;
     if (dueA == null && dueB == null) return 0;

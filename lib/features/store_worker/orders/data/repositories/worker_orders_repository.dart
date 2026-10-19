@@ -4,10 +4,11 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/core/errors/app_exception.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/mock_worker_orders.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/worker_order_policy.dart';
 import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
+import 'package:mae_assignment/shared/models/verification_method.dart';
 
 /// Not autoDispose on purpose: there must be one order store for the whole
 /// app, kept while workers switch and screens open and close.
@@ -43,7 +44,7 @@ class WorkerOrdersRepository {
   WorkerOrdersRepository({
     DateTime Function()? clock,
     this.actionDelay = Duration.zero,
-    List<WorkerOrder> Function(DateTime now)? seed,
+    List<Order> Function(DateTime now)? seed,
   }) : _clock = clock ?? DateTime.now,
        _seed = seed ?? seedWorkerOrders {
     _orders = _seed(_clock());
@@ -53,18 +54,23 @@ class WorkerOrdersRepository {
 
   /// Builds the starting orders. Tests can pass their own (e.g. with a
   /// cancelled delivery); the app uses the sample data.
-  final List<WorkerOrder> Function(DateTime now) _seed;
+  final List<Order> Function(DateTime now) _seed;
 
   /// Wait before each action, to imitate a network. Zero in tests.
   final Duration actionDelay;
 
   /// Every order, for all branches. Replaced (never edited) on each
   /// change, so a list handed out earlier never changes under a screen.
-  late List<WorkerOrder> _orders;
+  late List<Order> _orders;
+
+  /// Delivery proof photos by order id. The order itself only holds a URL
+  /// ([Order.proofPhotoUrl]), as it will once photos go to Firebase
+  /// Storage; until then the bytes are kept here for the screens.
+  final _proofPhotos = <String, Uint8List>{};
 
   /// Sends the new full list after every change. Sync, so each listener
   /// has the change before the action's Future completes.
-  final _changes = StreamController<List<WorkerOrder>>.broadcast(sync: true);
+  final _changes = StreamController<List<Order>>.broadcast(sync: true);
 
   // ---------------------------------------------------------------------
   // Lists
@@ -72,7 +78,7 @@ class WorkerOrdersRepository {
 
   /// My Tasks: orders assigned to [worker] to pack that are not ready yet,
   /// due soonest first.
-  Stream<List<WorkerOrder>> watchMyPackingTasks(WorkerProfile worker) {
+  Stream<List<Order>> watchMyPackingTasks(WorkerProfile worker) {
     return _watchList((orders) {
       final tasks =
           orders.where((order) {
@@ -82,7 +88,7 @@ class WorkerOrdersRepository {
           }).toList()..sort((a, b) {
             final byDue = _compareDates(a.dueAt, b.dueAt);
             if (byDue != 0) return byDue;
-            return a.packerAssignedAt.compareTo(b.packerAssignedAt);
+            return _compareDates(a.packerAssignedAt, b.packerAssignedAt);
           });
       return tasks;
     });
@@ -90,7 +96,7 @@ class WorkerOrdersRepository {
 
   /// Ready for Pickup: every ready self-pickup order at [worker]'s branch,
   /// whoever packed it. Pickup time soonest first.
-  Stream<List<WorkerOrder>> watchReadyForPickup(WorkerProfile worker) {
+  Stream<List<Order>> watchReadyForPickup(WorkerProfile worker) {
     return _watchList((orders) {
       final ready = orders.where((order) {
         return WorkerOrderPolicy.canViewPickupOrder(worker, order);
@@ -101,7 +107,7 @@ class WorkerOrdersRepository {
 
   /// Delivery bags at [worker]'s branch waiting for their driver to
   /// collect them, delivery time soonest first. Read-only for packers.
-  Stream<List<WorkerOrder>> watchWaitingForDrivers(WorkerProfile worker) {
+  Stream<List<Order>> watchWaitingForDrivers(WorkerProfile worker) {
     return _watchList((orders) {
       final waiting = orders.where((order) {
         return WorkerOrderPolicy.canViewWaitingForDriver(worker, order);
@@ -114,9 +120,9 @@ class WorkerOrdersRepository {
   /// - Packing Staff: orders they packed (ready, collected or completed),
   ///   by when they marked them ready.
   /// - Delivery Drivers: deliveries they completed, by when.
-  Stream<List<WorkerOrder>> watchMyHistory(WorkerProfile worker) {
+  Stream<List<Order>> watchMyHistory(WorkerProfile worker) {
     return _watchList((orders) {
-      final List<WorkerOrder> history;
+      final List<Order> history;
       if (worker.isPackingStaff) {
         history = orders.where((order) {
           return WorkerOrderPolicy.canViewPackingTask(worker, order) &&
@@ -142,7 +148,7 @@ class WorkerOrdersRepository {
   /// My Deliveries: every delivery assigned to [worker], in any status.
   /// Sorted by stage (on the way, ready, being packed, finished), then by
   /// when it was assigned.
-  Stream<List<WorkerOrder>> watchMyDeliveries(WorkerProfile worker) {
+  Stream<List<Order>> watchMyDeliveries(WorkerProfile worker) {
     return _watchList((orders) {
       final deliveries =
           orders.where((order) {
@@ -158,7 +164,7 @@ class WorkerOrdersRepository {
 
   /// One order, or null if it does not exist or [worker] may not see it
   /// (any more). Sends a new value whenever the order changes.
-  Stream<WorkerOrder?> watchOrder(WorkerProfile worker, String orderId) {
+  Stream<Order?> watchOrder(WorkerProfile worker, String orderId) {
     return _watch((orders) {
       final order = _find(orders, orderId);
       if (order == null) return null;
@@ -285,12 +291,13 @@ class WorkerOrdersRepository {
       _allow(WorkerOrderPolicy.checkCompleteDelivery(worker, order));
       _allow(photo.isEmpty ? 'Take a photo of the delivery first.' : null);
       final now = _clock();
+      _proofPhotos[orderId] = photo;
       return order.copyWith(
         status: OrderStatus.completed,
         statusSince: now,
         deliveredBy: worker.id,
         deliveredByName: worker.name,
-        proofPhoto: photo,
+        proofPhotoUrl: _proofUrl(orderId),
         completedAt: now,
       );
     });
@@ -300,9 +307,15 @@ class WorkerOrdersRepository {
   // Demo data
   // ---------------------------------------------------------------------
 
+  /// The proof photo taken for [orderId], or null if there is none.
+  Uint8List? proofPhotoFor(String orderId) => _proofPhotos[orderId];
+
+  static String _proofUrl(String orderId) => 'memory://proof/$orderId';
+
   /// Puts every order back to the sample data. Open lists update at once.
   void resetDemoData() {
     _orders = _seed(_clock());
+    _proofPhotos.clear();
     _changes.add(_orders);
   }
 
@@ -315,10 +328,7 @@ class WorkerOrdersRepository {
   /// Runs one action: waits [actionDelay], then reads the order as it is
   /// now (another worker may have changed it during the wait), lets
   /// [change] check the rules and build the new copy, and saves it.
-  Future<void> _act(
-    String orderId,
-    WorkerOrder Function(WorkerOrder order) change,
-  ) async {
+  Future<void> _act(String orderId, Order Function(Order order) change) async {
     if (actionDelay > Duration.zero) await Future<void>.delayed(actionDelay);
 
     final order = _find(_orders, orderId);
@@ -339,8 +349,8 @@ class WorkerOrdersRepository {
   }
 
   /// A list built by [select], resent after every change that alters it.
-  Stream<List<WorkerOrder>> _watchList(
-    List<WorkerOrder> Function(List<WorkerOrder> orders) select,
+  Stream<List<Order>> _watchList(
+    List<Order> Function(List<Order> orders) select,
   ) {
     return _watch(select, isSame: _sameOrders);
   }
@@ -350,11 +360,11 @@ class WorkerOrdersRepository {
   /// The first value is sent from onListen, before listening for changes,
   /// so a late listener still starts from the latest data.
   Stream<T> _watch<T>(
-    T Function(List<WorkerOrder> orders) select, {
+    T Function(List<Order> orders) select, {
     required bool Function(T previous, T next) isSame,
   }) {
     late StreamController<T> controller;
-    StreamSubscription<List<WorkerOrder>>? subscription;
+    StreamSubscription<List<Order>>? subscription;
     late T last;
 
     controller = StreamController<T>(
@@ -376,7 +386,7 @@ class WorkerOrdersRepository {
   /// True if both lists hold the very same order objects in the same
   /// order. Orders are replaced when they change, so this means "nothing
   /// in this list changed".
-  static bool _sameOrders(List<WorkerOrder> a, List<WorkerOrder> b) {
+  static bool _sameOrders(List<Order> a, List<Order> b) {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
       if (!identical(a[i], b[i])) return false;
@@ -384,7 +394,7 @@ class WorkerOrdersRepository {
     return true;
   }
 
-  static WorkerOrder? _find(List<WorkerOrder> orders, String orderId) {
+  static Order? _find(List<Order> orders, String orderId) {
     for (final order in orders) {
       if (order.id == orderId) return order;
     }
@@ -392,7 +402,7 @@ class WorkerOrdersRepository {
   }
 
   /// Order of the stages in My Deliveries.
-  static int _deliveryStage(WorkerOrder order) {
+  static int _deliveryStage(Order order) {
     switch (order.status) {
       case OrderStatus.outForDelivery:
         return 0;
@@ -409,7 +419,7 @@ class WorkerOrdersRepository {
   }
 
   /// Promised time soonest first; then ready the longest.
-  static int _byDueThenReady(WorkerOrder a, WorkerOrder b) {
+  static int _byDueThenReady(Order a, Order b) {
     final byDue = _compareDates(a.dueAt, b.dueAt);
     return byDue != 0 ? byDue : _compareDates(a.readyAt, b.readyAt);
   }

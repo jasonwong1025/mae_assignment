@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -27,7 +27,7 @@ class LabelPrintService {
   pw.ThemeData? _theme;
 
   /// Returns false if the packer cancelled or nothing could print.
-  Future<bool> printLabel(WorkerOrder order) {
+  Future<bool> printLabel(Order order) {
     return Printing.layoutPdf(
       name: 'Grocerly label #${order.number}',
       format: labelFormat,
@@ -38,7 +38,7 @@ class LabelPrintService {
   /// The label as a picture, for showing it on screen exactly as printed.
   /// Fails after a few seconds instead of waiting forever if the
   /// printing plugin cannot draw it.
-  Future<Uint8List> previewImage(WorkerOrder order) async {
+  Future<Uint8List> previewImage(Order order) async {
     final pdf = await buildLabel(order);
     final page = await Printing.raster(
       pdf,
@@ -48,7 +48,7 @@ class LabelPrintService {
   }
 
   /// The label as a PDF document.
-  Future<Uint8List> buildLabel(WorkerOrder order) async {
+  Future<Uint8List> buildLabel(Order order) async {
     _logo ??= pw.MemoryImage(
       (await rootBundle.load('assets/logo/logo.png')).buffer.asUint8List(),
     );
@@ -77,7 +77,7 @@ class LabelPrintService {
 
   static const _line = pw.BorderSide();
 
-  pw.Widget _label(WorkerOrder order, pw.MemoryImage logo) {
+  pw.Widget _label(Order order, pw.MemoryImage logo) {
     final dueAt = order.dueAt;
     final kind = order.isDelivery ? 'DELIVERY' : 'PICKUP';
     final postcode = _postcode(order.isDelivery ? order.address : null);
@@ -139,7 +139,8 @@ class LabelPrintService {
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
                         _field('Order no.', '#${order.number}', bold: true),
-                        _field('Placed', Formatters.date(order.placedAt)),
+                        if (order.placedAt case final placedAt?)
+                          _field('Placed', Formatters.date(placedAt)),
                         _field('Items', '${order.itemCount}'),
                         if (dueAt != null)
                           _field(

@@ -1,12 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 
-final StreamNotifierProvider<PickupQueueViewModel, List<WorkerOrder>>
+final StreamNotifierProvider<PickupQueueViewModel, List<Order>>
 pickupQueueViewModelProvider =
-    StreamNotifierProvider.autoDispose<PickupQueueViewModel, List<WorkerOrder>>(
+    StreamNotifierProvider.autoDispose<PickupQueueViewModel, List<Order>>(
       PickupQueueViewModel.new,
     );
 
@@ -15,9 +14,9 @@ pickupQueueViewModelProvider =
 /// - AsyncLoading: waiting for the first list
 /// - AsyncData: the latest list; replaced on every change
 /// - AsyncError: loading failed
-class PickupQueueViewModel extends StreamNotifier<List<WorkerOrder>> {
+class PickupQueueViewModel extends StreamNotifier<List<Order>> {
   @override
-  Stream<List<WorkerOrder>> build() async* {
+  Stream<List<Order>> build() async* {
     final worker = ref.watch(workerSessionProvider);
     if (worker == null) {
       yield const [];
@@ -29,22 +28,18 @@ class PickupQueueViewModel extends StreamNotifier<List<WorkerOrder>> {
   }
 }
 
-final StreamNotifierProvider<
-  PickupWaitingForDriversViewModel,
-  List<WorkerOrder>
->
+final StreamNotifierProvider<PickupWaitingForDriversViewModel, List<Order>>
 pickupWaitingForDriversViewModelProvider =
     StreamNotifierProvider.autoDispose<
       PickupWaitingForDriversViewModel,
-      List<WorkerOrder>
+      List<Order>
     >(PickupWaitingForDriversViewModel.new);
 
 /// State for "Waiting for drivers": delivery bags at the packer's branch
 /// that are ready but not yet collected (verified) by their driver.
-class PickupWaitingForDriversViewModel
-    extends StreamNotifier<List<WorkerOrder>> {
+class PickupWaitingForDriversViewModel extends StreamNotifier<List<Order>> {
   @override
-  Stream<List<WorkerOrder>> build() async* {
+  Stream<List<Order>> build() async* {
     final worker = ref.watch(workerSessionProvider);
     if (worker == null) {
       yield const [];

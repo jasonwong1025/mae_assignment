@@ -2,7 +2,8 @@ import 'dart:math' as math;
 
 import 'package:latlong2/latlong.dart';
 
-import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/shared/models/order.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 
 /// Sample orders for one branch, used while the backend is not connected.
 /// Times are worked out from [now], so the board always looks like "today".
@@ -24,6 +25,7 @@ List<Order> _ss15Orders(DateTime now) {
   return [
     _order(
       now,
+      branchId: 'ss15',
       number: 2287,
       customer: 'Farah Idris',
       phone: '012-345 6789',
@@ -34,13 +36,14 @@ List<Order> _ss15Orders(DateTime now) {
       location: const LatLng(3.0771, 101.5848),
       note: 'Please ring the bell twice.',
       items: const [
-        OrderItem(name: 'Fresh milk 1L', quantity: 2, unitPrice: 7.90),
-        OrderItem(name: 'Wholemeal bread', quantity: 1, unitPrice: 4.50),
-        OrderItem(name: 'Eggs (10)', quantity: 1, unitPrice: 6.80),
+        _Line(name: 'Fresh milk 1L', quantity: 2, unitPrice: 7.90),
+        _Line(name: 'Wholemeal bread', quantity: 1, unitPrice: 4.50),
+        _Line(name: 'Eggs (10)', quantity: 1, unitPrice: 6.80),
       ],
     ),
     _order(
       now,
+      branchId: 'ss15',
       number: 2293,
       customer: 'Wong Kar Yee',
       phone: '016-221 4480',
@@ -49,12 +52,13 @@ List<Order> _ss15Orders(DateTime now) {
       minutesInStatus: 6,
       isDelivery: false,
       items: const [
-        OrderItem(name: 'Jasmine rice 5kg', quantity: 1, unitPrice: 28.90),
-        OrderItem(name: 'Cooking oil 2kg', quantity: 1, unitPrice: 17.50),
+        _Line(name: 'Jasmine rice 5kg', quantity: 1, unitPrice: 28.90),
+        _Line(name: 'Cooking oil 2kg', quantity: 1, unitPrice: 17.50),
       ],
     ),
     _order(
       now,
+      branchId: 'ss15',
       number: 2294,
       customer: 'Nur Aisyah',
       phone: '013-778 9021',
@@ -64,12 +68,13 @@ List<Order> _ss15Orders(DateTime now) {
       address: 'B-10-3, Subang Avenue, Subang Jaya',
       location: const LatLng(3.0812, 101.5855),
       items: const [
-        OrderItem(name: 'Bananas (bunch)', quantity: 1, unitPrice: 5.20),
-        OrderItem(name: 'Greek yogurt', quantity: 3, unitPrice: 4.90),
+        _Line(name: 'Bananas (bunch)', quantity: 1, unitPrice: 5.20),
+        _Line(name: 'Greek yogurt', quantity: 3, unitPrice: 4.90),
       ],
     ),
     _order(
       now,
+      branchId: 'ss15',
       number: 2291,
       customer: 'Mei Ling Tan',
       phone: '017-909 1123',
@@ -80,14 +85,15 @@ List<Order> _ss15Orders(DateTime now) {
       location: const LatLng(3.0795, 101.5960),
       worker: 'Daniel',
       items: const [
-        OrderItem(name: 'Chicken breast 500g', quantity: 2, unitPrice: 11.90),
-        OrderItem(name: 'Broccoli', quantity: 1, unitPrice: 6.40),
-        OrderItem(name: 'Soy sauce', quantity: 1, unitPrice: 5.90),
-        OrderItem(name: 'Tofu', quantity: 2, unitPrice: 2.80),
+        _Line(name: 'Chicken breast 500g', quantity: 2, unitPrice: 11.90),
+        _Line(name: 'Broccoli', quantity: 1, unitPrice: 6.40),
+        _Line(name: 'Soy sauce', quantity: 1, unitPrice: 5.90),
+        _Line(name: 'Tofu', quantity: 2, unitPrice: 2.80),
       ],
     ),
     _order(
       now,
+      branchId: 'ss15',
       number: 2288,
       customer: 'David Wong',
       phone: '019-334 5567',
@@ -98,13 +104,14 @@ List<Order> _ss15Orders(DateTime now) {
       location: const LatLng(3.0625, 101.5912),
       worker: 'Hakim',
       items: const [
-        OrderItem(name: 'Oat milk 1L', quantity: 2, unitPrice: 12.90),
-        OrderItem(name: 'Granola', quantity: 1, unitPrice: 15.90),
-        OrderItem(name: 'Blueberries', quantity: 1, unitPrice: 13.50),
+        _Line(name: 'Oat milk 1L', quantity: 2, unitPrice: 12.90),
+        _Line(name: 'Granola', quantity: 1, unitPrice: 15.90),
+        _Line(name: 'Blueberries', quantity: 1, unitPrice: 13.50),
       ],
     ),
     _order(
       now,
+      branchId: 'ss15',
       number: 2289,
       customer: 'Siti Aminah',
       phone: '011-2345 6780',
@@ -114,12 +121,13 @@ List<Order> _ss15Orders(DateTime now) {
       isDelivery: false,
       worker: 'Daniel',
       items: const [
-        OrderItem(name: 'Instant noodles (5)', quantity: 2, unitPrice: 4.80),
-        OrderItem(name: 'Dish soap', quantity: 1, unitPrice: 6.90),
+        _Line(name: 'Instant noodles (5)', quantity: 2, unitPrice: 4.80),
+        _Line(name: 'Dish soap', quantity: 1, unitPrice: 6.90),
       ],
     ),
     _order(
       now,
+      branchId: 'ss15',
       number: 2292,
       customer: 'Ooi Hui Min',
       phone: '012-618 3390',
@@ -130,12 +138,13 @@ List<Order> _ss15Orders(DateTime now) {
       location: const LatLng(3.0815, 101.5820),
       worker: 'Bryan',
       items: const [
-        OrderItem(name: 'Fresh milk 1L', quantity: 1, unitPrice: 7.90),
-        OrderItem(name: 'Apples (6)', quantity: 1, unitPrice: 9.90),
+        _Line(name: 'Fresh milk 1L', quantity: 1, unitPrice: 7.90),
+        _Line(name: 'Apples (6)', quantity: 1, unitPrice: 9.90),
       ],
     ),
     _order(
       now,
+      branchId: 'ss15',
       number: 2284,
       customer: 'Ahmad Fauzi',
       phone: '019-870 2215',
@@ -146,12 +155,13 @@ List<Order> _ss15Orders(DateTime now) {
       location: const LatLng(3.0475, 101.5830),
       worker: 'Hakim',
       items: const [
-        OrderItem(name: 'Jasmine rice 5kg', quantity: 1, unitPrice: 28.90),
-        OrderItem(name: 'Eggs (10)', quantity: 2, unitPrice: 6.80),
+        _Line(name: 'Jasmine rice 5kg', quantity: 1, unitPrice: 28.90),
+        _Line(name: 'Eggs (10)', quantity: 2, unitPrice: 6.80),
       ],
     ),
     _order(
       now,
+      branchId: 'ss15',
       number: 2290,
       customer: 'Raj Kumar',
       phone: '012-887 4410',
@@ -163,13 +173,14 @@ List<Order> _ss15Orders(DateTime now) {
       driverId: 'w7',
       worker: 'Amir',
       items: const [
-        OrderItem(name: 'Basmati rice 2kg', quantity: 1, unitPrice: 19.90),
-        OrderItem(name: 'Onions 1kg', quantity: 1, unitPrice: 4.20),
-        OrderItem(name: 'Tomatoes 500g', quantity: 2, unitPrice: 3.60),
+        _Line(name: 'Basmati rice 2kg', quantity: 1, unitPrice: 19.90),
+        _Line(name: 'Onions 1kg', quantity: 1, unitPrice: 4.20),
+        _Line(name: 'Tomatoes 500g', quantity: 2, unitPrice: 3.60),
       ],
     ),
     _order(
       now,
+      branchId: 'ss15',
       number: 2285,
       customer: 'Chong Wei Ling',
       phone: '018-556 7732',
@@ -181,12 +192,13 @@ List<Order> _ss15Orders(DateTime now) {
       driverId: 'w8',
       worker: 'Firdaus',
       items: const [
-        OrderItem(name: 'Mineral water 1.5L', quantity: 6, unitPrice: 1.80),
-        OrderItem(name: 'Potato chips', quantity: 2, unitPrice: 5.50),
+        _Line(name: 'Mineral water 1.5L', quantity: 6, unitPrice: 1.80),
+        _Line(name: 'Potato chips', quantity: 2, unitPrice: 5.50),
       ],
     ),
     _order(
       now,
+      branchId: 'ss15',
       number: 2286,
       customer: 'Wei Ming',
       phone: '016-903 2218',
@@ -196,12 +208,13 @@ List<Order> _ss15Orders(DateTime now) {
       address: '17, Jalan SS14/8, Subang Jaya',
       worker: 'Amir',
       items: const [
-        OrderItem(name: 'Salmon fillet', quantity: 1, unitPrice: 24.90),
-        OrderItem(name: 'Lemon', quantity: 2, unitPrice: 1.50),
+        _Line(name: 'Salmon fillet', quantity: 1, unitPrice: 24.90),
+        _Line(name: 'Lemon', quantity: 2, unitPrice: 1.50),
       ],
     ),
     _order(
       now,
+      branchId: 'ss15',
       number: 2283,
       customer: 'Lim H.',
       phone: '012-600 1934',
@@ -211,7 +224,7 @@ List<Order> _ss15Orders(DateTime now) {
       isDelivery: false,
       worker: 'Firdaus',
       items: const [
-        OrderItem(name: 'Coffee beans 250g', quantity: 1, unitPrice: 32),
+        _Line(name: 'Coffee beans 250g', quantity: 1, unitPrice: 32),
       ],
     ),
   ];
@@ -221,6 +234,7 @@ List<Order> _bukitJalilOrders(DateTime now) {
   return [
     _order(
       now,
+      branchId: 'bukit-jalil',
       number: 1176,
       customer: 'Priya Nair',
       phone: '012-411 9087',
@@ -230,12 +244,13 @@ List<Order> _bukitJalilOrders(DateTime now) {
       address: 'C-12-7, The Park Sky Residence, Bukit Jalil',
       location: const LatLng(3.0560, 101.6800),
       items: const [
-        OrderItem(name: 'Paneer 200g', quantity: 2, unitPrice: 9.90),
-        OrderItem(name: 'Spinach', quantity: 1, unitPrice: 3.50),
+        _Line(name: 'Paneer 200g', quantity: 2, unitPrice: 9.90),
+        _Line(name: 'Spinach', quantity: 1, unitPrice: 3.50),
       ],
     ),
     _order(
       now,
+      branchId: 'bukit-jalil',
       number: 1177,
       customer: 'Kelvin Lim',
       phone: '017-320 5546',
@@ -245,12 +260,13 @@ List<Order> _bukitJalilOrders(DateTime now) {
       isDelivery: false,
       worker: 'Hafiz',
       items: const [
-        OrderItem(name: 'Cereal', quantity: 1, unitPrice: 14.90),
-        OrderItem(name: 'Fresh milk 1L', quantity: 1, unitPrice: 7.90),
+        _Line(name: 'Cereal', quantity: 1, unitPrice: 14.90),
+        _Line(name: 'Fresh milk 1L', quantity: 1, unitPrice: 7.90),
       ],
     ),
     _order(
       now,
+      branchId: 'bukit-jalil',
       number: 1179,
       customer: 'Lee Mei Fong',
       phone: '017-554 0921',
@@ -261,12 +277,13 @@ List<Order> _bukitJalilOrders(DateTime now) {
       location: const LatLng(3.0505, 101.6745),
       worker: 'Hafiz',
       items: const [
-        OrderItem(name: 'Chicken wings 1kg', quantity: 1, unitPrice: 15.90),
-        OrderItem(name: 'Potatoes 1kg', quantity: 1, unitPrice: 5.40),
+        _Line(name: 'Chicken wings 1kg', quantity: 1, unitPrice: 15.90),
+        _Line(name: 'Potatoes 1kg', quantity: 1, unitPrice: 5.40),
       ],
     ),
     _order(
       now,
+      branchId: 'bukit-jalil',
       number: 1178,
       customer: 'Nurul Huda',
       phone: '013-998 2204',
@@ -278,12 +295,13 @@ List<Order> _bukitJalilOrders(DateTime now) {
       driverId: 'w9',
       worker: 'Wei Jie',
       items: const [
-        OrderItem(name: 'Diapers (M)', quantity: 1, unitPrice: 45.90),
-        OrderItem(name: 'Baby wipes', quantity: 2, unitPrice: 8.50),
+        _Line(name: 'Diapers (M)', quantity: 1, unitPrice: 45.90),
+        _Line(name: 'Baby wipes', quantity: 2, unitPrice: 8.50),
       ],
     ),
     _order(
       now,
+      branchId: 'bukit-jalil',
       number: 1175,
       customer: 'Tan Boon Huat',
       phone: '019-205 6671',
@@ -292,9 +310,7 @@ List<Order> _bukitJalilOrders(DateTime now) {
       minutesInStatus: 25,
       isDelivery: false,
       worker: 'Hafiz',
-      items: const [
-        OrderItem(name: 'Eggs (30)', quantity: 1, unitPrice: 17.50),
-      ],
+      items: const [_Line(name: 'Eggs (30)', quantity: 1, unitPrice: 17.50)],
     ),
   ];
 }
@@ -303,6 +319,7 @@ List<Order> _puchongOrders(DateTime now) {
   return [
     _order(
       now,
+      branchId: 'puchong',
       number: 904,
       customer: 'Aisyah Rahman',
       phone: '011-1090 4432',
@@ -313,12 +330,13 @@ List<Order> _puchongOrders(DateTime now) {
       location: const LatLng(3.0225, 101.6110),
       worker: 'Syafiq',
       items: const [
-        OrderItem(name: 'Brown rice 2kg', quantity: 1, unitPrice: 16.90),
-        OrderItem(name: 'Canned tuna', quantity: 3, unitPrice: 6.20),
+        _Line(name: 'Brown rice 2kg', quantity: 1, unitPrice: 16.90),
+        _Line(name: 'Canned tuna', quantity: 3, unitPrice: 6.20),
       ],
     ),
     _order(
       now,
+      branchId: 'puchong',
       number: 905,
       customer: 'Muthu Krishnan',
       phone: '012-702 6618',
@@ -329,12 +347,13 @@ List<Order> _puchongOrders(DateTime now) {
       location: const LatLng(3.0400, 101.6200),
       worker: 'Syafiq',
       items: const [
-        OrderItem(name: 'Atta flour 2kg', quantity: 1, unitPrice: 11.50),
-        OrderItem(name: 'Ghee 400g', quantity: 1, unitPrice: 18.90),
+        _Line(name: 'Atta flour 2kg', quantity: 1, unitPrice: 11.50),
+        _Line(name: 'Ghee 400g', quantity: 1, unitPrice: 18.90),
       ],
     ),
     _order(
       now,
+      branchId: 'puchong',
       number: 903,
       customer: 'Jun Hao Lee',
       phone: '016-447 1290',
@@ -344,24 +363,47 @@ List<Order> _puchongOrders(DateTime now) {
       isDelivery: false,
       worker: 'Syafiq',
       items: const [
-        OrderItem(name: 'Orange juice 1L', quantity: 2, unitPrice: 8.90),
-        OrderItem(name: 'Croissants (4)', quantity: 1, unitPrice: 9.50),
+        _Line(name: 'Orange juice 1L', quantity: 2, unitPrice: 8.90),
+        _Line(name: 'Croissants (4)', quantity: 1, unitPrice: 9.50),
       ],
     ),
   ];
 }
 
-/// Builds one sample order. Fills in the parts that follow from the rest
-/// (delivery fee, paid or not, timeline) so the lists above stay short.
+/// One product line as written in the sample lists below. Turned into a
+/// full [OrderItem] by [_order].
+class _Line {
+  const _Line({
+    required this.name,
+    required this.quantity,
+    required this.unitPrice,
+  });
+
+  final String name;
+  final int quantity;
+  final double unitPrice;
+}
+
+/// Branch names for the sample branches.
+const _branchNames = {
+  'ss15': 'SS15 Subang',
+  'bukit-jalil': 'Bukit Jalil',
+  'puchong': 'Puchong',
+};
+
+/// Builds one sample order in the shared [Order] contract. Fills in the
+/// parts that follow from the rest (ids, money, and the timestamps of each
+/// step) so the lists above stay short.
 Order _order(
   DateTime now, {
+  required String branchId,
   required int number,
   required String customer,
   required String phone,
   required OrderStatus status,
   required int placedMinutesAgo,
   required int minutesInStatus,
-  required List<OrderItem> items,
+  required List<_Line> items,
   bool isDelivery = true,
   String? address,
   LatLng? location,
@@ -372,59 +414,76 @@ Order _order(
   final placedAt = now.subtract(Duration(minutes: placedMinutesAgo));
   final statusSince = now.subtract(Duration(minutes: minutesInStatus));
 
-  return Order(
-    number: number,
-    customerName: customer,
-    customerPhone: phone,
-    status: status,
-    statusSince: statusSince,
-    isDelivery: isDelivery,
-    address: address,
-    location: location,
-    customerNote: note,
-    items: items,
-    deliveryFee: isDelivery ? 5.00 : 0,
-    assignedWorker: worker,
-    driverId: driverId,
-    timeline: _timeline(
-      placedAt: placedAt,
-      statusSince: statusSince,
-      status: status,
-      isDelivery: isDelivery,
-      worker: worker,
-    ),
-  );
-}
-
-/// The steps an order has gone through to reach [status], spread evenly
-/// between when it was placed and when it reached that status.
-List<OrderEvent> _timeline({
-  required DateTime placedAt,
-  required DateTime statusSince,
-  required OrderStatus status,
-  required bool isDelivery,
-  String? worker,
-}) {
-  // Pickup orders skip "Out for delivery".
-  final steps = [
-    (OrderStatus.pending, 'Order placed'),
-    (OrderStatus.packing, 'Packing started'),
-    (OrderStatus.ready, isDelivery ? 'Ready for delivery' : 'Ready for pickup'),
-    if (isDelivery) (OrderStatus.outForDelivery, 'Out for delivery'),
-    (OrderStatus.completed, isDelivery ? 'Delivered' : 'Picked up'),
+  final lines = [
+    for (final (index, line) in items.indexed)
+      OrderItem(
+        lineId: 'L${index + 1}',
+        productId: 'sample-${line.name.toLowerCase().replaceAll(' ', '-')}',
+        name: line.name,
+        brand: '',
+        packSize: '',
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
+      ),
   ];
+  final subtotal = lines.fold<double>(0, (sum, line) => sum + line.lineTotal);
+  final deliveryFee = isDelivery ? 5.00 : 0.0;
 
-  final stepsDone = steps.indexWhere((step) => step.$1 == status) + 1;
+  // The steps an order has gone through to reach [status], spread evenly
+  // between when it was placed and when it reached that status. Pickup
+  // orders skip "out for delivery".
+  final steps = [
+    OrderStatus.pending,
+    OrderStatus.packing,
+    OrderStatus.ready,
+    if (isDelivery) OrderStatus.outForDelivery,
+    OrderStatus.completed,
+  ];
+  final stepsDone = steps.indexOf(status) + 1;
   final timeBetweenSteps =
       statusSince.difference(placedAt) ~/ math.max(1, stepsDone - 1);
 
-  return [
-    for (var i = 0; i < stepsDone; i++)
-      OrderEvent(
-        title: steps[i].$2,
-        time: placedAt.add(timeBetweenSteps * i),
-        // The customer places the order; staff do every step after that.
-        by: i == 0 ? null : worker,
-      ),
-  ];
+  // When step [step] (an index into [steps]) happened, or null if the
+  // order has not got that far.
+  DateTime? stepTime(OrderStatus step) {
+    final index = steps.indexOf(step);
+    if (index == -1 || index >= stepsDone) return null;
+    return placedAt.add(timeBetweenSteps * index);
+  }
+
+  // A delivery order that has a driver was handed to them when it became
+  // ready; the worker named in the list is the driver. Otherwise the
+  // worker is the packer.
+  final hasDriver = driverId != null;
+  final readyAt = stepTime(OrderStatus.ready);
+
+  return Order(
+    id: 'ord-$number',
+    number: number,
+    customerId: 'sample-customer-$number',
+    customerName: customer,
+    customerPhone: phone,
+    branchId: branchId,
+    branchName: _branchNames[branchId] ?? branchId,
+    isDelivery: isDelivery,
+    items: lines,
+    subtotal: subtotal,
+    deliveryFee: deliveryFee,
+    discount: 0,
+    total: subtotal + deliveryFee,
+    status: status,
+    address: address,
+    addressLocation: location,
+    customerNote: note,
+    placedAt: placedAt,
+    statusSince: statusSince,
+    packerName: hasDriver ? null : worker,
+    driverId: driverId,
+    driverName: hasDriver ? worker : null,
+    driverAssignedAt: hasDriver ? readyAt : null,
+    packingStartedAt: stepTime(OrderStatus.packing),
+    readyAt: readyAt,
+    outForDeliveryAt: stepTime(OrderStatus.outForDelivery),
+    completedAt: stepTime(OrderStatus.completed),
+  );
 }

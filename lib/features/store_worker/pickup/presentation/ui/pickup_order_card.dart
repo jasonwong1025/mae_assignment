@@ -3,20 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 
 /// Orders due within this many minutes are highlighted in amber.
 const int _dueSoonMinutes = 15;
 
 /// Who packed [order], as shown to the worker with [workerId].
-String packedByText(WorkerOrder order, String workerId) {
+String packedByText(Order order, String workerId) {
   return order.packerId == workerId
       ? 'Packed by you'
       : 'Packed by ${order.packerName}';
 }
 
 /// Minutes since [order] became ready, never negative.
-int minutesReady(WorkerOrder order) {
+int minutesReady(Order order) {
   final readyAt = order.readyAt;
   return readyAt == null ? 0 : Formatters.minutesSince(readyAt);
 }
@@ -37,7 +37,7 @@ class PickupOrderCard extends StatelessWidget {
     this.onTap,
   });
 
-  final WorkerOrder order;
+  final Order order;
 
   /// Line under the name, e.g. "Driver: Amir Hamzah". Null: no line.
   final String? detail;

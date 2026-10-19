@@ -1,10 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/mock_worker_orders.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/worker_order_policy.dart';
 import 'package:mae_assignment/features/store_worker/session/data/mock_workers.dart';
 import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
+import 'package:mae_assignment/shared/models/verification_method.dart';
 
 WorkerProfile _worker(String name) {
   return mockWorkerProfiles.firstWhere((worker) => worker.name == name);
@@ -17,16 +18,16 @@ final WorkerProfile _nadia = _worker('Nadia Yusof');
 final WorkerProfile _hafiz = _worker('Hafiz Zainal');
 final WorkerProfile _weiJie = _worker('Tan Wei Jie');
 
-final List<WorkerOrder> _orders = seedWorkerOrders(DateTime(2026, 10, 15, 12));
+final List<Order> _orders = seedWorkerOrders(DateTime(2026, 10, 15, 12));
 
-WorkerOrder _order(String id) {
+Order _order(String id) {
   return _orders.firstWhere((order) => order.id == id);
 }
 
 /// Ids of the seed orders [worker] may see under [canView].
 Set<String> _visible(
   WorkerProfile worker,
-  bool Function(WorkerProfile, WorkerOrder) canView,
+  bool Function(WorkerProfile, Order) canView,
 ) {
   return {
     for (final order in _orders)
@@ -126,7 +127,7 @@ void main() {
     });
   });
 
-  group('WorkerOrder', () {
+  group('Order', () {
     test('packing progress comes from the checklist', () {
       final order = _order('ord-2302');
       expect(order.packedLineCount, 2);

@@ -1,22 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 
 final packingTasksViewModelProvider =
-    StreamNotifierProvider.autoDispose<
-      PackingTasksViewModel,
-      List<WorkerOrder>
-    >(PackingTasksViewModel.new);
+    StreamNotifierProvider.autoDispose<PackingTasksViewModel, List<Order>>(
+      PackingTasksViewModel.new,
+    );
 
 /// State for My Tasks: the orders the signed-in packer has to pack.
 /// - AsyncLoading: waiting for the first list
 /// - AsyncData: the latest list, next order first; replaced on every change
 /// - AsyncError: loading failed
-class PackingTasksViewModel extends StreamNotifier<List<WorkerOrder>> {
+class PackingTasksViewModel extends StreamNotifier<List<Order>> {
   @override
-  Stream<List<WorkerOrder>> build() async* {
+  Stream<List<Order>> build() async* {
     // Watching the session means this starts again for a new worker.
     final worker = ref.watch(workerSessionProvider);
     if (worker == null) {

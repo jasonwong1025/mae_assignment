@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/qr_scanner_page.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
 
 /// Sheet where the driver scans the QR code on the bag label, or types
@@ -14,7 +14,7 @@ import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
 /// This only catches picking up the wrong bag; it is not a security check.
 Future<bool> showVerifyOrderSheet(
   BuildContext context, {
-  required WorkerOrder order,
+  required Order order,
   required Future<String?> Function(String typedCode) onVerify,
   required Future<String?> Function(String scannedCode) onScan,
 }) async {
@@ -35,7 +35,7 @@ class _VerifyOrderSheet extends StatefulWidget {
     required this.onScan,
   });
 
-  final WorkerOrder order;
+  final Order order;
   final Future<String?> Function(String typedCode) onVerify;
   final Future<String?> Function(String scannedCode) onScan;
 

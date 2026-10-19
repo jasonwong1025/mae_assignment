@@ -75,6 +75,16 @@ describe("placing orders", () => {
     await assertFails(setDoc(doc(db, "orders", "o-jump"), forged));
   });
 
+  test("a customer cannot create an order carrying fulfilment fields", async () => {
+    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
+    await assertFails(
+      setDoc(doc(db, "orders", "o-sneaky"), {
+        ...orderFor(ALICE.uid),
+        packerId: "w1",
+      })
+    );
+  });
+
   test("a guest cannot create an order", async () => {
     const db = firestoreForGuest(testEnv);
     await assertFails(
@@ -110,6 +120,74 @@ describe("updating orders", () => {
     const db = firestoreForUser(testEnv, WORKER.uid, WORKER.email);
     await assertSucceeds(
       updateDoc(doc(db, "orders", "o-alice"), { status: "packing" })
+    );
+  });
+
+  test("a worker can record fulfilment fields with the status", async () => {
+    const db = firestoreForUser(testEnv, WORKER.uid, WORKER.email);
+    await assertSucceeds(
+      updateDoc(doc(db, "orders", "o-alice"), {
+        status: "packing",
+        statusSince: serverTimestamp(),
+        packedLineIds: ["L1"],
+        packingStartedAt: serverTimestamp(),
+      })
+    );
+  });
+
+  test("a worker cannot change checkout fields", async () => {
+    const db = firestoreForUser(testEnv, WORKER.uid, WORKER.email);
+    await assertFails(
+      updateDoc(doc(db, "orders", "o-alice"), { total: 0.01 })
+    );
+    await assertFails(
+      updateDoc(doc(db, "orders", "o-alice"), { customerId: WORKER.uid })
+    );
+  });
+
+  test("a worker cannot assign packers or drivers", async () => {
+    const db = firestoreForUser(testEnv, WORKER.uid, WORKER.email);
+    await assertFails(
+      updateDoc(doc(db, "orders", "o-alice"), { driverId: WORKER.uid })
+    );
+  });
+
+  test("a worker cannot set an unknown status", async () => {
+    const db = firestoreForUser(testEnv, WORKER.uid, WORKER.email);
+    await assertFails(
+      updateDoc(doc(db, "orders", "o-alice"), { status: "teleported" })
+    );
+  });
+
+  test("an admin can assign a driver and a packer", async () => {
+    const db = firestoreForUser(testEnv, ADMIN.uid, ADMIN.email);
+    await assertSucceeds(
+      updateDoc(doc(db, "orders", "o-alice"), {
+        driverId: "w7",
+        driverName: "Amir",
+        driverAssignedAt: serverTimestamp(),
+        packerId: "w1",
+        packerName: "Daniel",
+        packerAssignedAt: serverTimestamp(),
+        dueAt: serverTimestamp(),
+      })
+    );
+  });
+
+  test("an admin cannot change checkout fields", async () => {
+    const db = firestoreForUser(testEnv, ADMIN.uid, ADMIN.email);
+    await assertFails(
+      updateDoc(doc(db, "orders", "o-alice"), { total: 0.01 })
+    );
+    await assertFails(
+      updateDoc(doc(db, "orders", "o-alice"), { items: [{ productId: "p9", quantity: 1 }] })
+    );
+  });
+
+  test("an admin cannot write the worker's fulfilment fields", async () => {
+    const db = firestoreForUser(testEnv, ADMIN.uid, ADMIN.email);
+    await assertFails(
+      updateDoc(doc(db, "orders", "o-alice"), { proofPhotoUrl: "https://x" })
     );
   });
 

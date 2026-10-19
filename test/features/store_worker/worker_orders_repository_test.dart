@@ -3,12 +3,13 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/session/data/mock_workers.dart';
 import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
+import 'package:mae_assignment/shared/models/verification_method.dart';
 
 WorkerProfile _worker(String name) {
   return mockWorkerProfiles.firstWhere((worker) => worker.name == name);
@@ -34,7 +35,7 @@ WorkerOrdersRepository _repository({Duration delay = Duration.zero}) {
   return repository;
 }
 
-List<String> _ids(List<WorkerOrder> orders) {
+List<String> _ids(List<Order> orders) {
   return orders.map((order) => order.id).toList();
 }
 
@@ -42,7 +43,7 @@ List<String> _ids(List<WorkerOrder> orders) {
 Future<void> _settle() => Future<void>.delayed(Duration.zero);
 
 /// Collects every list [stream] sends, as order ids.
-Future<List<List<String>>> _record(Stream<List<WorkerOrder>> stream) async {
+Future<List<List<String>>> _record(Stream<List<Order>> stream) async {
   final values = <List<String>>[];
   final subscription = stream.listen((orders) => values.add(_ids(orders)));
   addTearDown(subscription.cancel);
@@ -508,7 +509,7 @@ void main() {
 
     test('cancelling a subscription stops its updates', () async {
       final repository = _repository();
-      final values = <List<WorkerOrder>>[];
+      final values = <List<Order>>[];
       final subscription = repository
           .watchReadyForPickup(_daniel)
           .listen(values.add);

@@ -4,7 +4,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/dispatch_labels.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_state.dart';
-import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 
 /// OpenStreetMap with the branch, delivery addresses, drivers and their
 /// routes. Routes are straight lines until a routing service is added.
@@ -43,7 +43,7 @@ class _DispatchMapState extends State<DispatchMap> {
     final points = [
       state.branch.location,
       for (final order in state.deliveries)
-        if (order.location != null) order.location!,
+        if (order.addressLocation != null) order.addressLocation!,
       for (final driver in state.drivers)
         if (driver.order != null && driver.location != null)
           driver.location!.position,
@@ -103,9 +103,9 @@ class _DispatchMapState extends State<DispatchMap> {
             MarkerLayer(
               markers: [
                 for (final order in state.deliveries)
-                  if (order.location != null)
+                  if (order.addressLocation != null)
                     _pin(
-                      point: order.location!,
+                      point: order.addressLocation!,
                       icon: Icons.home_rounded,
                       color: deliveryColor(order),
                       label: '#${order.number}',

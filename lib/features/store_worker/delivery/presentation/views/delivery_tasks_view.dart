@@ -7,9 +7,9 @@ import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/delivery_order_card.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/view_models/delivery_tasks_view_model.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_scaffold.dart';
 import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
 
 /// Delivery Driver "My Deliveries" tab: assigned deliveries from any
@@ -22,7 +22,7 @@ class DeliveryTasksView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final deliveries = ref.watch(deliveryTasksViewModelProvider);
 
-    void openOrder(WorkerOrder order) {
+    void openOrder(Order order) {
       unawaited(context.push(AppRoutes.workerDeliveryOrder(order.id)));
     }
 
@@ -80,8 +80,8 @@ class DeliveryTasksView extends ConsumerWidget {
   List<Widget> _section(
     BuildContext context,
     String title,
-    List<WorkerOrder> orders,
-    void Function(WorkerOrder order) onTap,
+    List<Order> orders,
+    void Function(Order order) onTap,
   ) {
     if (orders.isEmpty) return const [];
     final textTheme = Theme.of(context).textTheme;

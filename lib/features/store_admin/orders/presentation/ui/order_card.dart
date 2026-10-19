@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
-import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/ui/fulfilment_tag.dart';
 
 /// One order on the board. Tapping it opens the order's details.
@@ -92,7 +92,7 @@ class OrderCard extends StatelessWidget {
                   const SizedBox(width: 2),
                   Flexible(
                     child: Text(
-                      order.assignedWorker ?? 'Unassigned',
+                      order.handledBy ?? 'Unassigned',
                       style: textTheme.bodySmall,
                       overflow: TextOverflow.ellipsis,
                     ),

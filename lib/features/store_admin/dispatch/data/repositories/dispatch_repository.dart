@@ -4,9 +4,10 @@ import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver.
 import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver_location.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/sample_drivers.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/services/driver_location_service.dart';
-import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
 import 'package:mae_assignment/features/store_admin/orders/data/repositories/orders_repository.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
+import 'package:mae_assignment/shared/models/order.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 
 final driverLocationServiceProvider = Provider<DriverLocationService>((ref) {
   final service = DriverLocationService();
@@ -68,7 +69,7 @@ class DispatchRepository {
     if (!driver.isOnDuty || driver.currentOrderNumber != null) {
       throw DispatchException('${driver.name} is not free any more.');
     }
-    if (order.location == null) {
+    if (order.addressLocation == null) {
       throw const DispatchException('This order has no address on the map.');
     }
 
@@ -98,7 +99,7 @@ class DispatchRepository {
     // On the road: collect it from the old driver, then deliver.
     _locations.setStops(driver.id, [
       oldDriverLocation?.position ?? branch.location,
-      order.location!,
+      order.addressLocation!,
     ]);
   }
 

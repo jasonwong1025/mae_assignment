@@ -12,9 +12,9 @@ import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/ex
 import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/proof_of_delivery_sheet.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/verify_order_sheet.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/view_models/delivery_detail_view_model.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_notice.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/ui/bottom_action_bar.dart';
 import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
@@ -60,7 +60,7 @@ class _DeliveryDetailViewState extends ConsumerState<DeliveryDetailView> {
 
   /// No message on success: the stepper, notice and button already change
   /// to "verified", and a SnackBar would cover the Start delivery button.
-  Future<void> _verify(WorkerOrder order) async {
+  Future<void> _verify(Order order) async {
     await showVerifyOrderSheet(
       context,
       order: order,
@@ -77,7 +77,7 @@ class _DeliveryDetailViewState extends ConsumerState<DeliveryDetailView> {
     if (error != null) _showMessage(error);
   }
 
-  Future<void> _completeDelivery(WorkerOrder order) async {
+  Future<void> _completeDelivery(Order order) async {
     // A photo is required: proof for disputes and contactless drop-offs.
     final photo = await showProofOfDeliverySheet(context, order: order);
     if (photo == null || !mounted) return;
@@ -97,13 +97,13 @@ class _DeliveryDetailViewState extends ConsumerState<DeliveryDetailView> {
 
   /// True until the driver starts the delivery: Navigate leads to the
   /// branch the bag is collected from, not to the customer.
-  bool _collectsFirst(WorkerOrder order) =>
+  bool _collectsFirst(Order order) =>
       order.status == OrderStatus.pending ||
       order.status == OrderStatus.packing ||
       order.status == OrderStatus.ready;
 
   /// The pickup branch before collection, the customer's address after.
-  String? _navigationTarget(WorkerOrder order) {
+  String? _navigationTarget(Order order) {
     if (_collectsFirst(order)) {
       return order.branchAddress ?? 'Grocerly ${order.branchName}';
     }
@@ -213,7 +213,7 @@ class _DeliveryContent extends StatelessWidget {
     required this.onBack,
   });
 
-  final WorkerOrder order;
+  final Order order;
   final String workerId;
   final bool isBusy;
   final VoidCallback onCall;
@@ -263,7 +263,7 @@ class _DeliveryContent extends StatelessWidget {
                 onNavigate: onNavigate,
                 navigateLabel: navigateLabel,
               ),
-              if (order.proofPhoto != null) ...[
+              if (order.proofPhotoUrl != null) ...[
                 const SizedBox(height: AppSpacing.l),
                 _ProofCard(order: order),
               ],
@@ -292,10 +292,10 @@ class _DeliveryContent extends StatelessWidget {
 class _StatusNotice extends StatelessWidget {
   const _StatusNotice({required this.order, required this.workerId});
 
-  final WorkerOrder order;
+  final Order order;
   final String workerId;
 
-  static bool isShown(WorkerOrder order, String workerId) {
+  static bool isShown(Order order, String workerId) {
     return switch (order.status) {
       OrderStatus.ready => order.collectionVerifiedBy != workerId,
       OrderStatus.completed || OrderStatus.cancelled => true,
@@ -342,7 +342,7 @@ class _CustomerCard extends StatelessWidget {
     required this.navigateLabel,
   });
 
-  final WorkerOrder order;
+  final Order order;
   final VoidCallback onCall;
   final VoidCallback? onNavigate;
   final String navigateLabel;
@@ -467,7 +467,7 @@ class _CustomerCard extends StatelessWidget {
 class _ItemsSection extends StatelessWidget {
   const _ItemsSection({required this.order});
 
-  final WorkerOrder order;
+  final Order order;
 
   @override
   Widget build(BuildContext context) {
@@ -507,13 +507,15 @@ class _ItemsSection extends StatelessWidget {
 }
 
 /// The proof of delivery photo.
-class _ProofCard extends StatelessWidget {
+class _ProofCard extends ConsumerWidget {
   const _ProofCard({required this.order});
 
-  final WorkerOrder order;
+  final Order order;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final photo = ref.watch(proofPhotoProvider(order.id));
+    if (photo == null) return const SizedBox.shrink();
     final textTheme = Theme.of(context).textTheme;
     final labelStyle = textTheme.bodySmall?.copyWith(
       fontWeight: FontWeight.w700,
@@ -544,7 +546,7 @@ class _ProofCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.s),
-            ExpandablePhoto(photo: order.proofPhoto!, borderRadius: 8),
+            ExpandablePhoto(photo: photo, borderRadius: 8),
           ],
         ),
       ),
@@ -556,7 +558,7 @@ class _ProofCard extends StatelessWidget {
 class _ItemRow extends StatelessWidget {
   const _ItemRow({required this.item});
 
-  final WorkerOrderItem item;
+  final OrderItem item;
 
   @override
   Widget build(BuildContext context) {
@@ -598,7 +600,7 @@ class _ActionBar extends StatelessWidget {
     required this.onBack,
   });
 
-  final WorkerOrder order;
+  final Order order;
   final String workerId;
   final bool isBusy;
   final VoidCallback onVerify;

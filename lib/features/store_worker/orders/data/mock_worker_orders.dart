@@ -1,6 +1,7 @@
 import 'package:mae_assignment/features/store_admin/inventory/data/sample_inventory.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
+import 'package:mae_assignment/shared/models/verification_method.dart';
 
 /// Sample orders for the Store Worker preview, used while the backend is
 /// not connected. Times are worked out from [now], so the lists always
@@ -14,7 +15,7 @@ import 'package:mae_assignment/shared/models/order_status.dart';
 ///   Bukit Jalil orders).
 ///
 // TODO(team): delete once orders come from the backend.
-List<WorkerOrder> seedWorkerOrders(DateTime now) {
+List<Order> seedWorkerOrders(DateTime now) {
   DateTime ago(int minutes) => now.subtract(Duration(minutes: minutes));
 
   // [days] days back, [minutes] before this time of day; for My history.
@@ -39,7 +40,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
 
     // Daniel: pending delivery for Wei Jie (a cross-branch driver), who
     // sees it as "being packed".
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-2301',
       number: 2301,
       branchId: _ss15,
@@ -69,7 +70,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
 
     // Daniel: pickup being packed, 2 of 5 lines ticked. Includes two
     // milks that look alike (Farm Fresh milk and Oatside oat milk, both 1L).
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-2302',
       number: 2302,
       branchId: _ss15,
@@ -97,7 +98,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
     ),
 
     // Daniel: delivery being packed, 3 of 4 lines ticked. Amir's.
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-2303',
       number: 2303,
       branchId: _ss15,
@@ -128,7 +129,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
     ),
 
     // Hakim: pending pickup. Daniel must not see it in My Tasks.
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-2304',
       number: 2304,
       branchId: _ss15,
@@ -148,7 +149,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
     ),
 
     // Ready pickup packed by Daniel.
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-2305',
       number: 2305,
       branchId: _ss15,
@@ -172,7 +173,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
     ),
 
     // Ready pickup packed by Hakim. Daniel can still hand it over.
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-2306',
       number: 2306,
       branchId: _ss15,
@@ -200,7 +201,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
     ),
 
     // Pickup packed by Hakim, handed over by Daniel.
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-2307',
       number: 2307,
       branchId: _ss15,
@@ -228,7 +229,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
     ),
 
     // Ready delivery packed by Hakim, waiting for Amir to verify.
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-2308',
       number: 2308,
       branchId: _ss15,
@@ -257,7 +258,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
     ),
 
     // Out for delivery with Amir (verified by QR).
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-2309',
       number: 2309,
       branchId: _ss15,
@@ -289,7 +290,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
     ),
 
     // Delivered by Amir.
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-2310',
       number: 2310,
       branchId: _ss15,
@@ -324,7 +325,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
     ),
 
     // Cancelled by HQ before packing started. Assigned to Daniel.
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-2311',
       number: 2311,
       branchId: _ss15,
@@ -341,13 +342,12 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
       packerId: _daniel,
       packerName: _danielName,
       packerAssignedAt: ago(38),
-      cancelledAt: ago(32),
     ),
 
     // ---------------- Bukit Jalil ----------------
 
     // Hafiz: pending delivery for Wei Jie.
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-1181',
       number: 1181,
       branchId: _bukitJalil,
@@ -374,7 +374,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
     ),
 
     // Hafiz: pickup being packed, 1 of 3 lines ticked.
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-1182',
       number: 1182,
       branchId: _bukitJalil,
@@ -400,7 +400,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
     ),
 
     // Ready pickup at Bukit Jalil. SS15 packers must never see it.
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-1183',
       number: 1183,
       branchId: _bukitJalil,
@@ -424,7 +424,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
     ),
 
     // Ready delivery for Amir: his Bukit Jalil job alongside his SS15 ones.
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-1184',
       number: 1184,
       branchId: _bukitJalil,
@@ -455,7 +455,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
     ),
 
     // Out for delivery with Wei Jie.
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-1185',
       number: 1185,
       branchId: _bukitJalil,
@@ -489,7 +489,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
     // ---------------- Earlier days (for My history) ----------------
 
     // Yesterday: pickup packed by Daniel, handed over by Hakim.
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-2280',
       number: 2280,
       branchId: _ss15,
@@ -517,7 +517,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
     ),
 
     // Yesterday: delivery packed by Hakim, delivered by Amir.
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-2281',
       number: 2281,
       branchId: _ss15,
@@ -552,7 +552,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
     ),
 
     // Three days ago: delivery packed by Daniel, delivered by Amir.
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-2275',
       number: 2275,
       branchId: _ss15,
@@ -591,7 +591,7 @@ List<WorkerOrder> seedWorkerOrders(DateTime now) {
     ),
 
     // Yesterday at Bukit Jalil: packed by Hafiz, delivered by Wei Jie.
-    WorkerOrder(
+    _workerOrder(
       id: 'ord-1170',
       number: 1170,
       branchId: _bukitJalil,
@@ -665,22 +665,112 @@ final _categoryNames = {
 };
 
 /// One order line for catalogue product [productId], priced at [branchId].
-WorkerOrderItem _item(
+OrderItem _item(
   String branchId,
   String lineId,
   String productId,
   int quantity,
 ) {
   final product = _catalogue[productId]!;
-  return WorkerOrderItem(
+  return OrderItem(
     lineId: lineId,
     productId: product.id,
     name: product.name,
     brand: product.brand,
     packSize: product.packSize,
     unitPrice: _prices['$branchId/$productId'] ?? 0,
+    categoryId: product.categoryId,
     category: _categoryNames[product.categoryId] ?? '',
     description: product.description,
     quantity: quantity,
+  );
+}
+
+/// Delivery fee on the sample delivery orders, in ringgit.
+const _sampleDeliveryFee = 3.0;
+
+/// Builds one sample order. The seed lists above only say what the Store
+/// Worker cares about; this fills in the checkout fields of the shared
+/// contract (customer id and the money) so every sample is a full [Order].
+Order _workerOrder({
+  required String id,
+  required int number,
+  required String branchId,
+  required String branchName,
+  required String branchAddress,
+  required String customerName,
+  required String customerPhone,
+  required bool isDelivery,
+  required List<OrderItem> items,
+  required OrderStatus status,
+  required DateTime placedAt,
+  required DateTime dueAt,
+  required DateTime statusSince,
+  required String packerId,
+  required String packerName,
+  required DateTime packerAssignedAt,
+  String? address,
+  String? customerNote,
+  Set<String> packedLineIds = const {},
+  String? driverId,
+  String? driverName,
+  DateTime? driverAssignedAt,
+  DateTime? packingStartedAt,
+  DateTime? readyAt,
+  String? readyBy,
+  VerificationMethod? pickupVerification,
+  String? pickupCompletedBy,
+  String? pickupCompletedByName,
+  VerificationMethod? collectionVerification,
+  String? collectionVerifiedBy,
+  DateTime? collectionVerifiedAt,
+  DateTime? outForDeliveryAt,
+  String? deliveredBy,
+  String? deliveredByName,
+  DateTime? completedAt,
+}) {
+  final subtotal = items.fold<double>(0, (sum, item) => sum + item.lineTotal);
+  final deliveryFee = isDelivery ? _sampleDeliveryFee : 0.0;
+  return Order(
+    id: id,
+    number: number,
+    customerId: 'mock-customer-$number',
+    customerName: customerName,
+    customerPhone: customerPhone,
+    branchId: branchId,
+    branchName: branchName,
+    branchAddress: branchAddress,
+    isDelivery: isDelivery,
+    items: items,
+    subtotal: subtotal,
+    deliveryFee: deliveryFee,
+    discount: 0,
+    total: subtotal + deliveryFee,
+    status: status,
+    address: address,
+    customerNote: customerNote,
+    placedAt: placedAt,
+    statusSince: statusSince,
+    dueAt: dueAt,
+    packerId: packerId,
+    packerName: packerName,
+    packerAssignedAt: packerAssignedAt,
+    driverId: driverId,
+    driverName: driverName,
+    driverAssignedAt: driverAssignedAt,
+    packedLineIds: packedLineIds,
+    packingStartedAt: packingStartedAt,
+    readyAt: readyAt,
+    readyBy: readyBy,
+    pickupVerification: pickupVerification,
+    pickupCompletedBy: pickupCompletedBy,
+    pickupCompletedByName: pickupCompletedByName,
+    collectionVerification: collectionVerification,
+    collectionVerifiedBy: collectionVerifiedBy,
+    collectionVerifiedAt: collectionVerifiedAt,
+    outForDeliveryAt: outForDeliveryAt,
+    deliveredBy: deliveredBy,
+    deliveredByName: deliveredByName,
+    completedAt: completedAt,
   );
 }

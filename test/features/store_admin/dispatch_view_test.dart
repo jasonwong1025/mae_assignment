@@ -86,7 +86,7 @@ void main() {
         (o) => o.number == 2292,
       );
       expect(updated.driverId, kumar.id);
-      expect(updated.assignedWorker, 'Kumar');
+      expect(updated.handledBy, 'Kumar');
       expect(updated.timeline.last.title, 'Driver Kumar assigned');
 
       final kumarNow = (await repository.getDrivers()).firstWhere(
@@ -184,7 +184,7 @@ void main() {
         .read(ordersRepositoryProvider)
         .watchTodaysOrders('ss15')
         .first;
-    expect(orders.firstWhere((o) => o.number == 2292).assignedWorker, 'Kumar');
+    expect(orders.firstWhere((o) => o.number == 2292).handledBy, 'Kumar');
   });
 
   testWidgets('List view shows a table of deliveries', (tester) async {

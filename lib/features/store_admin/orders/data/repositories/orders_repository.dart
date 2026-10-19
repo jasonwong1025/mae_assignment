@@ -1,9 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
 import 'package:mae_assignment/features/store_admin/orders/data/sample_orders.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 
 final ordersRepositoryProvider = Provider<OrdersRepository>((ref) {
   final repository = OrdersRepository();
@@ -33,10 +32,10 @@ class OrdersRepository {
     }
   }
 
-  /// Replaces the order that has the same number.
+  /// Replaces the order that has the same id.
   Future<void> updateOrder(String branchId, Order order) async {
     final orders = _ordersOf(branchId);
-    final index = orders.indexWhere((old) => old.number == order.number);
+    final index = orders.indexWhere((old) => old.id == order.id);
     if (index == -1) return;
 
     orders[index] = order;

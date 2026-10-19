@@ -9,11 +9,11 @@ import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/dis
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/dispatch_tiles.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_state.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_view_model.dart';
-import 'package:mae_assignment/features/store_admin/orders/data/models/order.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_scaffold.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/ui/admin_sidebar.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/ui/pagination_bar.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/page_result.dart';
 
 /// Tabs on phones.

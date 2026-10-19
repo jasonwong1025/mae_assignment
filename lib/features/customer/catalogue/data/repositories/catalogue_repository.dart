@@ -71,16 +71,6 @@ class CatalogueRepository {
       );
     });
 
-    final items = <CatalogueProduct>[
-      for (final entry in products.entries)
-        if (inventory[entry.key] case final branchInventory?)
-          ?CatalogueProduct.fromFirestore(
-            id: entry.key,
-            product: entry.value,
-            inventory: branchInventory,
-          ),
-    ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-
     final sortedCategories =
         <CatalogueCategory>[
           for (final entry in categories.entries)
@@ -89,6 +79,22 @@ class CatalogueRepository {
           final byOrder = a.sortOrder.compareTo(b.sortOrder);
           return byOrder != 0 ? byOrder : a.name.compareTo(b.name);
         });
+
+    final categoryNames = {
+      for (final category in sortedCategories) category.id: category.name,
+    };
+
+    final items = <CatalogueProduct>[
+      for (final entry in products.entries)
+        if (inventory[entry.key] case final branchInventory?)
+          ?CatalogueProduct.fromFirestore(
+            id: entry.key,
+            product: entry.value,
+            inventory: branchInventory,
+            categoryName:
+                categoryNames[entry.value[ProductFields.categoryId]] ?? '',
+          ),
+    ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
     return CatalogueData(categories: sortedCategories, products: items);
   }

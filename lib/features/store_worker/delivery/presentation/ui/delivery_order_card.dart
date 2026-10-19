@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/ui/order_status_label.dart';
 
@@ -10,7 +10,7 @@ import 'package:mae_assignment/shared/ui/order_status_label.dart';
 const int _dueSoonMinutes = 15;
 
 /// Status in the driver's words, e.g. "Ready to collect".
-String deliveryStatusLabel(WorkerOrder order) {
+String deliveryStatusLabel(Order order) {
   switch (order.status) {
     case OrderStatus.pending:
     case OrderStatus.packing:
@@ -28,7 +28,7 @@ String deliveryStatusLabel(WorkerOrder order) {
 
 /// Status the badge is coloured by. Pending and packing both read
 /// "Being packed" to the driver, so both use the packing colour.
-OrderStatus deliveryBadgeStatus(WorkerOrder order) {
+OrderStatus deliveryBadgeStatus(Order order) {
   return order.status == OrderStatus.pending
       ? OrderStatus.packing
       : order.status;
@@ -42,7 +42,7 @@ class DeliveryOrderCard extends StatelessWidget {
     super.key,
   });
 
-  final WorkerOrder order;
+  final Order order;
   final VoidCallback onTap;
 
   @override

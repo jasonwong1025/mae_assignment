@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 
 /// One product on the packing checklist: photo, name, brand and pack size,
 /// a large quantity, and a checkbox. Tapping the row opens the product's
@@ -17,7 +17,7 @@ class PackingItemTile extends StatelessWidget {
     this.showCheckbox = true,
   });
 
-  final WorkerOrderItem item;
+  final OrderItem item;
   final bool isPacked;
 
   /// Null makes the row read-only (e.g. before Start packing).

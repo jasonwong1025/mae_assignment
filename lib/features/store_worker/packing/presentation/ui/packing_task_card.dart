@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_progress_bar.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
 import 'package:mae_assignment/shared/ui/fulfilment_tag.dart';
@@ -25,7 +25,7 @@ class PackingTaskCard extends StatelessWidget {
     super.key,
   });
 
-  final WorkerOrder order;
+  final Order order;
 
   /// True while Start packing is running for this order.
   final bool isStarting;
@@ -147,7 +147,7 @@ class PackingTaskCard extends StatelessWidget {
 class _DueTime extends StatelessWidget {
   const _DueTime({required this.order});
 
-  final WorkerOrder order;
+  final Order order;
 
   @override
   Widget build(BuildContext context) {

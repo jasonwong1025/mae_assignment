@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/packing/data/services/label_print_service.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/bag_label_card.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/ui/bottom_action_bar.dart';
 import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
 
 /// Opens the bag label on its own screen, for a packer who did not print
 /// it straight after packing or needs a new one. Any packer at the branch
 /// can open it while the order is waiting to be collected.
-Future<void> showBagLabelScreen(BuildContext context, WorkerOrder order) {
+Future<void> showBagLabelScreen(BuildContext context, Order order) {
   return Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (context) => _BagLabelScreen(order: order),
@@ -22,7 +22,7 @@ Future<void> showBagLabelScreen(BuildContext context, WorkerOrder order) {
 class _BagLabelScreen extends ConsumerStatefulWidget {
   const _BagLabelScreen({required this.order});
 
-  final WorkerOrder order;
+  final Order order;
 
   @override
   ConsumerState<_BagLabelScreen> createState() => _BagLabelScreenState();

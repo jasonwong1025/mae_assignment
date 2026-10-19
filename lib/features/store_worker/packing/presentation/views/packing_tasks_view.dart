@@ -5,11 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/models/worker_order.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_task_card.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/view_models/packing_tasks_view_model.dart';
 import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_scaffold.dart';
 import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
 
@@ -26,11 +26,11 @@ class _PackingTasksViewState extends ConsumerState<PackingTasksView> {
   /// The order whose Start button was tapped, so only it shows a spinner.
   String? _startingOrderId;
 
-  void _openOrder(WorkerOrder order) {
+  void _openOrder(Order order) {
     unawaited(context.push(AppRoutes.workerPackingOrder(order.id)));
   }
 
-  Future<void> _startPacking(WorkerOrder order) async {
+  Future<void> _startPacking(Order order) async {
     setState(() => _startingOrderId = order.id);
     final error = await ref
         .read(packingTasksViewModelProvider.notifier)
@@ -92,10 +92,10 @@ class _TaskList extends StatelessWidget {
     required this.onStart,
   });
 
-  final List<WorkerOrder> orders;
+  final List<Order> orders;
   final String? startingOrderId;
-  final void Function(WorkerOrder order) onOpen;
-  final void Function(WorkerOrder order) onStart;
+  final void Function(Order order) onOpen;
+  final void Function(Order order) onStart;
 
   @override
   Widget build(BuildContext context) {
