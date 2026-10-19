@@ -11,6 +11,7 @@ import {
 const ALICE = { uid: "alice", email: "alice@example.com" };
 const ADMIN = { uid: "admin", email: "admin@example.com" };
 const WORKER = { uid: "worker", email: "worker@example.com" };
+const PACKER = { uid: "packer", email: "packer@example.com" };
 
 const photo = () => new Uint8Array([1, 2, 3, 4]);
 const jpeg = { contentType: "image/jpeg" };
@@ -22,7 +23,15 @@ beforeEach(async () => {
   await seed(testEnv, async (db) => {
     await setDoc(doc(db, "users", ALICE.uid), { role: "customer" });
     await setDoc(doc(db, "users", ADMIN.uid), { role: "storeAdmin" });
-    await setDoc(doc(db, "users", WORKER.uid), { role: "storeWorker" });
+    await setDoc(doc(db, "users", WORKER.uid), {
+      role: "storeWorker",
+      workerRole: "deliveryDriver",
+    });
+    await setDoc(doc(db, "users", PACKER.uid), {
+      role: "storeWorker",
+      workerRole: "packingStaff",
+      branchId: "ss15",
+    });
     await setDoc(doc(db, "orders", "o1"), { driverId: WORKER.uid });
     await setDoc(doc(db, "orders", "o2"), { driverId: "someone-else" });
   });
@@ -125,7 +134,24 @@ describe("delivery proof photos", () => {
     );
   });
 
-  test("staff read it; customers, guests and the admin cannot upload", async () => {
+  test("a packer, or a deactivated driver, cannot upload", async () => {
+    const packer = storageForUser(testEnv, PACKER.uid, PACKER.email);
+    await assertFails(
+      uploadBytes(ref(packer, "orders/o1/proof.jpg"), photo(), jpeg)
+    );
+    await seed(testEnv, async (db) => {
+      await setDoc(doc(db, "users", WORKER.uid), {
+        role: "storeWorker",
+        workerRole: "deliveryDriver",
+        isActive: false,
+      });
+    });
+    await assertFails(
+      uploadBytes(ref(worker(), "orders/o1/proof.jpg"), photo(), jpeg)
+    );
+  });
+
+  test("the admin and the order's driver read it; others cannot", async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
       await uploadBytes(
         ref(context.storage(), "orders/o1/proof.jpg"),
@@ -138,6 +164,8 @@ describe("delivery proof photos", () => {
 
     const alice = storageForUser(testEnv, ALICE.uid, ALICE.email);
     await assertFails(getBytes(ref(alice, "orders/o1/proof.jpg")));
+    const packer = storageForUser(testEnv, PACKER.uid, PACKER.email);
+    await assertFails(getBytes(ref(packer, "orders/o1/proof.jpg")));
     await assertFails(uploadBytes(ref(alice, "orders/o1/proof.jpg"), photo(), jpeg));
     await assertFails(uploadBytes(ref(admin(), "orders/o1/proof.jpg"), photo(), jpeg));
     await assertFails(

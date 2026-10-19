@@ -54,6 +54,17 @@ Future<List<List<String>>> _record(Stream<List<Order>> stream) async {
   return values;
 }
 
+/// A time the database stamped just now. The in-memory database uses the
+/// real clock for `FieldValue.serverTimestamp()`, which is how the real one
+/// behaves, and not the test clock the repository was given.
+final Matcher _isServerTime = predicate<DateTime?>(
+  (time) =>
+      time != null &&
+      DateTime.now().difference(time).inMinutes.abs() < 5 &&
+      time != DateTime(2026, 10, 15, 12),
+  'a recent server time',
+);
+
 Matcher _throwsMessage(String message) {
   return throwsA(
     isA<WorkerOrderException>().having((e) => e.message, 'message', message),
@@ -147,7 +158,8 @@ void main() {
       final order = await repository.watchOrder(_weiJie, 'ord-2301').first;
       expect(order!.status, OrderStatus.ready);
       expect(order.readyBy, _daniel.id);
-      expect(order.readyAt, DateTime(2026, 10, 15, 12));
+      // Saved as the server time, not the clock the repository was given.
+      expect(order.readyAt, _isServerTime);
       expect(order.packingStartedAt, isNotNull);
 
       final tasks = await repository.watchMyPackingTasks(_daniel).first;
@@ -233,7 +245,7 @@ void main() {
       expect(order.pickupCompletedBy, _daniel.id);
       expect(order.pickupCompletedByName, 'Daniel Lee');
       expect(order.pickupVerification, VerificationMethod.manual);
-      expect(order.completedAt, DateTime(2026, 10, 15, 12));
+      expect(order.completedAt, _isServerTime);
 
       // Hakim packed it, so he can still open it (read-only) and sees it is
       // done. Another branch never can.

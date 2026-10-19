@@ -1,22 +1,35 @@
 import { beforeEach, describe, test } from "vitest";
 import { assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
 import {
+  collection,
+  deleteDoc,
   doc,
   getDoc,
+  getDocs,
+  query,
   serverTimestamp,
   setDoc,
   updateDoc,
-  deleteDoc,
+  where,
 } from "firebase/firestore";
 import { firestoreForUser, firestoreForGuest, seed } from "./helpers.js";
 
 const ALICE = { uid: "alice", email: "alice@example.com" };
 const BOB = { uid: "bob", email: "bob@example.com" };
-const WORKER = { uid: "worker", email: "worker@example.com" };
 const ADMIN = { uid: "admin", email: "admin@example.com" };
+// Packing Staff at SS15, who the pending/packing orders are assigned to.
+const PACKER = { uid: "packer", email: "packer@example.com" };
+// Another packer at SS15, to whom nothing is assigned.
+const PACKER2 = { uid: "packer2", email: "packer2@example.com" };
+// A packer at another branch.
+const PACKER_BJ = { uid: "packer-bj", email: "packer-bj@example.com" };
+// A packer whose account HQ deactivated.
+const PACKER_OFF = { uid: "packer-off", email: "packer-off@example.com" };
+const DRIVER = { uid: "driver", email: "driver@example.com" };
+const DRIVER2 = { uid: "driver2", email: "driver2@example.com" };
 
-// A valid order payload owned by `customerId`, with a server-set placedAt.
-function orderFor(customerId) {
+// A valid order payload owned by `customerId`, with server-set times.
+function orderFor(customerId, overrides = {}) {
   return {
     number: 2301,
     customerId,
@@ -31,177 +44,649 @@ function orderFor(customerId) {
     status: "pending",
     placedAt: serverTimestamp(),
     statusSince: serverTimestamp(),
+    ...overrides,
+  };
+}
+
+// Stored orders (written with rules off), so each test starts from a known
+// state. Two lines each, so "all packed" is two ticked lines.
+const lines = [
+  { lineId: "L1", productId: "p1", quantity: 1, unitPrice: 5 },
+  { lineId: "L2", productId: "p2", quantity: 1, unitPrice: 5 },
+];
+function stored(overrides) {
+  return {
+    number: 1,
+    customerId: ALICE.uid,
+    customerName: "Aisha",
+    branchId: "ss15",
+    isDelivery: false,
+    items: lines,
+    subtotal: 10,
+    deliveryFee: 0,
+    discount: 0,
+    total: 10,
+    status: "pending",
+    placedAt: new Date(),
+    statusSince: new Date(),
+    ...overrides,
   };
 }
 
 let testEnv;
+
 beforeEach(async () => {
   testEnv = globalThis.__TEST_ENV__;
-  // Seed user profiles (so isStaff resolves) and one existing order.
   await seed(testEnv, async (db) => {
     await setDoc(doc(db, "users", ALICE.uid), { role: "customer" });
     await setDoc(doc(db, "users", BOB.uid), { role: "customer" });
-    await setDoc(doc(db, "users", WORKER.uid), { role: "storeWorker" });
     await setDoc(doc(db, "users", ADMIN.uid), { role: "storeAdmin" });
-    await setDoc(doc(db, "orders", "o-alice"), {
-      number: 1,
-      customerId: ALICE.uid,
-      branchId: "ss15",
-      items: [],
-      total: 0,
-      status: "pending",
+    const packer = (branchId, extra = {}) => ({
+      role: "storeWorker",
+      workerRole: "packingStaff",
+      branchId,
+      isActive: true,
+      ...extra,
     });
+    await setDoc(doc(db, "users", PACKER.uid), packer("ss15"));
+    await setDoc(doc(db, "users", PACKER2.uid), packer("ss15"));
+    await setDoc(doc(db, "users", PACKER_BJ.uid), packer("bukit-jalil"));
+    await setDoc(
+      doc(db, "users", PACKER_OFF.uid),
+      packer("ss15", { isActive: false })
+    );
+    for (const driver of [DRIVER, DRIVER2]) {
+      await setDoc(doc(db, "users", driver.uid), {
+        role: "storeWorker",
+        workerRole: "deliveryDriver",
+        branchId: null,
+        isActive: true,
+      });
+    }
+
+    const assigned = { packerId: PACKER.uid, packerName: "Packer" };
+    const driven = { ...assigned, driverId: DRIVER.uid, driverName: "Driver" };
+    await setDoc(doc(db, "orders", "o-new"), stored({ isDelivery: true }));
+    await setDoc(doc(db, "orders", "o-pending"), stored(assigned));
+    await setDoc(
+      doc(db, "orders", "o-packing"),
+      stored({ ...assigned, status: "packing", packedLineIds: ["L1"] })
+    );
+    await setDoc(
+      doc(db, "orders", "o-packed"),
+      stored({ ...assigned, status: "packing", packedLineIds: ["L1", "L2"] })
+    );
+    await setDoc(
+      doc(db, "orders", "o-ready-pickup"),
+      stored({ ...assigned, status: "ready", packedLineIds: ["L1", "L2"] })
+    );
+    await setDoc(
+      doc(db, "orders", "o-ready-delivery"),
+      stored({
+        ...driven,
+        isDelivery: true,
+        status: "ready",
+        packedLineIds: ["L1", "L2"],
+      })
+    );
+    await setDoc(
+      doc(db, "orders", "o-verified"),
+      stored({
+        ...driven,
+        isDelivery: true,
+        status: "ready",
+        packedLineIds: ["L1", "L2"],
+        collectionVerifiedBy: DRIVER.uid,
+      })
+    );
+    await setDoc(
+      doc(db, "orders", "o-road"),
+      stored({
+        ...driven,
+        isDelivery: true,
+        status: "outForDelivery",
+        collectionVerifiedBy: DRIVER.uid,
+      })
+    );
+    await setDoc(
+      doc(db, "orders", "o-done"),
+      stored({ ...driven, isDelivery: true, status: "completed" })
+    );
+    await setDoc(
+      doc(db, "orders", "o-bj"),
+      stored({
+        branchId: "bukit-jalil",
+        packerId: PACKER_BJ.uid,
+        packerName: "Packer BJ",
+      })
+    );
   });
 });
 
+const as = (user) => firestoreForUser(testEnv, user.uid, user.email);
+const order = (db, id) => doc(db, "orders", id);
+
 describe("placing orders", () => {
   test("a customer can create their own order", async () => {
-    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
     await assertSucceeds(
-      setDoc(doc(db, "orders", "o-new"), orderFor(ALICE.uid))
+      setDoc(order(as(ALICE), "o-created"), orderFor(ALICE.uid))
     );
   });
 
   test("a customer cannot create an order for someone else", async () => {
-    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
     await assertFails(
-      setDoc(doc(db, "orders", "o-forged"), orderFor(BOB.uid))
+      setDoc(order(as(ALICE), "o-forged"), orderFor(BOB.uid))
     );
   });
 
   test("an order cannot be created already in packing", async () => {
-    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
-    const forged = { ...orderFor(ALICE.uid), status: "packing" };
-    await assertFails(setDoc(doc(db, "orders", "o-jump"), forged));
+    await assertFails(
+      setDoc(
+        order(as(ALICE), "o-jump"),
+        orderFor(ALICE.uid, { status: "packing" })
+      )
+    );
   });
 
   test("a customer cannot create an order carrying fulfilment fields", async () => {
-    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
     await assertFails(
-      setDoc(doc(db, "orders", "o-sneaky"), {
-        ...orderFor(ALICE.uid),
-        packerId: "w1",
-      })
+      setDoc(
+        order(as(ALICE), "o-sneaky"),
+        orderFor(ALICE.uid, { packerId: "w1" })
+      )
+    );
+  });
+
+  test("the status time must be the server time", async () => {
+    await assertFails(
+      setDoc(
+        order(as(ALICE), "o-time"),
+        orderFor(ALICE.uid, { statusSince: new Date(0) })
+      )
+    );
+  });
+
+  test("the money must add up", async () => {
+    // total 1 instead of 8.9 + 3.
+    await assertFails(
+      setDoc(order(as(ALICE), "o-cheap"), orderFor(ALICE.uid, { total: 1 }))
+    );
+    // A discount applies.
+    await assertSucceeds(
+      setDoc(
+        order(as(ALICE), "o-promo"),
+        orderFor(ALICE.uid, { discount: 2, total: 9.9 })
+      )
+    );
+  });
+
+  test("money cannot be negative, and a discount cannot exceed the subtotal", async () => {
+    await assertFails(
+      setDoc(
+        order(as(ALICE), "o-neg"),
+        orderFor(ALICE.uid, { subtotal: -5, total: -2 })
+      )
+    );
+    await assertFails(
+      setDoc(
+        order(as(ALICE), "o-free"),
+        orderFor(ALICE.uid, { discount: 20, total: 0 })
+      )
+    );
+  });
+
+  test("an order needs between 1 and 100 lines", async () => {
+    await assertFails(
+      setDoc(order(as(ALICE), "o-empty"), orderFor(ALICE.uid, { items: [] }))
+    );
+    await assertFails(
+      setDoc(
+        order(as(ALICE), "o-huge"),
+        orderFor(ALICE.uid, {
+          items: Array.from({ length: 101 }, () => ({ productId: "p" })),
+        })
+      )
     );
   });
 
   test("a guest cannot create an order", async () => {
-    const db = firestoreForGuest(testEnv);
     await assertFails(
-      setDoc(doc(db, "orders", "o-guest"), orderFor("someone"))
+      setDoc(
+        order(firestoreForGuest(testEnv), "o-guest"),
+        orderFor("someone")
+      )
     );
   });
 });
 
 describe("reading orders", () => {
   test("the owner can read their own order", async () => {
-    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
-    await assertSucceeds(getDoc(doc(db, "orders", "o-alice")));
+    await assertSucceeds(getDoc(order(as(ALICE), "o-pending")));
   });
 
   test("another customer cannot read someone else's order", async () => {
-    const db = firestoreForUser(testEnv, BOB.uid, BOB.email);
-    await assertFails(getDoc(doc(db, "orders", "o-alice")));
+    await assertFails(getDoc(order(as(BOB), "o-pending")));
   });
 
-  test("a worker can read any order", async () => {
-    const db = firestoreForUser(testEnv, WORKER.uid, WORKER.email);
-    await assertSucceeds(getDoc(doc(db, "orders", "o-alice")));
+  test("the admin can read any order", async () => {
+    await assertSucceeds(getDoc(order(as(ADMIN), "o-pending")));
+    await assertSucceeds(getDoc(order(as(ADMIN), "o-bj")));
   });
 
-  test("an admin can read any order", async () => {
-    const db = firestoreForUser(testEnv, ADMIN.uid, ADMIN.email);
-    await assertSucceeds(getDoc(doc(db, "orders", "o-alice")));
+  test("a packer reads their own branch's orders, not another branch's", async () => {
+    await assertSucceeds(getDoc(order(as(PACKER), "o-pending")));
+    // Even one not assigned to them: they find pickups and bags for drivers.
+    await assertSucceeds(getDoc(order(as(PACKER2), "o-pending")));
+    await assertFails(getDoc(order(as(PACKER), "o-bj")));
+    await assertFails(getDoc(order(as(PACKER_BJ), "o-pending")));
   });
-});
 
-describe("updating orders", () => {
-  test("a worker can advance the status", async () => {
-    const db = firestoreForUser(testEnv, WORKER.uid, WORKER.email);
+  test("a packer can list their branch's orders, but not all orders", async () => {
+    const db = as(PACKER);
     await assertSucceeds(
-      updateDoc(doc(db, "orders", "o-alice"), { status: "packing" })
+      getDocs(query(collection(db, "orders"), where("branchId", "==", "ss15")))
+    );
+    await assertFails(getDocs(collection(db, "orders")));
+    await assertFails(
+      getDocs(
+        query(collection(db, "orders"), where("branchId", "==", "bukit-jalil"))
+      )
     );
   });
 
-  test("a worker can record fulfilment fields with the status", async () => {
-    const db = firestoreForUser(testEnv, WORKER.uid, WORKER.email);
+  test("a driver reads only deliveries assigned to them", async () => {
+    await assertSucceeds(getDoc(order(as(DRIVER), "o-ready-delivery")));
+    await assertSucceeds(getDoc(order(as(DRIVER), "o-road")));
+    await assertFails(getDoc(order(as(DRIVER2), "o-ready-delivery")));
+    await assertFails(getDoc(order(as(DRIVER), "o-pending")));
+    await assertFails(getDoc(order(as(DRIVER), "o-bj")));
+  });
+
+  test("a driver can list their own deliveries, not all orders", async () => {
+    const db = as(DRIVER);
     await assertSucceeds(
-      updateDoc(doc(db, "orders", "o-alice"), {
+      getDocs(
+        query(collection(db, "orders"), where("driverId", "==", DRIVER.uid))
+      )
+    );
+    await assertFails(getDocs(collection(db, "orders")));
+    await assertFails(
+      getDocs(
+        query(collection(db, "orders"), where("driverId", "==", DRIVER2.uid))
+      )
+    );
+  });
+
+  test("a deactivated worker cannot read orders", async () => {
+    await assertFails(getDoc(order(as(PACKER_OFF), "o-pending")));
+  });
+
+  test("a guest cannot read orders", async () => {
+    await assertFails(getDoc(order(firestoreForGuest(testEnv), "o-pending")));
+  });
+});
+
+describe("packing", () => {
+  test("the assigned packer starts packing", async () => {
+    await assertSucceeds(
+      updateDoc(order(as(PACKER), "o-pending"), {
         status: "packing",
         statusSince: serverTimestamp(),
-        packedLineIds: ["L1"],
         packingStartedAt: serverTimestamp(),
       })
     );
   });
 
-  test("a worker cannot change checkout fields", async () => {
-    const db = firestoreForUser(testEnv, WORKER.uid, WORKER.email);
-    await assertFails(
-      updateDoc(doc(db, "orders", "o-alice"), { total: 0.01 })
-    );
-    await assertFails(
-      updateDoc(doc(db, "orders", "o-alice"), { customerId: WORKER.uid })
-    );
+  test("another packer, another branch or a deactivated packer cannot", async () => {
+    const start = {
+      status: "packing",
+      statusSince: serverTimestamp(),
+      packingStartedAt: serverTimestamp(),
+    };
+    await assertFails(updateDoc(order(as(PACKER2), "o-pending"), start));
+    await assertFails(updateDoc(order(as(PACKER_BJ), "o-pending"), start));
+    await assertFails(updateDoc(order(as(PACKER_OFF), "o-pending"), start));
+    await assertFails(updateDoc(order(as(DRIVER), "o-pending"), start));
   });
 
-  test("a worker cannot assign packers or drivers", async () => {
-    const db = firestoreForUser(testEnv, WORKER.uid, WORKER.email);
+  test("starting needs server times, not the phone clock", async () => {
     await assertFails(
-      updateDoc(doc(db, "orders", "o-alice"), { driverId: WORKER.uid })
+      updateDoc(order(as(PACKER), "o-pending"), {
+        status: "packing",
+        statusSince: serverTimestamp(),
+        packingStartedAt: new Date(2020, 0, 1),
+      })
     );
-  });
-
-  test("a worker cannot set an unknown status", async () => {
-    const db = firestoreForUser(testEnv, WORKER.uid, WORKER.email);
     await assertFails(
-      updateDoc(doc(db, "orders", "o-alice"), { status: "teleported" })
-    );
-  });
-
-  test("an admin can assign a driver and a packer", async () => {
-    const db = firestoreForUser(testEnv, ADMIN.uid, ADMIN.email);
-    await assertSucceeds(
-      updateDoc(doc(db, "orders", "o-alice"), {
-        driverId: "w7",
-        driverName: "Amir",
-        driverAssignedAt: serverTimestamp(),
-        packerId: "w1",
-        packerName: "Daniel",
-        packerAssignedAt: serverTimestamp(),
-        dueAt: serverTimestamp(),
+      updateDoc(order(as(PACKER), "o-pending"), {
+        status: "packing",
+        statusSince: new Date(),
+        packingStartedAt: serverTimestamp(),
       })
     );
   });
 
-  test("an admin cannot change checkout fields", async () => {
-    const db = firestoreForUser(testEnv, ADMIN.uid, ADMIN.email);
+  test("an order cannot skip packing", async () => {
     await assertFails(
-      updateDoc(doc(db, "orders", "o-alice"), { total: 0.01 })
+      updateDoc(order(as(PACKER), "o-pending"), {
+        status: "ready",
+        statusSince: serverTimestamp(),
+        readyAt: serverTimestamp(),
+        readyBy: PACKER.uid,
+      })
     );
     await assertFails(
-      updateDoc(doc(db, "orders", "o-alice"), { items: [{ productId: "p9", quantity: 1 }] })
+      updateDoc(order(as(PACKER), "o-pending"), {
+        status: "completed",
+        statusSince: serverTimestamp(),
+      })
     );
   });
 
-  test("an admin cannot write the worker's fulfilment fields", async () => {
-    const db = firestoreForUser(testEnv, ADMIN.uid, ADMIN.email);
+  test("the assigned packer ticks lines while packing", async () => {
+    await assertSucceeds(
+      updateDoc(order(as(PACKER), "o-packing"), {
+        packedLineIds: ["L1", "L2"],
+      })
+    );
     await assertFails(
-      updateDoc(doc(db, "orders", "o-alice"), { proofPhotoUrl: "https://x" })
+      updateDoc(order(as(PACKER2), "o-packing"), { packedLineIds: ["L1", "L2"] })
     );
   });
 
-  test("the customer cannot change their order's status", async () => {
-    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
+  test("lines cannot be ticked before packing starts", async () => {
     await assertFails(
-      updateDoc(doc(db, "orders", "o-alice"), { status: "completed" })
+      updateDoc(order(as(PACKER), "o-pending"), { packedLineIds: ["L1"] })
+    );
+  });
+
+  test("a checklist cannot hold more lines than the order", async () => {
+    await assertFails(
+      updateDoc(order(as(PACKER), "o-packing"), {
+        packedLineIds: ["L1", "L2", "L3"],
+      })
+    );
+  });
+
+  test("the packer marks a fully packed order ready", async () => {
+    await assertSucceeds(
+      updateDoc(order(as(PACKER), "o-packed"), {
+        status: "ready",
+        statusSince: serverTimestamp(),
+        readyAt: serverTimestamp(),
+        readyBy: PACKER.uid,
+      })
+    );
+  });
+
+  test("an order with lines still to pack cannot be marked ready", async () => {
+    await assertFails(
+      updateDoc(order(as(PACKER), "o-packing"), {
+        status: "ready",
+        statusSince: serverTimestamp(),
+        readyAt: serverTimestamp(),
+        readyBy: PACKER.uid,
+      })
+    );
+  });
+
+  test("ready is recorded under the packer's own id", async () => {
+    await assertFails(
+      updateDoc(order(as(PACKER), "o-packed"), {
+        status: "ready",
+        statusSince: serverTimestamp(),
+        readyAt: serverTimestamp(),
+        readyBy: PACKER2.uid,
+      })
+    );
+  });
+
+  test("packing cannot change checkout fields or the assignment", async () => {
+    await assertFails(updateDoc(order(as(PACKER), "o-packing"), { total: 0.01 }));
+    await assertFails(
+      updateDoc(order(as(PACKER), "o-packing"), { packerId: PACKER2.uid })
+    );
+    await assertFails(
+      updateDoc(order(as(PACKER), "o-packing"), { driverId: PACKER.uid })
+    );
+  });
+
+  test("a worker cannot cancel or reopen an order", async () => {
+    await assertFails(
+      updateDoc(order(as(PACKER), "o-pending"), {
+        status: "cancelled",
+        statusSince: serverTimestamp(),
+      })
+    );
+    await assertFails(
+      updateDoc(order(as(PACKER), "o-packing"), {
+        status: "pending",
+        statusSince: serverTimestamp(),
+      })
+    );
+  });
+});
+
+describe("self-pickup handover", () => {
+  const handover = (overrides = {}) => ({
+    status: "completed",
+    statusSince: serverTimestamp(),
+    pickupVerification: "manual",
+    pickupCompletedBy: PACKER2.uid,
+    pickupCompletedByName: "Packer Two",
+    completedAt: serverTimestamp(),
+    ...overrides,
+  });
+
+  test("any active packer at the branch hands over a ready pickup", async () => {
+    await assertSucceeds(
+      updateDoc(order(as(PACKER2), "o-ready-pickup"), handover())
+    );
+  });
+
+  test("a packer from another branch, or a driver, cannot", async () => {
+    await assertFails(
+      updateDoc(order(as(PACKER_BJ), "o-ready-pickup"), handover({ pickupCompletedBy: PACKER_BJ.uid }))
+    );
+    await assertFails(
+      updateDoc(order(as(DRIVER), "o-ready-pickup"), handover({ pickupCompletedBy: DRIVER.uid }))
+    );
+  });
+
+  test("it is recorded under the packer's own id, with a known method", async () => {
+    await assertFails(
+      updateDoc(
+        order(as(PACKER2), "o-ready-pickup"),
+        handover({ pickupCompletedBy: PACKER.uid })
+      )
+    );
+    await assertFails(
+      updateDoc(
+        order(as(PACKER2), "o-ready-pickup"),
+        handover({ pickupVerification: "trust-me" })
+      )
+    );
+  });
+
+  test("only a ready pickup order can be handed over", async () => {
+    await assertFails(updateDoc(order(as(PACKER2), "o-packing"), handover()));
+    // A delivery order is completed by its driver, not at the counter.
+    await assertFails(
+      updateDoc(order(as(PACKER2), "o-ready-delivery"), handover())
+    );
+  });
+});
+
+describe("delivery", () => {
+  const verify = (overrides = {}) => ({
+    collectionVerification: "manual",
+    collectionVerifiedBy: DRIVER.uid,
+    collectionVerifiedAt: serverTimestamp(),
+    ...overrides,
+  });
+  const start = {
+    status: "outForDelivery",
+    statusSince: serverTimestamp(),
+    outForDeliveryAt: serverTimestamp(),
+  };
+  const finish = (overrides = {}) => ({
+    status: "completed",
+    statusSince: serverTimestamp(),
+    deliveredBy: DRIVER.uid,
+    deliveredByName: "Driver",
+    proofPhotoUrl: "https://example.com/proof.jpg",
+    completedAt: serverTimestamp(),
+    ...overrides,
+  });
+
+  test("the assigned driver verifies the bag", async () => {
+    await assertSucceeds(
+      updateDoc(order(as(DRIVER), "o-ready-delivery"), verify())
+    );
+  });
+
+  test("another driver or a packer cannot verify it", async () => {
+    await assertFails(
+      updateDoc(
+        order(as(DRIVER2), "o-ready-delivery"),
+        verify({ collectionVerifiedBy: DRIVER2.uid })
+      )
+    );
+    await assertFails(
+      updateDoc(order(as(PACKER), "o-ready-delivery"), verify())
+    );
+  });
+
+  test("verification is recorded under the driver's own id", async () => {
+    await assertFails(
+      updateDoc(
+        order(as(DRIVER), "o-ready-delivery"),
+        verify({ collectionVerifiedBy: DRIVER2.uid })
+      )
+    );
+  });
+
+  test("the driver starts the delivery once they have verified the bag", async () => {
+    await assertSucceeds(updateDoc(order(as(DRIVER), "o-verified"), start));
+  });
+
+  test("starting without verifying first is refused", async () => {
+    await assertFails(updateDoc(order(as(DRIVER), "o-ready-delivery"), start));
+  });
+
+  test("an order still being packed cannot be started or verified", async () => {
+    await assertFails(updateDoc(order(as(DRIVER), "o-packing"), start));
+  });
+
+  test("the driver completes the delivery with a proof photo", async () => {
+    await assertSucceeds(updateDoc(order(as(DRIVER), "o-road"), finish()));
+  });
+
+  test("completion needs a photo and the driver's own id", async () => {
+    await assertFails(
+      updateDoc(order(as(DRIVER), "o-road"), finish({ proofPhotoUrl: "" }))
+    );
+    await assertFails(
+      updateDoc(order(as(DRIVER), "o-road"), finish({ deliveredBy: DRIVER2.uid }))
+    );
+  });
+
+  test("another driver cannot complete someone else's delivery", async () => {
+    await assertFails(
+      updateDoc(
+        order(as(DRIVER2), "o-road"),
+        finish({ deliveredBy: DRIVER2.uid })
+      )
+    );
+  });
+
+  test("a delivery cannot be completed before it is on the road", async () => {
+    await assertFails(
+      updateDoc(order(as(DRIVER), "o-verified"), finish())
+    );
+  });
+
+  test("times come from the server", async () => {
+    await assertFails(
+      updateDoc(
+        order(as(DRIVER), "o-road"),
+        finish({ completedAt: new Date(2020, 0, 1) })
+      )
+    );
+  });
+
+  test("a deactivated driver cannot act", async () => {
+    await seed(testEnv, async (db) => {
+      await setDoc(doc(db, "users", DRIVER.uid), {
+        role: "storeWorker",
+        workerRole: "deliveryDriver",
+        isActive: false,
+      });
+    });
+    await assertFails(updateDoc(order(as(DRIVER), "o-road"), finish()));
+  });
+});
+
+describe("the admin", () => {
+  test("assigns a packer and a driver with server times", async () => {
+    await assertSucceeds(
+      updateDoc(order(as(ADMIN), "o-new"), {
+        packerId: PACKER2.uid,
+        packerName: "Packer Two",
+        packerAssignedAt: serverTimestamp(),
+        driverId: DRIVER.uid,
+        driverName: "Driver",
+        driverAssignedAt: serverTimestamp(),
+      })
+    );
+  });
+
+  test("cannot stamp an assignment with the phone clock", async () => {
+    await assertFails(
+      updateDoc(order(as(ADMIN), "o-new"), {
+        packerId: PACKER2.uid,
+        packerName: "Packer Two",
+        packerAssignedAt: new Date(2020, 0, 1),
+      })
+    );
+  });
+
+  test("cannot change checkout fields", async () => {
+    await assertFails(updateDoc(order(as(ADMIN), "o-new"), { total: 0.01 }));
+    await assertFails(
+      updateDoc(order(as(ADMIN), "o-new"), {
+        items: [{ lineId: "L9", productId: "p9", quantity: 1 }],
+      })
+    );
+  });
+
+  test("cannot write the worker's fulfilment fields", async () => {
+    await assertFails(
+      updateDoc(order(as(ADMIN), "o-new"), { proofPhotoUrl: "https://x" })
+    );
+  });
+
+  test("a deactivated admin profile loses access", async () => {
+    await seed(testEnv, async (db) => {
+      await setDoc(doc(db, "users", ADMIN.uid), {
+        role: "storeAdmin",
+        isActive: false,
+      });
+    });
+    await assertFails(getDoc(order(as(ADMIN), "o-new")));
+  });
+});
+
+describe("customers", () => {
+  test("cannot change their order's status", async () => {
+    await assertFails(
+      updateDoc(order(as(ALICE), "o-pending"), { status: "completed" })
     );
   });
 
   test("the owner can cancel a pending order", async () => {
-    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
     await assertSucceeds(
-      updateDoc(doc(db, "orders", "o-alice"), {
+      updateDoc(order(as(ALICE), "o-pending"), {
         status: "cancelled",
         statusSince: serverTimestamp(),
       })
@@ -209,19 +694,8 @@ describe("updating orders", () => {
   });
 
   test("the owner cannot cancel once packing has started", async () => {
-    await seed(testEnv, async (db) => {
-      await setDoc(doc(db, "orders", "o-packing"), {
-        number: 2,
-        customerId: ALICE.uid,
-        branchId: "ss15",
-        items: [],
-        total: 0,
-        status: "packing",
-      });
-    });
-    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
     await assertFails(
-      updateDoc(doc(db, "orders", "o-packing"), {
+      updateDoc(order(as(ALICE), "o-packing"), {
         status: "cancelled",
         statusSince: serverTimestamp(),
       })
@@ -229,9 +703,8 @@ describe("updating orders", () => {
   });
 
   test("a cancel cannot change anything else on the order", async () => {
-    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
     await assertFails(
-      updateDoc(doc(db, "orders", "o-alice"), {
+      updateDoc(order(as(ALICE), "o-pending"), {
         status: "cancelled",
         statusSince: serverTimestamp(),
         total: 0.01,
@@ -240,9 +713,8 @@ describe("updating orders", () => {
   });
 
   test("a cancel must use the server time", async () => {
-    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
     await assertFails(
-      updateDoc(doc(db, "orders", "o-alice"), {
+      updateDoc(order(as(ALICE), "o-pending"), {
         status: "cancelled",
         statusSince: new Date(0),
       })
@@ -250,9 +722,8 @@ describe("updating orders", () => {
   });
 
   test("another customer cannot cancel someone else's order", async () => {
-    const db = firestoreForUser(testEnv, BOB.uid, BOB.email);
     await assertFails(
-      updateDoc(doc(db, "orders", "o-alice"), {
+      updateDoc(order(as(BOB), "o-pending"), {
         status: "cancelled",
         statusSince: serverTimestamp(),
       })
@@ -260,17 +731,18 @@ describe("updating orders", () => {
   });
 
   test("the owner cannot move their order to any other status", async () => {
-    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
     await assertFails(
-      updateDoc(doc(db, "orders", "o-alice"), {
+      updateDoc(order(as(ALICE), "o-pending"), {
         status: "packing",
         statusSince: serverTimestamp(),
       })
     );
   });
+});
 
+describe("deleting", () => {
   test("nobody can delete an order", async () => {
-    const admin = firestoreForUser(testEnv, ADMIN.uid, ADMIN.email);
-    await assertFails(deleteDoc(doc(admin, "orders", "o-alice")));
+    await assertFails(deleteDoc(order(as(ADMIN), "o-pending")));
+    await assertFails(deleteDoc(order(as(ALICE), "o-pending")));
   });
 });

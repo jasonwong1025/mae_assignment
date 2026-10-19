@@ -3,11 +3,38 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // The signed-in user's own profile (users/{uid}). One document read per
+    // request: Firestore caches repeated reads of the same path.
+    function profile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // True for a signed-in user whose account has not been deactivated. A
+    // deactivated Store Worker keeps a valid sign-in token until it expires,
+    // so every staff check below also looks at `isActive` (missing counts as
+    // active: customers and the admin have no such field).
+    function isActiveUser() {
+      return request.auth != null && profile().get('isActive', true) != false;
+    }
+
     // True if the signed-in user's profile says they are the HQ admin.
     function isAdmin() {
-      return request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid))
-            .data.role == 'storeAdmin';
+      return isActiveUser() && profile().role == 'storeAdmin';
+    }
+
+    // Store Workers are exactly one of two kinds (users/{uid}.workerRole).
+    // A packer works at one branch (users/{uid}.branchId); a driver is not
+    // tied to a branch and is limited by which orders are assigned to them.
+    function isPacker() {
+      return isActiveUser()
+        && profile().role == 'storeWorker'
+        && profile().get('workerRole', null) == 'packingStaff';
+    }
+
+    function isDriver() {
+      return isActiveUser()
+        && profile().role == 'storeWorker'
+        && profile().get('workerRole', null) == 'deliveryDriver';
     }
 
     // User profiles. The document id is the Firebase Authentication uid.
@@ -142,39 +169,18 @@ service cloud.firestore {
     }
 
     // Customer orders (the shared order contract). The customer app writes
-    // an order at checkout and reads its own orders for tracking; the Store
-    // Worker and Store Admin apps read them to pack and oversee.
+    // an order at checkout and reads its own orders for tracking; Store
+    // Admin oversees every order; a Store Worker sees and changes only the
+    // orders their job gives them (see below).
     //
-    // A signed-in staff member (not a customer) can read any order. The id
-    // of the staff role check is kept here rather than inferred, so a
-    // customer can never read another customer's order.
-    function isStaff() {
-      return request.auth != null
-        && get(/databases/$(database)/documents/users/$(request.auth.uid))
-            .data.role in ['storeAdmin', 'storeWorker'];
-    }
-
+    // WorkerOrderPolicy in the Flutter app describes the same limits for the
+    // buttons on screen. These rules are the real boundary: they are checked
+    // on the server whatever a modified client sends.
     match /orders/{orderId} {
       function isOrderOwner() {
         return request.auth != null
           && resource.data.customerId == request.auth.uid;
       }
-
-      // Owner reads their own order; staff read any order.
-      allow read: if isOrderOwner() || isStaff();
-
-      // A customer creates their own order. The order must belong to them,
-      // start in a pending state, and carry the required fields, so a
-      // client cannot forge an order into packing or onto another account.
-      allow create: if request.auth != null
-        && request.resource.data.customerId == request.auth.uid
-        && request.resource.data.status == 'pending'
-        && request.resource.data.keys().hasAll(
-            ['number', 'customerId', 'branchId', 'items', 'total', 'status',
-             'placedAt'])
-        && request.resource.data.keys().hasOnly(checkoutKeys().concat(
-            ['status', 'statusSince']))
-        && request.resource.data.placedAt == request.time;
 
       // The fields the customer app writes at checkout. Nobody changes
       // them afterwards.
@@ -193,18 +199,31 @@ service cloud.firestore {
                 'driverId', 'driverName', 'driverAssignedAt'];
       }
 
-      // Fields the Store Worker app may change while fulfilling the order.
-      function fulfilmentKeys() {
-        return ['packedLineIds', 'packingStartedAt', 'readyAt', 'readyBy',
-                'pickupVerification', 'pickupCompletedBy',
-                'pickupCompletedByName', 'collectionVerification',
-                'collectionVerifiedBy', 'collectionVerifiedAt',
-                'outForDeliveryAt', 'deliveredBy', 'deliveredByName',
-                'proofPhotoUrl', 'completedAt'];
-      }
-
       function changedKeys() {
         return request.resource.data.diff(resource.data).affectedKeys();
+      }
+
+      // Every time written by staff comes from the server clock, never from
+      // a phone. A time that changes must equal request.time.
+      function serverTime(field) {
+        return !(field in changedKeys())
+          || request.resource.data[field] == request.time;
+      }
+
+      function workflowTimesAreServerTimes() {
+        return serverTime('statusSince')
+          && serverTime('packingStartedAt')
+          && serverTime('readyAt')
+          && serverTime('collectionVerifiedAt')
+          && serverTime('outForDeliveryAt')
+          && serverTime('completedAt');
+      }
+
+      // A status change, so `statusSince` must change with it.
+      function movesStatus(from, to) {
+        return resource.data.status == from
+          && request.resource.data.status == to
+          && changedKeys().hasAll(['status', 'statusSince']);
       }
 
       function validStatus() {
@@ -213,20 +232,152 @@ service cloud.firestore {
            'cancelled'];
       }
 
-      // Store Admin assigns packers and drivers and sets the due time, and
-      // can move the status. It cannot touch the checkout fields (customer,
-      // items, money) or the worker's fulfilment fields.
+      function validVerification(method) {
+        return method in ['qr', 'manual'];
+      }
+
+      // A packer working on this order: it is at their branch and HQ
+      // assigned it to them.
+      function packerOwns() {
+        return isPacker()
+          && resource.data.branchId == profile().branchId
+          && resource.data.get('packerId', null) == request.auth.uid;
+      }
+
+      // A driver delivering this order: HQ assigned it to them.
+      function driverOwns() {
+        return isDriver()
+          && resource.data.isDelivery == true
+          && resource.data.get('driverId', null) == request.auth.uid;
+      }
+
+      // Read: the owner; the admin (every order); a packer (their branch's
+      // orders, so they can find a pickup or a bag for a driver); a driver
+      // (only deliveries assigned to them). The apps ask for exactly these
+      // (`branchId ==` or `driverId ==`), and Firestore checks a query
+      // against this rule before running it.
+      allow read: if isOrderOwner()
+        || isAdmin()
+        || (isPacker() && resource.data.branchId == profile().branchId)
+        || (isDriver() && resource.data.get('driverId', null) == request.auth.uid);
+
+      // A customer creates their own order. The order must belong to them,
+      // start in a pending state, and carry the required fields, so a
+      // client cannot forge an order into packing or onto another account.
+      // The money must at least add up; prices are not re-checked here (that
+      // needs trusted server code).
+      allow create: if request.auth != null
+        && request.resource.data.customerId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasAll(
+            ['number', 'customerId', 'branchId', 'items', 'total', 'status',
+             'placedAt'])
+        && request.resource.data.keys().hasOnly(checkoutKeys().concat(
+            ['status', 'statusSince']))
+        && request.resource.data.placedAt == request.time
+        && request.resource.data.statusSince == request.time
+        && request.resource.data.number is int
+        && request.resource.data.branchId is string
+        && request.resource.data.items is list
+        && request.resource.data.items.size() >= 1
+        && request.resource.data.items.size() <= 100
+        && request.resource.data.subtotal is number
+        && request.resource.data.deliveryFee is number
+        && request.resource.data.discount is number
+        && request.resource.data.total is number
+        && request.resource.data.subtotal >= 0
+        && request.resource.data.deliveryFee >= 0
+        && request.resource.data.discount >= 0
+        && request.resource.data.discount <= request.resource.data.subtotal
+        && request.resource.data.total >= 0
+        && math.abs(request.resource.data.total
+            - (request.resource.data.subtotal
+               + request.resource.data.deliveryFee
+               - request.resource.data.discount)) < 0.01;
+
+      // Store Admin assigns packers and drivers and sets the due time. It
+      // cannot touch the checkout fields (customer, items, money) or the
+      // worker's fulfilment fields.
       allow update: if isAdmin()
         && validStatus()
         && changedKeys().hasOnly(
-            assignmentKeys().concat(['status', 'statusSince']));
+            assignmentKeys().concat(['status', 'statusSince']))
+        && serverTime('statusSince')
+        && serverTime('packerAssignedAt')
+        && serverTime('driverAssignedAt');
 
-      // Store Workers record the fulfilment of an order and move the status
-      // along. They cannot touch the checkout fields or the assignment.
-      allow update: if isStaff() && !isAdmin()
-        && validStatus()
+      // Packing Staff: pending -> packing (start), ticking items while
+      // packing, packing -> ready once every line is ticked. Only the
+      // assigned packer, at the order's branch.
+      allow update: if packerOwns()
+        && movesStatus('pending', 'packing')
+        && changedKeys().hasOnly(['status', 'statusSince', 'packingStartedAt'])
+        && changedKeys().hasAll(['packingStartedAt'])
+        && workflowTimesAreServerTimes();
+
+      allow update: if packerOwns()
+        && resource.data.status == 'packing'
+        && changedKeys().hasOnly(['packedLineIds'])
+        && request.resource.data.packedLineIds is list
+        && request.resource.data.packedLineIds.size()
+            <= resource.data.items.size();
+
+      allow update: if packerOwns()
+        && movesStatus('packing', 'ready')
         && changedKeys().hasOnly(
-            fulfilmentKeys().concat(['status', 'statusSince']));
+            ['status', 'statusSince', 'readyAt', 'readyBy'])
+        && changedKeys().hasAll(['readyAt', 'readyBy'])
+        && request.resource.data.readyBy == request.auth.uid
+        && resource.data.get('packedLineIds', []).size()
+            == resource.data.items.size()
+        && workflowTimesAreServerTimes();
+
+      // Self-pickup handover: any active packer at the branch hands over a
+      // ready pickup order, whoever packed it.
+      allow update: if isPacker()
+        && resource.data.branchId == profile().branchId
+        && resource.data.isDelivery == false
+        && movesStatus('ready', 'completed')
+        && changedKeys().hasOnly(
+            ['status', 'statusSince', 'pickupVerification',
+             'pickupCompletedBy', 'pickupCompletedByName', 'completedAt'])
+        && changedKeys().hasAll(
+            ['pickupVerification', 'pickupCompletedBy', 'completedAt'])
+        && validVerification(request.resource.data.pickupVerification)
+        && request.resource.data.pickupCompletedBy == request.auth.uid
+        && workflowTimesAreServerTimes();
+
+      // Delivery Drivers, on the orders assigned to them: check the bag
+      // (still ready), start the delivery once it has been checked by this
+      // driver, and complete it with a proof photo.
+      allow update: if driverOwns()
+        && resource.data.status == 'ready'
+        && changedKeys().hasOnly(
+            ['collectionVerification', 'collectionVerifiedBy',
+             'collectionVerifiedAt'])
+        && changedKeys().hasAll(['collectionVerifiedBy', 'collectionVerifiedAt'])
+        && validVerification(request.resource.data.collectionVerification)
+        && request.resource.data.collectionVerifiedBy == request.auth.uid
+        && workflowTimesAreServerTimes();
+
+      allow update: if driverOwns()
+        && movesStatus('ready', 'outForDelivery')
+        && resource.data.get('collectionVerifiedBy', null) == request.auth.uid
+        && changedKeys().hasOnly(['status', 'statusSince', 'outForDeliveryAt'])
+        && changedKeys().hasAll(['outForDeliveryAt'])
+        && workflowTimesAreServerTimes();
+
+      allow update: if driverOwns()
+        && movesStatus('outForDelivery', 'completed')
+        && changedKeys().hasOnly(
+            ['status', 'statusSince', 'deliveredBy', 'deliveredByName',
+             'proofPhotoUrl', 'completedAt'])
+        && changedKeys().hasAll(
+            ['deliveredBy', 'proofPhotoUrl', 'completedAt'])
+        && request.resource.data.deliveredBy == request.auth.uid
+        && request.resource.data.proofPhotoUrl is string
+        && request.resource.data.proofPhotoUrl.size() > 0
+        && workflowTimesAreServerTimes();
 
       // A customer may cancel their own order, but only while it is still
       // pending (nobody has started packing it), and nothing else about the
@@ -253,14 +404,15 @@ service cloud.firestore {
         return value is int && value >= 1 && value <= 5;
       }
 
-      // Owner reads their review, staff read all. `resource == null` lets the
+      // Owner reads their review, the admin reads all (Reviews tab).
+      // `resource == null` lets the
       // customer check whether they have rated yet (reading a document that
       // does not exist would otherwise be denied, because resource.data is
       // null).
       allow read: if (request.auth != null
           && (resource == null
               || resource.data.customerId == request.auth.uid))
-        || isStaff();
+        || isAdmin();
 
       // Only for the customer's own order, once it is completed, with
       // scores from 1 to 5 and a delivery score exactly for delivery orders.
@@ -295,15 +447,13 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Where each delivery driver is now, for the Dispatch map. Staff read all
-    // of them; a Store Worker writes only their own document, and only a
-    // real position with the server time. Nobody deletes.
+    // Where each delivery driver is now, for the Dispatch map. Only the
+    // admin reads them; only a Delivery Driver writes, and only their own
+    // document, with a real position and the server time. Nobody deletes.
     match /driverLocations/{driverId} {
-      allow read: if isStaff();
-      allow create, update: if request.auth != null
+      allow read: if isAdmin();
+      allow create, update: if isDriver()
         && request.auth.uid == driverId
-        && get(/databases/$(database)/documents/users/$(request.auth.uid))
-            .data.role == 'storeWorker'
         && request.resource.data.keys().hasOnly(['position', 'updatedAt'])
         && request.resource.data.position is latlng
         && request.resource.data.updatedAt == request.time;
@@ -312,8 +462,10 @@ service cloud.firestore {
 
     // Monotonic counters, e.g. the order-number sequence. Any signed-in
     // user may read and bump a counter (checkout reserves the next order
-    // number here, since a customer cannot scan all orders). The value only
-    // ever moves forward; order ownership is still enforced on orders/.
+    // number here, since a customer cannot scan all orders). It moves
+    // forward one at a time: the first order gets 1001, then each checkout
+    // adds exactly 1, so nobody can burn through the numbers. Ownership of
+    // an order is still enforced on orders/.
     match /counters/{name} {
       allow read: if isSignedIn();
       // `resource` is null when the counter does not exist yet (first bump),
@@ -322,8 +474,9 @@ service cloud.firestore {
       allow write: if isSignedIn()
         && request.resource.data.keys().hasOnly(['value'])
         && request.resource.data.value is int
-        && (resource == null
-            || request.resource.data.value > resource.data.value);
+        && ((resource == null && request.resource.data.value == 1001)
+            || (resource != null
+                && request.resource.data.value == resource.data.value + 1));
     }
   }
 }

@@ -255,15 +255,40 @@ reads every delivery that is `ready` or `outForDelivery` (`isDelivery` and
 transaction (`OrderService.updateOrder`) that writes only the fields that
 changed.
 
-Rules: the owner reads their orders and staff read all; a customer creates only
-their own order, starting `pending`, with `number, customerId, branchId, items,
-total, status, placedAt` and `placedAt == request.time`, and only checkout
-fields (plus `status`, `statusSince`); the admin updates only assignment fields,
-`status` and `statusSince`; a worker updates only fulfilment fields, `status`
-and `statusSince`; both need a valid status; **a customer may cancel their own order only while it is `pending`**,
-changing nothing but `status` (to `cancelled`) and `statusSince`
-(`== request.time`), which `OrderService.cancelOrder` does in a transaction;
-nobody deletes. Index: `customerId` ascending + `placedAt` descending
+### Rules for orders
+
+`WorkerOrderPolicy` (Flutter) decides what the worker screens offer;
+`firestore.rules` enforces the same limits on the server, so a modified client
+cannot do more. Staff checks also require the account to be active
+(`users/{uid}.isActive` is not `false`), because a deactivated Store Worker
+keeps a valid sign-in token for a while.
+
+| Who | Read | Write |
+| --- | --- | --- |
+| Customer | Their own orders | Creates their own order (below); cancels it while `pending`, changing only `status` and `statusSince`. |
+| Admin | Every order | Assignment fields, `status` and `statusSince`. Nothing else. |
+| Packing Staff | Orders of their own branch (`branchId` equals their profile's) | Only on an order assigned to them (`packerId` is their uid) at their branch: `pending` to `packing` (sets `packingStartedAt`); ticking `packedLineIds` while `packing`; `packing` to `ready` once every line is ticked (sets `readyAt`, `readyBy` to their uid). Handing over a `ready` pickup order at their branch, whoever packed it: `ready` to `completed` (sets `pickupVerification`, `pickupCompletedBy` to their uid, `completedAt`). |
+| Delivery Driver | Only deliveries assigned to them (`driverId` is their uid) | Only on those: while `ready`, record the bag check (`collectionVerifiedBy` is their uid); `ready` to `outForDelivery` once they have checked it; `outForDelivery` to `completed` with `deliveredBy` their uid and a `proofPhotoUrl`. |
+
+Every write fits one of those actions exactly (the set of changed fields is
+checked), so nobody can change checkout fields, skip a status, cancel from the
+worker app or reopen a finished order. Every workflow time (`statusSince`,
+`packingStartedAt`, `readyAt`, `collectionVerifiedAt`, `outForDeliveryAt`,
+`completedAt`) and the admin's `packerAssignedAt` / `driverAssignedAt` must equal
+`request.time`: the app sends `FieldValue.serverTimestamp()` for them
+(`OrderFields.serverTimeKeys`), so a phone's clock never reaches the database.
+
+A new order must be `pending`, belong to the customer, hold only checkout fields
+plus `status` and `statusSince`, have `placedAt` and `statusSince` equal to
+`request.time`, 1 to 100 lines, non-negative money, a discount no larger than
+the subtotal, and `total` equal to `subtotal + deliveryFee - discount` (within
+one cent). The rules cannot check prices against the catalogue or recompute the
+subtotal from the lines (rules cannot loop), so the amounts are still supplied
+by the customer's app. Making them trustworthy needs server code (a Cloud
+Function that creates the order), which is planned for after the minimum
+requirements.
+
+Nobody deletes. Index: `customerId` ascending + `placedAt` descending
 (`firestore.indexes.json`).
 
 ## `reviews/{orderId}`
@@ -286,7 +311,7 @@ Service: `ReviewService`. The Store Admin Reviews tab reads a branch's reviews
 | `comment` | string | Optional, at most 500 characters. |
 | `createdAt` | timestamp | Server time. |
 
-Rules: the owner and staff read (a customer may also read a review that does not
+Rules: the owner and the admin read (a customer may also read a review that does not
 exist yet, to find out whether they have rated); a customer creates a review for
 their own order only once its status is `completed`, with exactly the fields
 above and `createdAt == request.time`; no update, no delete.
@@ -306,8 +331,9 @@ plugin), so for now they are seeded.
 A driver's route is not stored: Dispatch works out the stop ahead from the
 order (the branch for a `ready` order, the customer for one `outForDelivery`).
 
-Rules: staff read all; a Store Worker writes only their own document, with a
-map location and `updatedAt == request.time`; no delete.
+Rules: only the admin reads; only an active Delivery Driver (`workerRole` is
+`deliveryDriver`) writes, and only their own document, with a map location and
+`updatedAt == request.time`; no delete.
 
 ## `counters/{name}`
 
@@ -319,7 +345,7 @@ other customers' orders. Service: `OrderService.nextOrderNumber`.
 | `value` | int | The last number issued. `counters/orders` starts at 1000, so the first order is 1001. |
 
 Rules: any signed-in user reads; a write must keep only `value`, be an int, and
-only increase.
+move forward by exactly 1 (the first value is 1001).
 
 ## Read models (not stored as such)
 
@@ -338,7 +364,7 @@ download URLs in `imageUrls`. Rules are in `storage.rules` (tested in
 | Path | Who | Notes |
 | --- | --- | --- |
 | `products/{productId}/{fileName}` | Any signed-in user reads; only the admin uploads or deletes | An image under 5 MB. `ProductPhotoService` names files by time, so a photo is never overwritten. |
-| `orders/{orderId}/proof.jpg` | Staff read; only the driver assigned to the order writes | The delivery proof photo, an image under 5 MB. `DeliveryProofService` uploads it. |
+| `orders/{orderId}/proof.jpg` | The admin and the order's own driver read; only that driver writes | The delivery proof photo, an image under 5 MB. `DeliveryProofService` uploads it. |
 
 The default bucket must exist before photos work: enable Storage once in the
 Firebase console (this needs the Blaze plan), then run

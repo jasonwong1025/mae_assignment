@@ -3,12 +3,29 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // True if the signed-in user's profile says they are the HQ admin. Reads
-    // the same users/{uid} document that firestore.rules uses.
+    // The signed-in user's profile (users/{uid}), read from Firestore.
+    function profile() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // A deactivated account keeps a valid sign-in token for a while, so
+    // every role check also looks at `isActive` (missing counts as active).
+    function isActiveUser() {
+      return request.auth != null && profile().get('isActive', true) != false;
+    }
+
+    // True if the signed-in user's profile says they are the HQ admin.
     function isAdmin() {
-      return request.auth != null
-        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid))
-            .data.role == 'storeAdmin';
+      return isActiveUser() && profile().role == 'storeAdmin';
+    }
+
+    // True for a Delivery Driver that HQ assigned this order to.
+    function isDriverOf(orderId) {
+      return isActiveUser()
+        && profile().role == 'storeWorker'
+        && profile().get('workerRole', null) == 'deliveryDriver'
+        && firestore.get(/databases/(default)/documents/orders/$(orderId))
+            .data.get('driverId', null) == request.auth.uid;
     }
 
     // Product photos: products/{productId}/{fileName}. Any signed-in user
@@ -22,28 +39,13 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
-    // True for a signed-in Store Worker (packer or driver).
-    function isWorker() {
-      return request.auth != null
-        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid))
-            .data.role == 'storeWorker';
-    }
-
-    // True for any staff member (admin or worker).
-    function isStaff() {
-      return isAdmin() || isWorker();
-    }
-
-    // Delivery proof photos: orders/{orderId}/proof.jpg. Staff read them (the
-    // admin reviews deliveries, workers see their own); only the driver
-    // assigned to the order uploads one, and only an image of a sensible
-    // size.
+    // Delivery proof photos: orders/{orderId}/proof.jpg. The admin reviews
+    // them and the order's own driver sees theirs; only that driver uploads
+    // one, and only an image of a sensible size.
     match /orders/{orderId}/{fileName} {
-      allow read: if isStaff();
-      allow create, update: if isWorker()
+      allow read: if isAdmin() || isDriverOf(orderId);
+      allow create, update: if isDriverOf(orderId)
         && fileName == 'proof.jpg'
-        && firestore.get(/databases/(default)/documents/orders/$(orderId))
-            .data.driverId == request.auth.uid
         && request.resource.size < 5 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
     }

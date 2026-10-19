@@ -230,9 +230,21 @@ describe("reading reviews", () => {
     await assertFails(getDoc(doc(bob, "reviews", "o-rated")));
   });
 
-  test("staff can read any review", async () => {
+  test("the admin can read any review", async () => {
     const admin = firestoreForUser(testEnv, ADMIN.uid, ADMIN.email);
     await assertSucceeds(getDoc(doc(admin, "reviews", "o-rated")));
+  });
+
+  test("a worker cannot read reviews", async () => {
+    await seed(testEnv, async (db) => {
+      await setDoc(doc(db, "users", "worker"), {
+        role: "storeWorker",
+        workerRole: "packingStaff",
+        branchId: "ss15",
+      });
+    });
+    const worker = firestoreForUser(testEnv, "worker", "worker@example.com");
+    await assertFails(getDoc(doc(worker, "reviews", "o-rated")));
   });
 
   test("a guest cannot read reviews", async () => {

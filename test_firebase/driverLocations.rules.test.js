@@ -15,6 +15,7 @@ import { firestoreForUser, firestoreForGuest, seed } from "./helpers.js";
 const ALICE = { uid: "alice", email: "alice@example.com" };
 const DRIVER = { uid: "driver-1", email: "driver1@example.com" };
 const OTHER_DRIVER = { uid: "driver-2", email: "driver2@example.com" };
+const PACKER = { uid: "packer-1", email: "packer1@example.com" };
 const ADMIN = { uid: "admin", email: "admin@example.com" };
 
 function position(overrides = {}) {
@@ -31,8 +32,14 @@ beforeEach(async () => {
   testEnv = globalThis.__TEST_ENV__;
   await seed(testEnv, async (db) => {
     await setDoc(doc(db, "users", ALICE.uid), { role: "customer" });
-    await setDoc(doc(db, "users", DRIVER.uid), { role: "storeWorker" });
-    await setDoc(doc(db, "users", OTHER_DRIVER.uid), { role: "storeWorker" });
+    const driver = { role: "storeWorker", workerRole: "deliveryDriver" };
+    await setDoc(doc(db, "users", DRIVER.uid), driver);
+    await setDoc(doc(db, "users", OTHER_DRIVER.uid), driver);
+    await setDoc(doc(db, "users", PACKER.uid), {
+      role: "storeWorker",
+      workerRole: "packingStaff",
+      branchId: "ss15",
+    });
     await setDoc(doc(db, "users", ADMIN.uid), { role: "storeAdmin" });
     await setDoc(doc(db, "driverLocations", OTHER_DRIVER.uid), {
       position: new GeoPoint(3.0, 101.5),
@@ -83,6 +90,26 @@ describe("writing a driver location", () => {
     );
   });
 
+  test("a packer cannot write a driver location", async () => {
+    const packer = firestoreForUser(testEnv, PACKER.uid, PACKER.email);
+    await assertFails(
+      setDoc(doc(packer, "driverLocations", PACKER.uid), position())
+    );
+  });
+
+  test("a deactivated driver cannot write", async () => {
+    await seed(testEnv, async (db) => {
+      await setDoc(doc(db, "users", DRIVER.uid), {
+        role: "storeWorker",
+        workerRole: "deliveryDriver",
+        isActive: false,
+      });
+    });
+    await assertFails(
+      setDoc(doc(driver(), "driverLocations", DRIVER.uid), position())
+    );
+  });
+
   test("a customer, the admin and a guest cannot write", async () => {
     const alice = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
     const admin = firestoreForUser(testEnv, ADMIN.uid, ADMIN.email);
@@ -99,15 +126,20 @@ describe("writing a driver location", () => {
 });
 
 describe("reading driver locations", () => {
-  test("staff can read them", async () => {
+  test("the admin can read them", async () => {
     const admin = firestoreForUser(testEnv, ADMIN.uid, ADMIN.email);
     await assertSucceeds(getDocs(collection(admin, "driverLocations")));
-    await assertSucceeds(getDoc(doc(driver(), "driverLocations", OTHER_DRIVER.uid)));
+    await assertSucceeds(
+      getDoc(doc(admin, "driverLocations", OTHER_DRIVER.uid))
+    );
   });
 
-  test("a customer and a guest cannot", async () => {
+  test("drivers, packers, customers and guests cannot", async () => {
+    const packer = firestoreForUser(testEnv, PACKER.uid, PACKER.email);
     const alice = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
-    await assertFails(getDocs(collection(alice, "driverLocations")));
+    for (const db of [driver(), packer, alice]) {
+      await assertFails(getDocs(collection(db, "driverLocations")));
+    }
     await assertFails(
       getDoc(doc(firestoreForGuest(testEnv), "driverLocations", DRIVER.uid))
     );

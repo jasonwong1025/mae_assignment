@@ -207,13 +207,19 @@ class OrderService {
         .toList();
   }
 
-  /// Changes an order in one transaction and returns the saved order, or
-  /// null if it does not exist.
+  /// Changes an order in one transaction and returns the new order, or null
+  /// if it does not exist.
   ///
   /// [change] gets the order as it is now and returns the new version; it
   /// may throw to refuse the change, which cancels the write. Only the
   /// fields that differ are written, so a worker's update never touches the
   /// checkout fields and `firestore.rules` can check which group changed.
+  ///
+  /// Every workflow time that changed (`OrderFields.serverTimeKeys`) is saved
+  /// as the server time, whatever time [change] put on the order: a phone
+  /// with the wrong clock cannot distort the timeline, and `firestore.rules`
+  /// refuses any other value. The returned order still carries the times
+  /// [change] chose, so use a snapshot of the order for the saved times.
   Future<Order?> updateOrder(String id, Order Function(Order current) change) {
     final document = _refs.order(id);
     return _firestore
@@ -231,10 +237,15 @@ class OrderService {
                 entry.key: entry.value,
           };
           // statusSince is a server-managed field, so it is not part of
-          // toFirestore; write it when it changed.
-          if (next.statusSince != current.statusSince &&
-              next.statusSince != null) {
-            changes[OrderFields.statusSince] = toTimestamp(next.statusSince!);
+          // toFirestore; it changes together with the status.
+          if (next.statusSince != current.statusSince ||
+              changes.containsKey(OrderFields.status)) {
+            changes[OrderFields.statusSince] = null;
+          }
+          for (final key in OrderFields.serverTimeKeys) {
+            if (changes.containsKey(key)) {
+              changes[key] = FieldValue.serverTimestamp();
+            }
           }
           if (changes.isNotEmpty) transaction.update(document, changes);
           return next;

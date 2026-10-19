@@ -141,18 +141,31 @@ void main() {
           .data()!;
       expect(data['status'], 'packing');
       expect(data['packedLineIds'], ['L1']);
-      expect(
-        (data['statusSince'] as Timestamp).toDate(),
-        DateTime(2026, 10, 16, 12, 30),
-      );
-      expect(
-        (data['packingStartedAt'] as Timestamp).toDate(),
-        DateTime(2026, 10, 16, 12, 30),
-      );
+      // Times are saved as the server time, not the time the change chose.
+      for (final key in ['statusSince', 'packingStartedAt']) {
+        final saved = (data[key] as Timestamp).toDate();
+        expect(DateTime.now().difference(saved).inMinutes.abs(), lessThan(5));
+        expect(saved, isNot(DateTime(2026, 10, 16, 12, 30)));
+      }
       // Checkout fields are untouched.
       expect(data['total'], 5);
       expect(data['customerName'], 'Customer');
     });
+
+    test(
+      'a status change always stamps statusSince with the server time',
+      () async {
+        await service.updateOrder(
+          'o1',
+          (current) => current.copyWith(status: OrderStatus.packing),
+        );
+
+        final data = (await firestore.collection('orders').doc('o1').get())
+            .data()!;
+        final saved = (data['statusSince'] as Timestamp).toDate();
+        expect(DateTime.now().difference(saved).inMinutes.abs(), lessThan(5));
+      },
+    );
 
     test('a missing order gives null', () async {
       final saved = await service.updateOrder('nope', (o) => o);

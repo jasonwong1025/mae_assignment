@@ -28,6 +28,23 @@ describe("order-number counter", () => {
     await assertSucceeds(getDoc(doc(db, "counters", "orders")));
   });
 
+  test("the first value must be 1001", async () => {
+    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
+    await assertFails(
+      setDoc(doc(db, "counters", "brand-new"), { value: 5000 })
+    );
+  });
+
+  test("the counter moves forward one at a time, not in jumps", async () => {
+    const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
+    await assertFails(
+      setDoc(doc(db, "counters", "orders"), { value: 1002 })
+    );
+    await assertFails(
+      setDoc(doc(db, "counters", "orders"), { value: 999999 })
+    );
+  });
+
   test("a signed-in user can move the counter forward", async () => {
     const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
     await assertSucceeds(

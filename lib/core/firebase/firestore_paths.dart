@@ -297,6 +297,18 @@ class OrderFields {
   static const String proofPhotoUrl = 'proofPhotoUrl';
   static const String completedAt = 'completedAt';
 
+  /// Times that Store Worker and Store Admin workflow actions record. They
+  /// are always saved as the server time (`FieldValue.serverTimestamp()`),
+  /// never the phone's clock, and `firestore.rules` requires that.
+  static const List<String> serverTimeKeys = [
+    statusSince,
+    packingStartedAt,
+    readyAt,
+    collectionVerifiedAt,
+    outForDeliveryAt,
+    completedAt,
+  ];
+
   /// Fields only the customer app writes, at checkout. Nobody else may
   /// change them afterwards.
   static const List<String> checkoutKeys = [
