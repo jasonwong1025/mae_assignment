@@ -43,6 +43,11 @@ class FirestoreCollections {
   /// document id is the order id, so an order can be rated only once.
   static const String reviews = 'reviews';
 
+  /// driverLocations/{driverId} — where a delivery driver is now. Written by
+  /// the driver's own app, read by Store Admin's Dispatch map. The document
+  /// id is the driver's uid.
+  static const String driverLocations = 'driverLocations';
+
   /// counters/{name} — monotonic counters (e.g. the order number sequence)
   /// incremented in a transaction. Not per-user: a customer cannot read
   /// other customers' orders, so the next order number comes from here
@@ -185,6 +190,17 @@ class InventoryFields {
   static const String price = 'price';
   static const String stock = 'stock';
   static const String isHidden = 'isHidden';
+}
+
+/// Field keys in driverLocations/{driverId}.
+class DriverLocationFields {
+  DriverLocationFields._();
+
+  /// GeoPoint of the driver's last known position.
+  static const String position = 'position';
+
+  /// Server time the position was recorded. Old positions are stale.
+  static const String updatedAt = 'updatedAt';
 }
 
 /// Field keys in orders/{orderId}.
@@ -379,6 +395,11 @@ class ReviewFields {
 
   /// Delivery, 1 to 5. Present only for delivery orders.
   static const String deliveryScore = 'deliveryScore';
+
+  /// Driver who delivered the order (delivery orders only), copied from the
+  /// order so the admin can rate drivers without reading every order.
+  static const String driverId = 'driverId';
+  static const String driverName = 'driverName';
 
   /// Optional written feedback, at most [maxCommentLength] characters.
   static const String comment = 'comment';

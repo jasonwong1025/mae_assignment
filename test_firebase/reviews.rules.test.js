@@ -24,6 +24,8 @@ function review(overrides = {}) {
     shoppingScore: 5,
     productScore: 4,
     deliveryScore: 3,
+    driverId: "driver-1",
+    driverName: "Amir Hamzah",
     comment: "Fast and fresh",
     createdAt: serverTimestamp(),
     ...overrides,
@@ -31,7 +33,7 @@ function review(overrides = {}) {
 }
 
 function withoutDelivery(data) {
-  const { deliveryScore, ...rest } = data;
+  const { deliveryScore, driverId, driverName, ...rest } = data;
   return rest;
 }
 
@@ -53,6 +55,8 @@ beforeEach(async () => {
       ...base,
       isDelivery: true,
       status: "completed",
+      driverId: "driver-1",
+      driverName: "Amir Hamzah",
     });
     await setDoc(doc(db, "orders", "o-pickup"), {
       ...base,
@@ -96,6 +100,32 @@ describe("writing a review", () => {
   test("a delivery order needs a delivery score", async () => {
     await assertFails(
       setDoc(doc(alice(), "reviews", "o-done"), withoutDelivery(review()))
+    );
+  });
+
+  test("a delivery review carries the order's driver", async () => {
+    await assertFails(
+      setDoc(
+        doc(alice(), "reviews", "o-done"),
+        review({ driverId: "someone-else" })
+      )
+    );
+    await assertFails(
+      setDoc(
+        doc(alice(), "reviews", "o-done"),
+        review({ driverName: "Someone Else" })
+      )
+    );
+    const { driverId, driverName, ...noDriver } = review();
+    await assertFails(setDoc(doc(alice(), "reviews", "o-done"), noDriver));
+  });
+
+  test("a pickup review cannot name a driver", async () => {
+    await assertFails(
+      setDoc(
+        doc(alice(), "reviews", "o-pickup"),
+        { ...withoutDelivery(review()), driverId: "driver-1" }
+      )
     );
   });
 

@@ -1,14 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/mock_worker_orders.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/worker_order_policy.dart';
-import 'package:mae_assignment/features/store_worker/session/data/mock_workers.dart';
 import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/models/verification_method.dart';
 
+import '../../helpers/worker_profiles.dart';
+import '../../helpers/worker_test_orders.dart';
+
 WorkerProfile _worker(String name) {
-  return mockWorkerProfiles.firstWhere((worker) => worker.name == name);
+  return testWorkers.firstWhere((worker) => worker.name == name);
 }
 
 final WorkerProfile _daniel = _worker('Daniel Lee');
@@ -18,7 +19,7 @@ final WorkerProfile _nadia = _worker('Nadia Yusof');
 final WorkerProfile _hafiz = _worker('Hafiz Zainal');
 final WorkerProfile _weiJie = _worker('Tan Wei Jie');
 
-final List<Order> _orders = seedWorkerOrders(DateTime(2026, 10, 15, 12));
+final List<Order> _orders = workerTestOrders(DateTime(2026, 10, 15, 12));
 
 Order _order(String id) {
   return _orders.firstWhere((order) => order.id == id);
@@ -49,7 +50,7 @@ void main() {
 
     test('assignments match real workers in the same branch', () {
       for (final order in _orders) {
-        final packer = mockWorkerProfiles.firstWhere(
+        final packer = testWorkers.firstWhere(
           (worker) => worker.id == order.packerId,
         );
         expect(packer.isPackingStaff, isTrue, reason: order.id);
@@ -60,7 +61,7 @@ void main() {
           expect(order.driverId, isNull, reason: order.id);
           expect(order.address, isNull, reason: order.id);
         } else {
-          final driver = mockWorkerProfiles.firstWhere(
+          final driver = testWorkers.firstWhere(
             (worker) => worker.id == order.driverId,
           );
           expect(driver.isDeliveryDriver, isTrue, reason: order.id);
@@ -108,7 +109,7 @@ void main() {
       // expected to be on earlier days.
       final now = DateTime(2026, 10, 15, 0, 10);
       final startOfDay = DateTime(now.year, now.month, now.day);
-      final completedToday = seedWorkerOrders(now).where(
+      final completedToday = workerTestOrders(now).where(
         (order) =>
             order.status == OrderStatus.completed &&
             !order.completedAt!.isBefore(startOfDay),

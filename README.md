@@ -1,8 +1,9 @@
 # Grocerly
 
 Flutter app for grocery ordering and fulfilment. The customer app supports
-onboarding, account access, catalogue browsing and checkout; the worker and
-admin order flows are still sample-backed.
+onboarding, account access, catalogue browsing and checkout. Store Admin and
+Store Worker work on the same Firestore data (orders, staff, reviews), and the
+demo data comes from the seed script in `test_firebase/`, not from the app.
 
 ## Team setup
 
@@ -20,6 +21,35 @@ fvm flutter run -d <device-id>
 `.fvmrc` pins Flutter 3.47.6, and `pubspec.lock` pins package versions. FVM downloads the project SDK and configures VS Code. The **Grocerly** VS Code launch configuration also works after `fvm use`. If Android SDK licenses are missing, run `fvm flutter doctor --android-licenses` once.
 
 Android and Web are configured for the shared project. The iOS Firebase app still needs configuration on a Mac before iOS can run. The Windows desktop runner is not configured; Windows teammates can run the Android app from Windows.
+
+## Demo data and logins
+
+The apps contain no sample data. Branches, the catalogue, Store Workers, orders
+in every state, driver positions, and about 35 days of completed orders and
+reviews are written to Firestore by `test_firebase/seed.mjs` (data in
+`test_firebase/seed-data/`). Re-running it is safe: it overwrites the same
+documents and moves the "minutes ago" times to now.
+
+```bash
+cd test_firebase
+npm install                       # first time only
+node seed.mjs                     # the real project (needs gcloud login)
+node seed.mjs --catalogue-only    # only branches, categories and products
+```
+
+Store Worker logins (sign in with the **Store Worker** button; every account
+uses the password `Worker123!`):
+
+| Role | Email | Branch |
+| --- | --- | --- |
+| Packing Staff | `daniel.lee@grocerly.my`, `hakim.roslan@grocerly.my`, `bryan.ong@grocerly.my` | SS15 Subang |
+| Packing Staff | `hafiz.zainal@grocerly.my` | Bukit Jalil |
+| Packing Staff | `syafiq.azman@grocerly.my` | Puchong |
+| Delivery Driver | `amir.hamzah@grocerly.my`, `firdaus.rahim@grocerly.my`, `lau.weijie@grocerly.my`, `weijie.tan@grocerly.my`, `kumar.selvam@grocerly.my`, `azlan.shah@grocerly.my`, `jason.tan@grocerly.my`, `marcus.ho@grocerly.my` | All |
+| Deactivated (cannot sign in) | `nadia.yusof@grocerly.my`, `ridzuan.ali@grocerly.my` | |
+
+These are demo accounts on the shared project. Change or delete them in the
+Firebase console before using real data.
 
 ## Firebase maintenance
 
@@ -116,8 +146,9 @@ Each run:
 cd test_firebase
 npx firebase emulators:start --only auth,firestore --project mae-assignment-grocerly
 
-# 2. In another shell, seed the catalogue and a test customer (refused
-#    against the real project).
+# 2. In another shell, seed the catalogue, the demo staff, orders and
+#    history, plus a test customer and admin (the customer and admin are
+#    refused against the real project).
 cd test_firebase
 FIRESTORE_EMULATOR_HOST=localhost:8085 \
 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \

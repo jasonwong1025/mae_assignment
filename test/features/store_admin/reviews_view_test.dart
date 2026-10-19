@@ -1,7 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/app/theme/app_theme.dart';
+import 'package:mae_assignment/core/firebase/firestore_refs.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/store_admin/reviews/data/models/review.dart';
 import 'package:mae_assignment/features/store_admin/reviews/data/models/review_summary.dart';
@@ -10,6 +13,7 @@ import 'package:mae_assignment/features/store_admin/reviews/presentation/ui/revi
 import 'package:mae_assignment/features/store_admin/reviews/presentation/views/reviews_view.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/services/branch_service.dart';
+import 'package:mae_assignment/shared/services/review_service.dart';
 
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_branch_service.dart';
@@ -37,6 +41,7 @@ Future<void> _pumpReviews(WidgetTester tester, Size size) async {
       overrides: [
         authRepositoryProvider.overrideWithValue(repository),
         branchServiceProvider.overrideWithValue(FakeBranchService()),
+        firebaseFirestoreProvider.overrideWithValue(await _reviewsDatabase()),
       ],
       child: MaterialApp(theme: AppTheme.light, home: const ReviewsView()),
     ),
@@ -56,6 +61,42 @@ Future<void> _scrollTo(WidgetTester tester, Finder finder) {
         )
         .first,
   );
+}
+
+/// SS15 has 46 reviews, newest first: order #2279 is the newest and every
+/// 8 hours older after that. 35 are for deliveries (Azlan delivered 7,
+/// Amir and Firdaus the rest), every 3rd has a comment and every 9th is a
+/// 1-star review.
+Future<FakeFirebaseFirestore> _reviewsDatabase() async {
+  final firestore = FakeFirebaseFirestore();
+  final now = DateTime.now();
+  var delivery = 0;
+  for (var i = 0; i < 46; i++) {
+    final isDelivery = i % 4 != 3;
+    final driver = isDelivery
+        ? (delivery % 5 == 2
+              ? ('driver-azlan', 'Azlan Shah')
+              : (delivery.isEven
+                    ? ('driver-amir', 'Amir Hamzah')
+                    : ('driver-firdaus', 'Firdaus Rahim')))
+        : null;
+    if (isDelivery) delivery++;
+    final low = i % 9 == 5;
+    await firestore.collection('reviews').doc('ord-${2279 + i}').set({
+      'orderNumber': 2279 + i,
+      'branchId': 'ss15',
+      'customerId': 'customer-$i',
+      'customerName': i == 0 ? 'Farah Idris' : 'Customer $i',
+      'shoppingScore': low ? 1 : 4 + (i % 2),
+      'productScore': low ? 1 : 5,
+      if (isDelivery) 'deliveryScore': low ? 1 : 4,
+      if (driver != null) 'driverId': driver.$1,
+      if (driver != null) 'driverName': driver.$2,
+      if (i % 3 == 0) 'comment': 'Comment $i',
+      'createdAt': Timestamp.fromDate(now.subtract(Duration(hours: 8 * i))),
+    });
+  }
+  return firestore;
 }
 
 Review _review({
@@ -110,7 +151,11 @@ void main() {
   });
 
   group('ReviewsRepository', () {
-    final repository = ReviewsRepository();
+    late ReviewsRepository repository;
+
+    setUp(() async {
+      repository = ReviewsRepository(ReviewService(await _reviewsDatabase()));
+    });
 
     test('returns pages of 20, newest first', () async {
       final first = await repository.getReviews('ss15');
@@ -126,7 +171,10 @@ void main() {
 
     test('filters by stars, driver and comment', () async {
       final low = await repository.getReviews('ss15', stars: 1);
-      final azlan = await repository.getReviews('ss15', driverId: 'w25');
+      final azlan = await repository.getReviews(
+        'ss15',
+        driverId: 'driver-azlan',
+      );
       final withComment = await repository.getReviews(
         'ss15',
         commentsOnly: true,

@@ -2,22 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/core/errors/app_exception.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver_location.dart';
-import 'package:mae_assignment/features/store_admin/dispatch/data/sample_drivers.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/services/driver_location_service.dart';
-import 'package:mae_assignment/features/store_admin/orders/data/repositories/orders_repository.dart';
-import 'package:mae_assignment/shared/models/branch.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/services/staff_service.dart';
 import 'package:mae_assignment/shared/models/order.dart';
-import 'package:mae_assignment/shared/models/order_status.dart';
-
-final driverLocationServiceProvider = Provider<DriverLocationService>((ref) {
-  final service = DriverLocationService();
-  ref.onDispose(service.dispose);
-  return service;
-});
+import 'package:mae_assignment/shared/services/order_service.dart';
 
 final dispatchRepositoryProvider = Provider<DispatchRepository>((ref) {
   return DispatchRepository(
-    ref.watch(ordersRepositoryProvider),
+    ref.watch(orderServiceProvider),
+    ref.watch(staffServiceProvider),
     ref.watch(driverLocationServiceProvider),
   );
 });
@@ -28,83 +21,65 @@ class DispatchException extends AppException {
 }
 
 /// Data for the Dispatch tab: delivery orders, drivers and where they are.
-/// Uses the same orders as the Orders tab, so an assignment shows up
-/// there too. Both orders and drivers are currently sample-backed.
+/// Orders are the shared `orders` collection (the same ones as the Orders
+/// tab), drivers are the active delivery drivers in Staff, and locations
+/// come from each driver's own app.
 class DispatchRepository {
-  DispatchRepository(this._orders, this._locations);
+  DispatchRepository(this._orders, this._staff, this._locations);
 
-  final OrdersRepository _orders;
+  final OrderService _orders;
+  final StaffService _staff;
   final DriverLocationService _locations;
 
-  /// Delivery orders of the branch that are ready or on the road.
-  Stream<List<Order>> watchDeliveries(String branchId) {
-    return _orders.watchTodaysOrders(branchId).map((orders) {
-      return orders.where((order) {
-        return order.isDelivery &&
-            (order.status == OrderStatus.ready ||
-                order.status == OrderStatus.outForDelivery);
-      }).toList();
-    });
+  /// Every delivery that is ready or on the road, for all branches. A
+  /// driver can be busy with another branch's order, so Dispatch needs them
+  /// all to know who is free.
+  Stream<List<Order>> watchActiveDeliveries() {
+    return _orders.watchActiveDeliveries();
   }
 
-  /// Sample drivers, kept in memory until orders are in Firestore.
-  final List<Driver> _drivers = [...sampleDrivers()];
+  /// Active delivery drivers, sorted by name.
+  Future<List<Driver>> getDrivers() {
+    return guard(
+      () async {
+        final workers = await _staff.getWorkers();
+        return [
+          for (final worker in workers)
+            if (worker.isDriver && worker.isActive)
+              Driver(id: worker.id, name: worker.name, isOnDuty: true),
+        ]..sort((a, b) => a.name.compareTo(b.name));
+      },
+      label: 'drivers',
+      onError: () => const DispatchException(
+        'Could not load the drivers. Please try again.',
+      ),
+    );
+  }
 
-  Future<List<Driver>> getDrivers() async => [..._drivers];
-
-  /// Live driver locations, by worker id.
+  /// Live driver locations, by driver id.
   Stream<Map<String, DriverLocation>> watchLocations() {
     return _locations.watchLocations();
   }
 
-  /// Gives [order] to [driver]. Any old driver of the order is set free.
-  /// [oldDriver] and [oldDriverLocation] are the current driver, if any.
-  Future<void> assignDriver({
-    required Branch branch,
-    required Order order,
-    required Driver driver,
-    Driver? oldDriver,
-    DriverLocation? oldDriverLocation,
-  }) async {
+  /// Gives [order] to [driver]. Any old driver of the order is set free,
+  /// because a driver's current order is worked out from the orders.
+  Future<void> assignDriver({required Order order, required Driver driver}) {
     if (!driver.isOnDuty || driver.currentOrderNumber != null) {
       throw DispatchException('${driver.name} is not free any more.');
     }
     if (order.addressLocation == null) {
       throw const DispatchException('This order has no address on the map.');
     }
-
-    // Set the old driver free.
-    if (oldDriver != null) {
-      _saveDriver(oldDriver.withCurrentOrder(null));
-      _locations.setStops(oldDriver.id, []);
-    }
-
-    _saveDriver(driver.withCurrentOrder(order.number));
-    await _orders.updateOrder(
-      branch.id,
-      order.withDriver(
+    return guard(
+      () => _orders.assignDriver(
+        order.id,
         driverId: driver.id,
         driverName: driver.name.split(' ').first,
-        now: DateTime.now(),
+      ),
+      label: 'assign driver',
+      onError: () => const DispatchException(
+        'Could not assign the driver. Please try again.',
       ),
     );
-
-    // Ready orders: drive to the branch and wait there. The driver app
-    // starts the delivery after scanning the order.
-    if (order.status == OrderStatus.ready) {
-      _locations.setStops(driver.id, [branch.location]);
-      return;
-    }
-
-    // On the road: collect it from the old driver, then deliver.
-    _locations.setStops(driver.id, [
-      oldDriverLocation?.position ?? branch.location,
-      order.addressLocation!,
-    ]);
-  }
-
-  void _saveDriver(Driver driver) {
-    final index = _drivers.indexWhere((old) => old.id == driver.id);
-    if (index != -1) _drivers[index] = driver;
   }
 }

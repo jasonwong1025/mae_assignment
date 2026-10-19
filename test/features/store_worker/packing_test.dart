@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/mock_worker_orders.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_item_tile.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/view_models/packing_order_view_model.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/shared/models/verification_method.dart';
 
+import '../../helpers/worker_profiles.dart';
 import '../../helpers/worker_test_app.dart';
+import '../../helpers/worker_test_orders.dart';
+import '../../helpers/worker_test_store.dart';
 
 /// The app on a phone as [workerName], opened at [location] (My Tasks by
 /// default).
@@ -73,7 +75,7 @@ void main() {
       final (_, repository) = await _pumpAs(tester, 'Hakim Roslan');
       expect(find.text('#2304'), findsOneWidget);
 
-      final hakim = mockWorker('Hakim Roslan');
+      final hakim = testWorker('Hakim Roslan');
       await repository.startPacking(hakim, 'ord-2304');
       await repository.setItemPacked(hakim, 'ord-2304', 'L1', packed: true);
       await repository.setItemPacked(hakim, 'ord-2304', 'L2', packed: true);
@@ -160,7 +162,7 @@ void main() {
       tester,
     ) async {
       final (_, repository) = await _pumpAs(tester, 'Daniel Lee');
-      final daniel = mockWorker('Daniel Lee');
+      final daniel = testWorker('Daniel Lee');
       await repository.setItemPacked(daniel, 'ord-2303', 'L4', packed: true);
       await tester.pumpAndSettle();
 
@@ -237,7 +239,7 @@ void main() {
       );
 
       await repository.setItemPacked(
-        mockWorker('Daniel Lee'),
+        testWorker('Daniel Lee'),
         'ord-2302',
         'L5',
         packed: true,
@@ -277,11 +279,11 @@ void main() {
       expect(find.text('Waiting for the driver to collect.'), findsOneWidget);
 
       // Manual verification matches the bag's collection code.
-      final code = seedWorkerOrders(
+      final code = workerTestOrders(
         DateTime(2026, 10, 15, 12),
       ).firstWhere((order) => order.id == 'ord-2308').collectionCode;
       await repository.verifyCollection(
-        mockWorker('Amir Hamzah'),
+        testWorker('Amir Hamzah'),
         'ord-2308',
         method: VerificationMethod.manual,
         code: code,
@@ -341,8 +343,7 @@ void main() {
 
   group('PackingOrderViewModel', () {
     test('returns the reason when an action is refused', () async {
-      final repository = WorkerOrdersRepository();
-      addTearDown(repository.dispose);
+      final repository = (await WorkerTestStore.create()).repository;
       final container = ProviderContainer(
         overrides: [
           workerOrdersRepositoryProvider.overrideWithValue(repository),
@@ -351,7 +352,7 @@ void main() {
       addTearDown(container.dispose);
       container
           .read(workerSessionProvider.notifier)
-          .select(mockWorker('Daniel Lee'));
+          .open(testWorker('Daniel Lee'));
 
       final provider = packingOrderViewModelProvider('ord-2302');
       container.listen(provider, (previous, next) {});

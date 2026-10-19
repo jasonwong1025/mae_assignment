@@ -116,7 +116,7 @@ class _ProofOfDeliverySheetState extends ConsumerState<_ProofOfDeliverySheet> {
                       onTap: _takePhoto,
                     )
                   else ...[
-                    ExpandablePhoto(photo: photo),
+                    ExpandablePhoto(image: MemoryImage(photo)),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: TextButton.icon(

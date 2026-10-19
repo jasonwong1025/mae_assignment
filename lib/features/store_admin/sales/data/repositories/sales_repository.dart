@@ -1,43 +1,49 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
-import 'package:mae_assignment/features/store_admin/inventory/data/sample_inventory.dart';
+import 'package:mae_assignment/core/errors/app_exception.dart';
 import 'package:mae_assignment/features/store_admin/sales/data/models/sale.dart';
 import 'package:mae_assignment/features/store_admin/sales/data/models/sales_period.dart';
 import 'package:mae_assignment/features/store_admin/sales/data/models/sales_report.dart';
-import 'package:mae_assignment/features/store_admin/sales/data/sample_sales.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/models/page_result.dart';
+import 'package:mae_assignment/shared/services/order_service.dart';
 
 final salesRepositoryProvider = Provider<SalesRepository>((ref) {
-  return SalesRepository();
+  return SalesRepository(ref.watch(orderServiceProvider));
 });
 
-/// Sales numbers for the Sales & revenue tab. Each branch is separate.
-/// No backend yet: works them out from sample sales kept in memory.
-class SalesRepository {
-  /// Names for the sample sales' category ids. The sales are sample data,
-  /// so they keep their own sample categories until Sales is connected to
-  /// Firestore (the live catalogue has different category ids).
-  final List<ProductCategory> _categories = sampleCategories();
+/// Error with a message to show on screen.
+class SalesException extends AppException {
+  const SalesException(super.message);
+}
 
-  /// Sales of each branch, by branch id. Made on first use.
-  final Map<String, List<Sale>> _sales = {};
+/// Sales numbers for the Sales & revenue tab. Each branch is separate.
+///
+/// Worked out from the branch's real orders: every order that was not
+/// cancelled counts as a sale on the day it was placed (orders are paid at
+/// checkout).
+class SalesRepository {
+  SalesRepository(this._orders);
+
+  final OrderService _orders;
 
   /// Totals, chart and categories for one branch and period.
   Future<SalesReport> getReport(String branchId, SalesPeriod period) async {
-    final sales = _salesIn(branchId, period);
-    final categoryNames = {
-      for (final category in _categories) category.id: category.name,
-    };
+    final previous = period.previous;
+    final all = await _salesBetween(branchId, previous.start, period.end);
+    final sales = all.where((sale) => period.contains(sale.paidAt)).toList();
 
-    // Revenue of each category, by category id.
+    // Revenue of each category, by category id, and the names seen.
     final revenueByCategory = <String, double>{};
+    final categoryNames = <String, String>{};
     for (final sale in sales) {
       for (final item in sale.items) {
         revenueByCategory[item.categoryId] =
             (revenueByCategory[item.categoryId] ?? 0) + item.lineTotal;
+        if (item.categoryName.isNotEmpty) {
+          categoryNames[item.categoryId] = item.categoryName;
+        }
       }
     }
-
     final categories = [
       for (final entry in revenueByCategory.entries)
         CategorySales(
@@ -50,8 +56,8 @@ class SalesRepository {
     // Compare like with like: if the period is not over yet (e.g. today),
     // only count the period before up to the same point.
     final now = DateTime.now();
-    final previous = period.previous;
-    final previousSales = _salesIn(branchId, previous).where((sale) {
+    final previousSales = all.where((sale) {
+      if (!previous.contains(sale.paidAt)) return false;
       final timeIn = sale.paidAt.difference(previous.start);
       return period.start.add(timeIn).isBefore(now);
     }).toList();
@@ -71,19 +77,16 @@ class SalesRepository {
     SalesPeriod period, {
     int page = 1,
   }) async {
-    final categoryNames = {
-      for (final category in _categories) category.id: category.name,
-    };
-
     // Sales of each product, by product id.
     final byProduct = <String, ProductSales>{};
-    for (final sale in _salesIn(branchId, period)) {
+    final sales = await _salesBetween(branchId, period.start, period.end);
+    for (final sale in sales) {
       for (final item in sale.items) {
         final old = byProduct[item.productId];
         byProduct[item.productId] = ProductSales(
           productId: item.productId,
           name: item.productName,
-          categoryName: categoryNames[item.categoryId] ?? 'Other',
+          categoryName: item.categoryName.isEmpty ? 'Other' : item.categoryName,
           quantity: (old?.quantity ?? 0) + item.quantity,
           revenue: (old?.revenue ?? 0) + item.lineTotal,
         );
@@ -95,12 +98,28 @@ class SalesRepository {
     return PageResult.fromList(products, page: page);
   }
 
-  List<Sale> _salesIn(String branchId, SalesPeriod period) {
-    final all = _sales.putIfAbsent(
-      branchId,
-      () => sampleSales(branchId, DateTime.now()),
+  /// The branch's sales from [start] up to [end].
+  Future<List<Sale>> _salesBetween(
+    String branchId,
+    DateTime start,
+    DateTime end,
+  ) {
+    return guard(
+      () async {
+        final orders = await _orders.getBranchOrdersBetween(
+          branchId,
+          start,
+          end,
+        );
+        return [
+          for (final order in orders)
+            if (order.status != OrderStatus.cancelled) Sale.fromOrder(order),
+        ];
+      },
+      label: 'sales',
+      onError: () =>
+          const SalesException('Could not load the sales. Please try again.'),
     );
-    return all.where((sale) => period.contains(sale.paidAt)).toList();
   }
 
   SalesTotals _totals(List<Sale> sales) {

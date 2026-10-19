@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 
 part 'dashboard_summary.freezed.dart';
 
@@ -28,26 +29,15 @@ abstract class DashboardSummary with _$DashboardSummary {
   const DashboardSummary._();
 }
 
-/// Where an unfinished order is right now.
-enum LiveOrderStatus {
-  pending('Pending'),
-  packing('Packing'),
-  ready('Ready'),
-  outForDelivery('Out for delivery');
-
-  const LiveOrderStatus(this.label);
-
-  /// Name shown to the admin, e.g. "Out for delivery".
-  final String label;
-}
-
 /// One row of the "Right now" list.
 @freezed
 abstract class LiveOrder with _$LiveOrder {
   const factory LiveOrder({
     required int number,
     required String customerName,
-    required LiveOrderStatus status,
+
+    /// Never completed or cancelled: only unfinished orders are listed.
+    required OrderStatus status,
 
     /// True for delivery, false for pickup at the store.
     required bool isDelivery,

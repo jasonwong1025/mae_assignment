@@ -29,8 +29,6 @@ import 'package:mae_assignment/features/store_worker/packing/presentation/views/
 import 'package:mae_assignment/features/store_worker/pickup/presentation/views/pickup_handover_view.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/views/pickup_queue_view.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
-import 'package:mae_assignment/features/store_worker/session/presentation/views/mock_worker_selector_view.dart';
-import 'package:mae_assignment/features/store_worker/session/worker_preview.dart';
 import 'package:mae_assignment/features/store_worker/shell/presentation/views/worker_account_view.dart';
 import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
@@ -68,7 +66,6 @@ class AppRoutes {
 
   // Store Worker (mobile). Every worker page starts with workerRoot.
   static const String workerRoot = '/worker';
-  static const String workerDevSelect = '/worker/dev-select';
   static const String workerPacking = '/worker/packing';
   static const String workerPickup = '/worker/pickup';
   static const String workerDelivery = '/worker/delivery';
@@ -89,8 +86,8 @@ class AppRoutes {
 }
 
 Future<String?> _adminRedirect(AuthRepository authRepository) async {
-  // This is a UI guard. Firestore rules must independently enforce access
-  // when admin data moves from demo repositories to the backend.
+  // This is a UI guard only. `firestore.rules` independently enforces what
+  // each role can read and write.
   try {
     final user = await authRepository.getCurrentUser();
     return user?.role == UserRole.storeAdmin ? null : AppRoutes.home;
@@ -103,12 +100,14 @@ Future<String?> _adminRedirect(AuthRepository authRepository) async {
 /// opens with a live session (e.g. after a restart) so each role lands on
 /// its own home instead of the shared placeholder. Falls back to the
 /// placeholder if the role cannot be read.
-Future<String> _homeForSignedInUser(AuthRepository authRepository) async {
+Future<String> _homeForSignedInUser(Ref ref) async {
+  final authRepository = ref.read(authRepositoryProvider);
   try {
     final user = await authRepository.getCurrentUser();
     return switch (user?.role) {
       UserRole.storeAdmin => AppRoutes.adminDashboard,
       UserRole.customer => AppRoutes.customerCatalogue,
+      UserRole.storeWorker => await _workerHome(ref),
       _ => AppRoutes.home,
     };
   } on Object catch (_) {
@@ -116,12 +115,25 @@ Future<String> _homeForSignedInUser(AuthRepository authRepository) async {
   }
 }
 
+/// A signed-in worker's home. Loads their profile first when the app has
+/// just opened with a live session; falls back to the placeholder if the
+/// profile cannot be used (the worker is deactivated, or has no branch).
+Future<String> _workerHome(Ref ref) async {
+  final notifier = ref.read(workerSessionProvider.notifier);
+  var worker = ref.read(workerSessionProvider);
+  if (worker == null) {
+    final error = await notifier.start();
+    if (error != null) return AppRoutes.home;
+    worker = ref.read(workerSessionProvider);
+  }
+  return worker == null ? AppRoutes.home : workerHomeFor(worker);
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
-  final workerPreviewEnabled = ref.watch(workerPreviewEnabledProvider);
 
-  // Re-runs the redirect when the preview worker changes, so switching or
-  // leaving a worker immediately applies the new role's pages. It also runs
+  // Re-runs the redirect when the worker session changes, so starting or
+  // ending a session immediately applies the right pages. It also runs
   // when the user becomes signed out (for example the backend ended the
   // session), so they are sent to onboarding at once. Sign-in is left out on
   // purpose: the sign-in and sign-up screens navigate themselves once the
@@ -144,7 +156,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: AppRoutes.onboarding,
     refreshListenable: workerSessionChanges,
     // Runs before every navigation:
-    // - Store Worker pages: preview and role checks (workerRouteRedirect)
+    // - Store Worker pages: sign-in and role checks (workerRouteRedirect)
     // - signed in and on onboarding/login/sign-up: go to home
     // - not signed in and on any other page: go to onboarding
     // Screens still call context.go() themselves after signing in or out.
@@ -152,12 +164,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // checks if the user is signed in
       final isSignedIn = authRepository.isSignedIn;
 
-      // Worker pages are decided only by the preview session. It never
-      // signs anyone in, so it cannot open admin pages.
+      // Worker pages need a signed-in worker (see workerRouteRedirect).
       if (isWorkerLocation(state.matchedLocation)) {
         return workerRouteRedirect(
           location: state.matchedLocation,
-          previewEnabled: workerPreviewEnabled,
           worker: ref.read(workerSessionProvider),
           isSignedIn: isSignedIn,
         );
@@ -170,7 +180,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // Signed in but on a signed-out page: go to the role's home.
       if (isSignedIn && onSignedOutPage) {
-        return _homeForSignedInUser(authRepository);
+        return _homeForSignedInUser(ref);
       }
       // Signed out but on any other page: go to onboarding.
       if (!isSignedIn && !onSignedOutPage) return AppRoutes.onboarding;
@@ -255,13 +265,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             const NoTransitionPage(child: StaffView()),
       ),
 
-      // Store Worker preview. The selector is development-only (see
-      // worker_preview.dart); the tabs have no page animation, like the
-      // admin tabs.
-      GoRoute(
-        path: AppRoutes.workerDevSelect,
-        builder: (context, state) => const MockWorkerSelectorView(),
-      ),
+      // Store Worker tabs. No page animation, like the admin tabs.
       GoRoute(
         path: AppRoutes.workerPacking,
         pageBuilder: (context, state) =>

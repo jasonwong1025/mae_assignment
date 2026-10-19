@@ -1,24 +1,24 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 
 /// A 4:3 photo with an expand button in the corner that opens it full
 /// screen at its real proportions, with pinch to zoom.
 class ExpandablePhoto extends StatelessWidget {
   const ExpandablePhoto({
-    required this.photo,
+    required this.image,
     super.key,
     this.borderRadius = 12,
   });
 
-  final Uint8List photo;
+  /// A photo just taken (`MemoryImage`) or one already uploaded
+  /// (`NetworkImage`).
+  final ImageProvider image;
   final double borderRadius;
 
   void _openFullScreen(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         fullscreenDialog: true,
-        builder: (context) => _FullScreenPhoto(photo: photo),
+        builder: (context) => _FullScreenPhoto(image: image),
       ),
     );
   }
@@ -34,7 +34,7 @@ class ExpandablePhoto extends StatelessWidget {
           children: [
             GestureDetector(
               onTap: () => _openFullScreen(context),
-              child: Image.memory(photo, fit: BoxFit.cover),
+              child: Image(image: image, fit: BoxFit.cover),
             ),
             Positioned(
               right: 8,
@@ -58,9 +58,9 @@ class ExpandablePhoto extends StatelessWidget {
 
 /// The whole photo on black, uncropped. Pinch or double-tap to zoom.
 class _FullScreenPhoto extends StatelessWidget {
-  const _FullScreenPhoto({required this.photo});
+  const _FullScreenPhoto({required this.image});
 
-  final Uint8List photo;
+  final ImageProvider image;
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +74,9 @@ class _FullScreenPhoto extends StatelessWidget {
       body: InteractiveViewer(
         minScale: 1,
         maxScale: 5,
-        child: Center(child: Image.memory(photo, fit: BoxFit.contain)),
+        child: Center(
+          child: Image(image: image, fit: BoxFit.contain),
+        ),
       ),
     );
   }

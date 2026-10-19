@@ -7,14 +7,6 @@ import 'package:mae_assignment/features/store_worker/session/presentation/view_m
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/verification_method.dart';
 
-/// The delivery proof photo of one order, or null if there is none. Read
-/// when the order changes; the photo is saved before the order says it
-/// has one.
-final proofPhotoProvider = Provider.autoDispose.family<Uint8List?, String>(
-  (ref, orderId) =>
-      ref.watch(workerOrdersRepositoryProvider).proofPhotoFor(orderId),
-);
-
 /// One provider per order id.
 final deliveryDetailViewModelProvider = StreamNotifierProvider.autoDispose
     .family<DeliveryDetailViewModel, Order?, String>(

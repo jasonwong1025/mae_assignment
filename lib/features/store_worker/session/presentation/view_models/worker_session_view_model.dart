@@ -1,34 +1,49 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
-import 'package:mae_assignment/features/store_worker/session/worker_preview.dart';
+import 'package:mae_assignment/features/store_worker/session/data/repositories/worker_session_repository.dart';
 
-/// Not autoDispose on purpose: the chosen worker should stay the same while
-/// they move between tabs.
+/// Not autoDispose on purpose: the signed-in worker should stay the same
+/// while they move between tabs.
 final workerSessionProvider =
     NotifierProvider<WorkerSessionViewModel, WorkerProfile?>(
       WorkerSessionViewModel.new,
     );
 
-/// The Store Worker using the app, or null if nobody is.
+/// The signed-in Store Worker, or null if nobody is.
 ///
-/// During the preview this is set by the Mock Worker Selector and has
-/// nothing to do with Firebase sign-in. Later it will be filled from the
-/// signed-in worker's profile instead; screens only read the state, so they
-/// will not need to change.
+/// Filled by [start] right after a worker signs in (or the app reopens with
+/// a live session), from their users/{uid} profile. It is cleared as soon
+/// as the Firebase session ends. Screens only read the state.
 class WorkerSessionViewModel extends Notifier<WorkerProfile?> {
   @override
-  WorkerProfile? build() => null;
+  WorkerProfile? build() {
+    // Signing out (or the backend ending the session) ends the worker
+    // session too.
+    ref.listen(authUidProvider, (previous, next) {
+      if (next.hasValue && next.value == null) state = null;
+    });
+    return null;
+  }
 
-  /// Starts a preview as [worker]. Returns an error message, or null if it
-  /// worked.
-  String? select(WorkerProfile worker) {
-    if (!ref.read(workerPreviewEnabledProvider)) {
-      return 'The Store Worker preview is not available in this build.';
+  /// Loads the signed-in worker's profile and starts the session. Returns
+  /// an error message, or null if it worked.
+  Future<String?> start() async {
+    final WorkerProfile profile;
+    try {
+      profile = await ref.read(workerSessionRepositoryProvider).loadCurrent();
+    } on Exception catch (error) {
+      return error.toString();
     }
+    return open(profile);
+  }
+
+  /// Starts the session as [worker]. Returns an error message, or null if
+  /// it worked.
+  String? open(WorkerProfile worker) {
     if (!worker.isActive) {
       return '${worker.name} has been deactivated by HQ, so this account '
-          'cannot use the Store Worker app. Choose an active worker.';
+          'cannot use the Store Worker app.';
     }
     // Packing Staff work at one branch; without it they have no tasks.
     if (worker.isPackingStaff && worker.branchId == null) {
@@ -39,6 +54,7 @@ class WorkerSessionViewModel extends Notifier<WorkerProfile?> {
     return null;
   }
 
-  /// Ends the preview.
+  /// Ends the session locally. Signing out of Firebase is done by the
+  /// caller (the Account tab), which also clears this.
   void exit() => state = null;
 }

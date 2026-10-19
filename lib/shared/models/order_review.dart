@@ -29,6 +29,10 @@ abstract class OrderReview with _$OrderReview {
     /// Null for pickup orders.
     int? deliveryScore,
 
+    /// Driver who delivered it. Null for pickup orders.
+    String? driverId,
+    String? driverName,
+
     /// Written feedback. Null if the customer left none.
     String? comment,
 
@@ -52,6 +56,8 @@ abstract class OrderReview with _$OrderReview {
       deliveryScore: data[ReviewFields.deliveryScore] is num
           ? data.integer(ReviewFields.deliveryScore)
           : null,
+      driverId: data.stringOrNull(ReviewFields.driverId),
+      driverName: data.stringOrNull(ReviewFields.driverName),
       comment: data.stringOrNull(ReviewFields.comment),
       createdAt: data.dateTime(ReviewFields.createdAt),
     );
@@ -69,6 +75,8 @@ abstract class OrderReview with _$OrderReview {
       ReviewFields.shoppingScore: shoppingScore,
       ReviewFields.productScore: productScore,
       if (deliveryScore != null) ReviewFields.deliveryScore: deliveryScore,
+      if (driverId != null) ReviewFields.driverId: driverId,
+      if (driverName != null) ReviewFields.driverName: driverName,
       if (comment != null && comment!.isNotEmpty) ReviewFields.comment: comment,
     };
   }

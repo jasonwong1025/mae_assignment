@@ -23,6 +23,8 @@ beforeEach(async () => {
     await setDoc(doc(db, "users", ALICE.uid), { role: "customer" });
     await setDoc(doc(db, "users", ADMIN.uid), { role: "storeAdmin" });
     await setDoc(doc(db, "users", WORKER.uid), { role: "storeWorker" });
+    await setDoc(doc(db, "orders", "o1"), { driverId: WORKER.uid });
+    await setDoc(doc(db, "orders", "o2"), { driverId: "someone-else" });
   });
   await testEnv.withSecurityRulesDisabled(async (context) => {
     await uploadBytes(
@@ -93,6 +95,53 @@ describe("product photos", () => {
   test("nothing outside products/ can be written", async () => {
     await assertFails(
       uploadBytes(ref(admin(), "other/file.jpg"), photo(), jpeg)
+    );
+  });
+});
+
+describe("delivery proof photos", () => {
+  const worker = () => storageForUser(testEnv, WORKER.uid, WORKER.email);
+
+  test("the assigned driver can upload the proof photo", async () => {
+    await assertSucceeds(
+      uploadBytes(ref(worker(), "orders/o1/proof.jpg"), photo(), jpeg)
+    );
+  });
+
+  test("another driver's order is refused", async () => {
+    await assertFails(
+      uploadBytes(ref(worker(), "orders/o2/proof.jpg"), photo(), jpeg)
+    );
+  });
+
+  test("only proof.jpg, and only an image", async () => {
+    await assertFails(
+      uploadBytes(ref(worker(), "orders/o1/other.jpg"), photo(), jpeg)
+    );
+    await assertFails(
+      uploadBytes(ref(worker(), "orders/o1/proof.jpg"), photo(), {
+        contentType: "text/plain",
+      })
+    );
+  });
+
+  test("staff read it; customers, guests and the admin cannot upload", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await uploadBytes(
+        ref(context.storage(), "orders/o1/proof.jpg"),
+        photo(),
+        jpeg
+      );
+    });
+    await assertSucceeds(getBytes(ref(worker(), "orders/o1/proof.jpg")));
+    await assertSucceeds(getBytes(ref(admin(), "orders/o1/proof.jpg")));
+
+    const alice = storageForUser(testEnv, ALICE.uid, ALICE.email);
+    await assertFails(getBytes(ref(alice, "orders/o1/proof.jpg")));
+    await assertFails(uploadBytes(ref(alice, "orders/o1/proof.jpg"), photo(), jpeg));
+    await assertFails(uploadBytes(ref(admin(), "orders/o1/proof.jpg"), photo(), jpeg));
+    await assertFails(
+      getBytes(ref(storageForGuest(testEnv), "orders/o1/proof.jpg"))
     );
   });
 });

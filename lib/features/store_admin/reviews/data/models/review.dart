@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:mae_assignment/shared/models/order_review.dart';
 
 part 'review.freezed.dart';
 
@@ -28,6 +29,24 @@ abstract class Review with _$Review {
   }) = _Review;
 
   const Review._();
+
+  /// The admin's view of a customer's [OrderReview]. A review whose server
+  /// time is still being saved counts as written now.
+  factory Review.fromOrderReview(OrderReview review) {
+    return Review(
+      id: review.id,
+      orderNumber: review.orderNumber,
+      branchId: review.branchId,
+      customerName: review.customerName,
+      createdAt: review.createdAt ?? DateTime.now(),
+      shoppingScore: review.shoppingScore,
+      productScore: review.productScore,
+      deliveryScore: review.deliveryScore,
+      driverId: review.driverId,
+      driverName: review.driverName,
+      comment: review.comment,
+    );
+  }
 
   bool get isDelivery => deliveryScore != null;
 

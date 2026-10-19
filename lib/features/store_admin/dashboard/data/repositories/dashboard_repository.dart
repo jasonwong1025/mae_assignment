@@ -1,153 +1,167 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:mae_assignment/core/errors/app_exception.dart';
 import 'package:mae_assignment/features/store_admin/dashboard/data/models/dashboard_summary.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/services/staff_service.dart';
+import 'package:mae_assignment/shared/models/order.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
+import 'package:mae_assignment/shared/services/order_service.dart';
 
 final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
-  return DashboardRepository();
+  return DashboardRepository(
+    ref.watch(orderServiceProvider),
+    ref.watch(staffServiceProvider),
+  );
 });
 
-/// Dashboard numbers for the store admin.
-///
-/// The backend is not connected yet, so this returns sample data.
-/// The method is already async, so later only the inside of this class
-/// changes (to call a Firestore service) and the screens stay the same.
-class DashboardRepository {
-  /// Today's numbers for one branch.
-  ///
-  /// The numbers are sample data for the three sample branches. Any other
-  /// branch (for example one added in the Branches tab, which has a Firestore
-  /// id) has no orders yet, so it gets an empty summary instead of an error.
-  Future<DashboardSummary> getSummary(String branchId) async {
-    return _sampleSummaries[branchId] ?? _emptySummary;
-  }
+/// Error with a message to show on screen.
+class DashboardException extends AppException {
+  const DashboardException(super.message);
 }
 
-/// A branch with nothing to report yet.
-const _emptySummary = DashboardSummary(
-  ordersToday: 0,
-  ordersYesterday: 0,
-  ordersByHour: [],
-  revenue: 0,
-  driversOnRoad: 0,
-  totalDrivers: 0,
-  liveOrders: [],
-  activity: [],
-);
+/// Dashboard numbers for the store admin, worked out from the branch's real
+/// orders and the active drivers, so a branch with no orders yet simply
+/// shows zeros.
+class DashboardRepository {
+  DashboardRepository(this._orders, this._staff, {DateTime Function()? clock})
+    : _clock = clock ?? DateTime.now;
 
-const _sampleSummaries = {
-  'ss15': DashboardSummary(
-    ordersToday: 47,
-    ordersYesterday: 35,
-    ordersByHour: [1, 3, 4, 5, 6, 2, 3, 4, 5, 9, 5],
-    revenue: 2384,
-    driversOnRoad: 4,
-    totalDrivers: 6,
-    liveOrders: [
-      LiveOrder(
-        number: 2291,
-        customerName: 'Mei Ling Tan',
-        status: LiveOrderStatus.packing,
-        isDelivery: true,
-        minutesInStatus: 4,
+  final OrderService _orders;
+  final StaffService _staff;
+  final DateTime Function() _clock;
+
+  /// How many staff actions the activity list shows.
+  static const int _activityCount = 6;
+
+  /// Today's numbers for one branch. [openingHour] is the hour of the first
+  /// bar in the orders-by-hour chart (24-hour clock).
+  Future<DashboardSummary> getSummary(
+    String branchId, {
+    required int openingHour,
+  }) {
+    return guard(
+      () async {
+        final clock = _clock();
+        final today = DateTime(clock.year, clock.month, clock.day);
+        final yesterday = DateTime(clock.year, clock.month, clock.day - 1);
+        final tomorrow = DateTime(clock.year, clock.month, clock.day + 1);
+
+        final recent = await _orders.getBranchOrdersBetween(
+          branchId,
+          yesterday,
+          tomorrow,
+        );
+        final unfinished = await _orders.getActiveBranchOrders(branchId);
+        final workers = await _staff.getWorkers();
+
+        // Cancelled orders were never fulfilled, so they are not counted.
+        final placed = [
+          for (final order in recent)
+            if (order.status != OrderStatus.cancelled) order,
+        ];
+        final todays = [
+          for (final order in placed)
+            if (!_placedAt(order).isBefore(today)) order,
+        ];
+        final yesterdays = placed.length - todays.length;
+
+        final onRoad = {
+          for (final order in unfinished)
+            if (order.status == OrderStatus.outForDelivery &&
+                order.driverId != null)
+              order.driverId,
+        };
+
+        return DashboardSummary(
+          ordersToday: todays.length,
+          ordersYesterday: yesterdays,
+          ordersByHour: _ordersByHour(todays, openingHour, clock),
+          revenue: todays
+              .fold<double>(0, (sum, order) => sum + order.total)
+              .round(),
+          driversOnRoad: onRoad.length,
+          totalDrivers: workers
+              .where((worker) => worker.isDriver && worker.isActive)
+              .length,
+          liveOrders: _liveOrders(unfinished, clock),
+          activity: _activity(todays, clock),
+        );
+      },
+      label: 'dashboard',
+      onError: () => const DashboardException(
+        'Could not load the dashboard. Please try again.',
       ),
-      LiveOrder(
-        number: 2288,
-        customerName: 'David Wong',
-        status: LiveOrderStatus.packing,
-        isDelivery: true,
-        minutesInStatus: 18,
-      ),
-      LiveOrder(
-        number: 2290,
-        customerName: 'Raj Kumar',
-        status: LiveOrderStatus.outForDelivery,
-        isDelivery: true,
-        minutesInStatus: 9,
-      ),
-      LiveOrder(
-        number: 2289,
-        customerName: 'Siti Aminah',
-        status: LiveOrderStatus.ready,
-        isDelivery: false,
-        minutesInStatus: 15,
-      ),
-      LiveOrder(
-        number: 2287,
-        customerName: 'Farah Idris',
-        status: LiveOrderStatus.pending,
-        isDelivery: true,
-        minutesInStatus: 22,
-      ),
-    ],
-    activity: [
-      ActivityEntry(message: 'Amir marked #2286 delivered', minutesAgo: 2),
-      ActivityEntry(message: 'Daniel started packing #2291', minutesAgo: 4),
-      ActivityEntry(message: 'Hakim started packing #2288', minutesAgo: 18),
-      ActivityEntry(message: 'Firdaus picked up bag #2283', minutesAgo: 31),
-    ],
-  ),
-  'bukit-jalil': DashboardSummary(
-    ordersToday: 31,
-    ordersYesterday: 34,
-    ordersByHour: [2, 2, 3, 5, 4, 2, 1, 3, 4, 5],
-    revenue: 1535,
-    driversOnRoad: 2,
-    totalDrivers: 4,
-    liveOrders: [
-      LiveOrder(
-        number: 1178,
-        customerName: 'Nurul Huda',
-        status: LiveOrderStatus.outForDelivery,
-        isDelivery: true,
-        minutesInStatus: 12,
-      ),
-      LiveOrder(
-        number: 1177,
-        customerName: 'Kelvin Lim',
-        status: LiveOrderStatus.packing,
-        isDelivery: false,
-        minutesInStatus: 6,
-      ),
-      LiveOrder(
-        number: 1176,
-        customerName: 'Priya Nair',
-        status: LiveOrderStatus.pending,
-        isDelivery: true,
-        minutesInStatus: 3,
-      ),
-    ],
-    activity: [
-      ActivityEntry(message: 'Hafiz started packing #1177', minutesAgo: 6),
-      ActivityEntry(message: 'Wei Jie left with #1178', minutesAgo: 12),
-      ActivityEntry(message: 'Hafiz marked #1175 ready', minutesAgo: 40),
-    ],
-  ),
-  'puchong': DashboardSummary(
-    ordersToday: 18,
-    ordersYesterday: 18,
-    ordersByHour: [0, 1, 2, 3, 2, 1, 2, 3, 2, 2],
-    revenue: 855,
-    driversOnRoad: 1,
-    totalDrivers: 3,
-    liveOrders: [
-      LiveOrder(
-        number: 904,
-        customerName: 'Aisyah Rahman',
-        status: LiveOrderStatus.packing,
-        isDelivery: true,
-        minutesInStatus: 11,
-      ),
-      LiveOrder(
-        number: 903,
-        customerName: 'Jun Hao Lee',
-        status: LiveOrderStatus.ready,
-        isDelivery: false,
-        minutesInStatus: 20,
-      ),
-    ],
-    activity: [
-      ActivityEntry(message: 'Syafiq started packing #904', minutesAgo: 11),
-      ActivityEntry(message: 'Syafiq marked #903 ready', minutesAgo: 20),
-    ],
-  ),
-};
+    );
+  }
+
+  static DateTime _placedAt(Order order) =>
+      order.placedAt ?? order.statusStartedAt;
+
+  /// Orders placed in each hour from [openingHour] to the current hour.
+  /// Empty before the branch opens.
+  static List<int> _ordersByHour(
+    List<Order> todays,
+    int openingHour,
+    DateTime now,
+  ) {
+    if (now.hour < openingHour) return const [];
+    final counts = List<int>.filled(now.hour - openingHour + 1, 0);
+    for (final order in todays) {
+      final index = _placedAt(order).hour - openingHour;
+      if (index >= 0 && index < counts.length) counts[index]++;
+    }
+    return counts;
+  }
+
+  /// Unfinished orders, the longest waiting first.
+  static List<LiveOrder> _liveOrders(List<Order> unfinished, DateTime now) {
+    final sorted = [...unfinished]
+      ..sort((a, b) => a.statusStartedAt.compareTo(b.statusStartedAt));
+    return [
+      for (final order in sorted)
+        LiveOrder(
+          number: order.number,
+          customerName: order.customerName,
+          status: order.status,
+          isDelivery: order.isDelivery,
+          minutesInStatus: order.minutesInStatus(now),
+        ),
+    ];
+  }
+
+  /// The latest staff actions on today's orders, newest first, in words
+  /// like "Amir marked #2286 delivered".
+  static List<ActivityEntry> _activity(List<Order> todays, DateTime now) {
+    final events = <(DateTime, String)>[];
+    for (final order in todays) {
+      for (final event in order.timeline) {
+        final by = event.by;
+        if (by == null) continue;
+        events.add((event.time, _describe(by, event.title, order.number)));
+      }
+    }
+    events.sort((a, b) => b.$1.compareTo(a.$1));
+    return [
+      for (final (time, message) in events.take(_activityCount))
+        ActivityEntry(
+          message: message,
+          minutesAgo: now.difference(time).inMinutes.clamp(0, 1 << 20),
+        ),
+    ];
+  }
+
+  /// A timeline step as a sentence, e.g. "Amir marked #2286 delivered".
+  static String _describe(String by, String title, int number) {
+    if (title.startsWith('Driver ') && title.endsWith(' assigned')) {
+      final driver = title.substring(7, title.length - 9);
+      return '$by assigned $driver to #$number';
+    }
+    return switch (title) {
+      'Packing started' => '$by started packing #$number',
+      'Ready for delivery' || 'Ready for pickup' => '$by marked #$number ready',
+      'Out for delivery' => '$by started delivering #$number',
+      'Delivered' => '$by marked #$number delivered',
+      'Picked up' => '$by handed over #$number',
+      _ => '$by: ${title.toLowerCase()} #$number',
+    };
+  }
+}

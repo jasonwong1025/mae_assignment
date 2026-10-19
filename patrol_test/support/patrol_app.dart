@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,6 +26,8 @@ Future<void> launchApp(PatrolIntegrationTester $) async {
     );
   }
   FirebaseEmulators.connect();
+  // Every test starts signed out, whatever the test before it left behind.
+  await FirebaseAuth.instance.signOut();
 
   await _pumpApp($);
 }

@@ -48,12 +48,12 @@ enum WorkerTab {
   }
 }
 
-/// The page a worker lands on after choosing their profile.
+/// The page a worker lands on after signing in.
 String workerHomeFor(WorkerProfile worker) {
   return WorkerTab.forRole(worker.role).first.route;
 }
 
-/// True for every Store Worker page, including the selector.
+/// True for every Store Worker page.
 bool isWorkerLocation(String location) {
   return location == AppRoutes.workerRoot ||
       location.startsWith('${AppRoutes.workerRoot}/');
@@ -74,25 +74,18 @@ bool workerCanOpen(WorkerProfile worker, String location) {
 /// let them through. Returns null for every non-worker page, so admin and
 /// customer routing is not affected.
 ///
-/// This only shapes the preview's navigation. It is not security: the
-/// backend must still check every request once it is connected.
+/// This only shapes navigation. It is not security: `firestore.rules`
+/// checks every request on the server.
 String? workerRouteRedirect({
   required String location,
-  required bool previewEnabled,
   required WorkerProfile? worker,
   required bool isSignedIn,
 }) {
   if (!isWorkerLocation(location)) return null;
-
-  // Release builds (and profile builds without the flag) have no preview.
-  if (!previewEnabled) {
-    return isSignedIn ? AppRoutes.home : AppRoutes.onboarding;
-  }
-
-  // The selector is the way in, so it is always open.
-  if (location == AppRoutes.workerDevSelect) return null;
-
-  if (worker == null || !worker.isActive) return AppRoutes.workerDevSelect;
+  if (!isSignedIn) return AppRoutes.onboarding;
+  // Signed in but the profile is not loaded (the app just opened). The
+  // onboarding page sends signed-in users to their home, loading it first.
+  if (worker == null || !worker.isActive) return AppRoutes.onboarding;
   if (!workerCanOpen(worker, location)) return workerHomeFor(worker);
   return null;
 }

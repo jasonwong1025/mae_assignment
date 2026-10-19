@@ -22,6 +22,32 @@ service firebase.storage {
       allow delete: if isAdmin();
     }
 
+    // True for a signed-in Store Worker (packer or driver).
+    function isWorker() {
+      return request.auth != null
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid))
+            .data.role == 'storeWorker';
+    }
+
+    // True for any staff member (admin or worker).
+    function isStaff() {
+      return isAdmin() || isWorker();
+    }
+
+    // Delivery proof photos: orders/{orderId}/proof.jpg. Staff read them (the
+    // admin reviews deliveries, workers see their own); only the driver
+    // assigned to the order uploads one, and only an image of a sensible
+    // size.
+    match /orders/{orderId}/{fileName} {
+      allow read: if isStaff();
+      allow create, update: if isWorker()
+        && fileName == 'proof.jpg'
+        && firestore.get(/databases/(default)/documents/orders/$(orderId))
+            .data.driverId == request.auth.uid
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
     // Everything else is closed.
   }
 }

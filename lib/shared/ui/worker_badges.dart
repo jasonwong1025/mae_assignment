@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 
 /// Small "Active" or "Deactivated" tag.
-/// Used by the admin Staff tab and the Store Worker preview.
+/// Used by the admin Staff tab and the Store Worker app.
 class WorkerStatusChip extends StatelessWidget {
   const WorkerStatusChip({required this.isActive, super.key});
 

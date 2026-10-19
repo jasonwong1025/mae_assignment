@@ -6,9 +6,8 @@ List<DayHours> _everyDay(int opensAt, int closesAt) {
   return List.filled(7, DayHours(opensAt: opensAt, closesAt: closesAt));
 }
 
-/// The first 3 branches, added once with the "Add sample branches" button.
-/// Their ids match the sample orders, stock, sales and reviews.
-// TODO(team): delete once those tabs read Firestore too.
+/// Three branches for tests. Their ids match the demo data in
+/// test_firebase/seed.mjs.
 List<Branch> sampleBranches() => [
   Branch(
     id: 'ss15',

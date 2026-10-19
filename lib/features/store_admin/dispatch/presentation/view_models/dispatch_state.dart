@@ -101,20 +101,31 @@ abstract class DispatchState with _$DispatchState {
   const DispatchState._();
 
   /// Joins the data together and sorts it.
+  ///
+  /// [activeDeliveries] are the ready or on-the-road deliveries of every
+  /// branch: a driver's current order is the one assigned to them, and only
+  /// this branch's are listed as [deliveries]. A driver's route is worked
+  /// out here rather than stored: a ready order is collected at the branch,
+  /// an order on the road goes to the customer.
   factory DispatchState.from({
     required Branch branch,
-    required List<Order> deliveries,
+    required List<Order> activeDeliveries,
     required List<Driver> drivers,
     required Map<String, DriverLocation> locations,
   }) {
+    final deliveries = [
+      for (final order in activeDeliveries)
+        if (order.branchId == branch.id) order,
+    ];
+
     final dispatchDrivers = [
       for (final worker in drivers)
-        DispatchDriver(
+        _dispatchDriver(
           worker: worker,
-          location: locations[worker.id],
-          order: deliveries
-              .where((order) => order.driverId == worker.id)
-              .firstOrNull,
+          branch: branch,
+          deliveries: deliveries,
+          activeDeliveries: activeDeliveries,
+          position: locations[worker.id]?.position,
         ),
     ];
 
@@ -181,4 +192,54 @@ abstract class DispatchState with _$DispatchState {
     return drivers.where((driver) => driver.isFree).toList()
       ..sort((a, b) => a.metresTo(point)!.compareTo(b.metresTo(point)!));
   }
+}
+
+/// How close counts as having arrived at a stop.
+const _arrivedMetres = 75.0;
+
+DispatchDriver _dispatchDriver({
+  required Driver worker,
+  required Branch branch,
+  required List<Order> deliveries,
+  required List<Order> activeDeliveries,
+  required LatLng? position,
+}) {
+  // A driver can hold several orders at once (the worker app allows it).
+  // Dispatch follows the one on the road first, then the lowest number, and
+  // prefers this branch's order so the map and the status line agree.
+  final mine =
+      [
+        for (final order in activeDeliveries)
+          if (order.driverId == worker.id) order,
+      ]..sort((a, b) {
+        final aOnRoad = a.status == OrderStatus.outForDelivery ? 0 : 1;
+        final bOnRoad = b.status == OrderStatus.outForDelivery ? 0 : 1;
+        if (aOnRoad != bOnRoad) return aOnRoad.compareTo(bOnRoad);
+        return a.number.compareTo(b.number);
+      });
+  final order = mine.where((order) => order.branchId == branch.id).firstOrNull;
+  final current = order ?? mine.firstOrNull;
+
+  // The one stop still ahead, if the driver has not reached it yet.
+  LatLng? stop;
+  if (order?.status == OrderStatus.ready) {
+    stop = branch.location;
+  } else if (order?.status == OrderStatus.outForDelivery) {
+    stop = order?.addressLocation;
+  }
+  final arrived =
+      stop != null &&
+      position != null &&
+      _distance(position, stop) <= _arrivedMetres;
+
+  return DispatchDriver(
+    worker: worker.withCurrentOrder(current?.number),
+    location: position == null
+        ? null
+        : DriverLocation(
+            position: position,
+            stops: stop == null || arrived ? const [] : [stop],
+          ),
+    order: order,
+  );
 }

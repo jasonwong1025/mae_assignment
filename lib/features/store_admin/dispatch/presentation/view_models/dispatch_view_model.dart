@@ -6,12 +6,11 @@ import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_m
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 
-/// This branch's deliveries. Updates when an order changes.
-final StreamProvider<List<Order>> _deliveriesProvider =
-    StreamProvider.autoDispose<List<Order>>((ref) async* {
-      final branchState = await ref.watch(branchViewModelProvider.future);
-      final repository = ref.watch(dispatchRepositoryProvider);
-      yield* repository.watchDeliveries(branchState.selected.id);
+/// Every delivery that is ready or on the road. Updates when an order
+/// changes.
+final StreamProvider<List<Order>> _activeDeliveriesProvider =
+    StreamProvider.autoDispose<List<Order>>((ref) {
+      return ref.watch(dispatchRepositoryProvider).watchActiveDeliveries();
     });
 
 final FutureProvider<List<Driver>> _driversProvider =
@@ -39,17 +38,14 @@ class DispatchViewModel extends Notifier<AsyncValue<DispatchState>> {
   @override
   AsyncValue<DispatchState> build() {
     final branch = ref.watch(branchViewModelProvider).value?.selected;
-    final deliveries = ref.watch(_deliveriesProvider);
+    final deliveries = ref.watch(_activeDeliveriesProvider);
     final drivers = ref.watch(_driversProvider);
     final locations = ref.watch(_locationsProvider);
 
     for (final value in [deliveries, drivers, locations]) {
       if (value.hasError) return AsyncError(value.error!, value.stackTrace!);
     }
-    // Deliveries also reload when the branch changes; wait so the old
-    // branch's orders are not shown.
     if (branch == null ||
-        deliveries.isLoading ||
         !deliveries.hasValue ||
         !drivers.hasValue ||
         !locations.hasValue) {
@@ -59,7 +55,7 @@ class DispatchViewModel extends Notifier<AsyncValue<DispatchState>> {
     return AsyncData(
       DispatchState.from(
         branch: branch,
-        deliveries: deliveries.requireValue,
+        activeDeliveries: deliveries.requireValue,
         drivers: drivers.requireValue,
         locations: locations.requireValue,
       ),
@@ -72,23 +68,14 @@ class DispatchViewModel extends Notifier<AsyncValue<DispatchState>> {
     final current = state.value;
     if (current == null) return 'Still loading. Please try again.';
 
-    final oldDriver = current.driverOf(order);
     try {
       await ref
           .read(dispatchRepositoryProvider)
-          .assignDriver(
-            branch: current.branch,
-            order: order,
-            driver: driver.worker,
-            oldDriver: oldDriver?.worker,
-            oldDriverLocation: oldDriver?.location,
-          );
+          .assignDriver(order: order, driver: driver.worker);
     } on DispatchException catch (e) {
       return e.message;
     }
 
-    // Drivers changed; load them again.
-    ref.invalidate(_driversProvider);
     return null;
   }
 }

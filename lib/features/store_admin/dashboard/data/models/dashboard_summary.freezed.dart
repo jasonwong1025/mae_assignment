@@ -332,7 +332,8 @@ as List<ActivityEntry>,
 /// @nodoc
 mixin _$LiveOrder {
 
- int get number; String get customerName; LiveOrderStatus get status;/// True for delivery, false for pickup at the store.
+ int get number; String get customerName;/// Never completed or cancelled: only unfinished orders are listed.
+ OrderStatus get status;/// True for delivery, false for pickup at the store.
  bool get isDelivery;/// How long the order has been in its current status.
  int get minutesInStatus;
 /// Create a copy of LiveOrder
@@ -370,7 +371,7 @@ abstract mixin class $LiveOrderCopyWith<$Res>  {
   factory $LiveOrderCopyWith(LiveOrder value, $Res Function(LiveOrder) _then) = _$LiveOrderCopyWithImpl;
 @useResult
 $Res call({
- int number, String customerName, LiveOrderStatus status, bool isDelivery, int minutesInStatus
+ int number, String customerName, OrderStatus status, bool isDelivery, int minutesInStatus
 });
 
 
@@ -392,7 +393,7 @@ class _$LiveOrderCopyWithImpl<$Res>
 number: null == number ? _self.number : number // ignore: cast_nullable_to_non_nullable
 as int,customerName: null == customerName ? _self.customerName : customerName // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as LiveOrderStatus,isDelivery: null == isDelivery ? _self.isDelivery : isDelivery // ignore: cast_nullable_to_non_nullable
+as OrderStatus,isDelivery: null == isDelivery ? _self.isDelivery : isDelivery // ignore: cast_nullable_to_non_nullable
 as bool,minutesInStatus: null == minutesInStatus ? _self.minutesInStatus : minutesInStatus // ignore: cast_nullable_to_non_nullable
 as int,
   ));
@@ -479,7 +480,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int number,  String customerName,  LiveOrderStatus status,  bool isDelivery,  int minutesInStatus)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int number,  String customerName,  OrderStatus status,  bool isDelivery,  int minutesInStatus)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LiveOrder() when $default != null:
 return $default(_that.number,_that.customerName,_that.status,_that.isDelivery,_that.minutesInStatus);case _:
@@ -500,7 +501,7 @@ return $default(_that.number,_that.customerName,_that.status,_that.isDelivery,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int number,  String customerName,  LiveOrderStatus status,  bool isDelivery,  int minutesInStatus)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int number,  String customerName,  OrderStatus status,  bool isDelivery,  int minutesInStatus)  $default,) {final _that = this;
 switch (_that) {
 case _LiveOrder():
 return $default(_that.number,_that.customerName,_that.status,_that.isDelivery,_that.minutesInStatus);case _:
@@ -520,7 +521,7 @@ return $default(_that.number,_that.customerName,_that.status,_that.isDelivery,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int number,  String customerName,  LiveOrderStatus status,  bool isDelivery,  int minutesInStatus)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int number,  String customerName,  OrderStatus status,  bool isDelivery,  int minutesInStatus)?  $default,) {final _that = this;
 switch (_that) {
 case _LiveOrder() when $default != null:
 return $default(_that.number,_that.customerName,_that.status,_that.isDelivery,_that.minutesInStatus);case _:
@@ -540,7 +541,8 @@ class _LiveOrder extends LiveOrder {
 
 @override final  int number;
 @override final  String customerName;
-@override final  LiveOrderStatus status;
+/// Never completed or cancelled: only unfinished orders are listed.
+@override final  OrderStatus status;
 /// True for delivery, false for pickup at the store.
 @override final  bool isDelivery;
 /// How long the order has been in its current status.
@@ -578,7 +580,7 @@ abstract mixin class _$LiveOrderCopyWith<$Res> implements $LiveOrderCopyWith<$Re
   factory _$LiveOrderCopyWith(_LiveOrder value, $Res Function(_LiveOrder) _then) = __$LiveOrderCopyWithImpl;
 @override @useResult
 $Res call({
- int number, String customerName, LiveOrderStatus status, bool isDelivery, int minutesInStatus
+ int number, String customerName, OrderStatus status, bool isDelivery, int minutesInStatus
 });
 
 
@@ -600,7 +602,7 @@ class __$LiveOrderCopyWithImpl<$Res>
 number: null == number ? _self.number : number // ignore: cast_nullable_to_non_nullable
 as int,customerName: null == customerName ? _self.customerName : customerName // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as LiveOrderStatus,isDelivery: null == isDelivery ? _self.isDelivery : isDelivery // ignore: cast_nullable_to_non_nullable
+as OrderStatus,isDelivery: null == isDelivery ? _self.isDelivery : isDelivery // ignore: cast_nullable_to_non_nullable
 as bool,minutesInStatus: null == minutesInStatus ? _self.minutesInStatus : minutesInStatus // ignore: cast_nullable_to_non_nullable
 as int,
   ));

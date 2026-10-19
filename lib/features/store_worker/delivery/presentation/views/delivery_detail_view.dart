@@ -507,15 +507,13 @@ class _ItemsSection extends StatelessWidget {
 }
 
 /// The proof of delivery photo.
-class _ProofCard extends ConsumerWidget {
+class _ProofCard extends StatelessWidget {
   const _ProofCard({required this.order});
 
   final Order order;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final photo = ref.watch(proofPhotoProvider(order.id));
-    if (photo == null) return const SizedBox.shrink();
+  Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final labelStyle = textTheme.bodySmall?.copyWith(
       fontWeight: FontWeight.w700,
@@ -546,7 +544,10 @@ class _ProofCard extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.s),
-            ExpandablePhoto(photo: photo, borderRadius: 8),
+            ExpandablePhoto(
+              image: NetworkImage(order.proofPhotoUrl!),
+              borderRadius: 8,
+            ),
           ],
         ),
       ),

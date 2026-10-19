@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/store_admin/orders/presentation/view_models/orders_view_model.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
 import 'package:mae_assignment/shared/models/order.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/ui/order_status_label.dart';
 
 /// Everything about one order: customer, delivery, items, payment and
-/// what has happened so far. Read only; the admin monitors orders here
-/// and does not change them.
+/// what has happened so far. The admin monitors orders here; the one thing
+/// changed from here is who packs a pending or packing order.
 ///
 /// It looks the order up by number every time the board updates, so the
 /// details stay current while the panel is open.
@@ -72,13 +74,13 @@ class OrderDetailPanel extends ConsumerWidget {
   }
 }
 
-class _OrderDetails extends StatelessWidget {
+class _OrderDetails extends ConsumerWidget {
   const _OrderDetails({required this.order});
 
   final Order order;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
 
     return ListView(
@@ -113,6 +115,7 @@ class _OrderDetails extends StatelessWidget {
               ? 'No staff assigned yet'
               : 'Handled by ${order.handledBy}',
         ),
+        if (_canAssignPacker(order)) _PackerRow(order: order),
         if (order.customerNote != null)
           _InfoRow(
             icon: Icons.sticky_note_2_outlined,
@@ -139,6 +142,110 @@ class _OrderDetails extends StatelessWidget {
         const _SectionTitle('Timeline'),
         for (final event in order.timeline) _TimelineRow(event: event),
       ],
+    );
+  }
+}
+
+/// Packers can be assigned until the order is packed.
+bool _canAssignPacker(Order order) {
+  return order.status == OrderStatus.pending ||
+      order.status == OrderStatus.packing;
+}
+
+/// The packer of the order, with a button to choose or change them.
+class _PackerRow extends ConsumerWidget {
+  const _PackerRow({required this.order});
+
+  final Order order;
+
+  Future<void> _choose(BuildContext context, WidgetRef ref) async {
+    final packers = await ref.read(packersProvider(order.branchId).future);
+    if (!context.mounted) return;
+    final chosen = await showModalBottomSheet<Worker>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => _PackerList(packers: packers, order: order),
+    );
+    if (chosen == null || !context.mounted) return;
+
+    final error = await ref
+        .read(ordersViewModelProvider.notifier)
+        .assignPacker(order, chosen);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(error ?? '${chosen.name} will pack #${order.number}.'),
+        ),
+      );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final packerName = order.packerName;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.inventory_2_outlined,
+            size: 20,
+            color: AppColors.textSecondary,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              packerName == null ? 'No packer assigned' : 'Packer: $packerName',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ),
+          TextButton(
+            onPressed: () => _choose(context, ref),
+            child: Text(packerName == null ? 'Assign packer' : 'Change'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The branch's active packers; picking one closes the sheet with them.
+class _PackerList extends StatelessWidget {
+  const _PackerList({required this.packers, required this.order});
+
+  final List<Worker> packers;
+  final Order order;
+
+  @override
+  Widget build(BuildContext context) {
+    if (packers.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+        child: Text(
+          'No active packers at ${order.branchName}. Add one in the Staff '
+          'tab.',
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      );
+    }
+    return SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        children: [
+          for (final packer in packers)
+            ListTile(
+              leading: const Icon(Icons.person_outline_rounded),
+              title: Text(packer.name),
+              subtitle: Text(packer.phone),
+              trailing: packer.id == order.packerId
+                  ? const Icon(Icons.check_rounded, color: AppColors.green)
+                  : null,
+              onTap: () => Navigator.of(context).pop(packer),
+            ),
+        ],
+      ),
     );
   }
 }

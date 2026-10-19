@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mae_assignment/core/firebase/firestore_config.dart';
 import 'package:mae_assignment/core/firebase/firestore_models.dart';
 import 'package:mae_assignment/core/firebase/firestore_paths.dart';
 import 'package:mae_assignment/core/firebase/firestore_refs.dart';
@@ -10,8 +11,8 @@ final Provider<ReviewService> reviewServiceProvider = Provider<ReviewService>(
 );
 
 /// Reads and writes reviews/{orderId} in Firestore. The customer app writes a
-/// review once an order is completed; the Store Admin Reviews tab will read
-/// them when it is connected. See `firestore.rules`.
+/// review once an order is completed; the Store Admin Reviews tab reads a
+/// branch's reviews. See `firestore.rules`.
 class ReviewService {
   ReviewService(FirebaseFirestore firestore) : _refs = FirestoreRefs(firestore);
 
@@ -32,5 +33,20 @@ class ReviewService {
       ...review.toFirestore(),
       ReviewFields.createdAt: FieldValue.serverTimestamp(),
     });
+  }
+
+  /// A branch's most recent reviews, newest first. Needs the composite index
+  /// branchId + createdAt (firestore.indexes.json).
+  Future<List<OrderReview>> getBranchReviews(
+    String branchId, {
+    int limit = 500,
+  }) async {
+    final snapshot = await _refs.reviews
+        .where(ReviewFields.branchId, isEqualTo: branchId)
+        .orderBy(ReviewFields.createdAt, descending: true)
+        .limit(limit)
+        .get()
+        .timeout(FirestoreConfig.readTimeout);
+    return snapshot.toModels(fromFirestore: OrderReview.fromFirestore);
   }
 }

@@ -8,12 +8,14 @@ import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/features/store_worker/delivery/data/services/camera_service.dart';
 import 'package:mae_assignment/features/store_worker/delivery/data/services/launcher_service.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/view_models/delivery_detail_view_model.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/mock_worker_orders.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 
+import '../../helpers/worker_profiles.dart';
 import '../../helpers/worker_test_app.dart';
+import '../../helpers/worker_test_orders.dart';
+import '../../helpers/worker_test_store.dart';
 
 /// Records what would have been opened instead of leaving the app.
 class _FakeLauncher extends LauncherService {
@@ -126,7 +128,7 @@ void main() {
     testWidgets('a packer marking an order ready moves it to Ready to '
         'collect', (tester) async {
       final (_, repository, _) = await _pumpAmir(tester);
-      final daniel = mockWorker('Daniel Lee');
+      final daniel = testWorker('Daniel Lee');
 
       await repository.setItemPacked(daniel, 'ord-2303', 'L4', packed: true);
       await repository.markReady(daniel, 'ord-2303');
@@ -166,7 +168,7 @@ void main() {
 
       // The bag's collection code, read from the seed order (computed from
       // the order id, so it is stable).
-      final seedOrder = seedWorkerOrders(
+      final seedOrder = workerTestOrders(
         DateTime(2026, 10, 15, 12),
       ).firstWhere((order) => order.id == 'ord-2308');
       final collectionCode = seedOrder.collectionCode;
@@ -282,16 +284,19 @@ void main() {
     testWidgets('a cancelled delivery is read-only and leaves the list', (
       tester,
     ) async {
-      final repository = WorkerOrdersRepository(
+      final store = await WorkerTestStore.create(
         seed: (now) => [
-          for (final order in seedWorkerOrders(now))
+          for (final order in workerTestOrders(now))
             if (order.id == 'ord-2308')
               order.copyWith(status: OrderStatus.cancelled)
             else
               order,
         ],
       );
-      final (container, _, _) = await _pumpAmir(tester, repository: repository);
+      final (container, _, _) = await _pumpAmir(
+        tester,
+        repository: store.repository,
+      );
       expect(find.text('#2308'), findsNothing);
 
       container
@@ -343,8 +348,7 @@ void main() {
 
   group('DeliveryDetailViewModel', () {
     test('returns the reason for a wrong number or early start', () async {
-      final repository = WorkerOrdersRepository();
-      addTearDown(repository.dispose);
+      final repository = (await WorkerTestStore.create()).repository;
       final container = ProviderContainer(
         overrides: [
           workerOrdersRepositoryProvider.overrideWithValue(repository),
@@ -353,7 +357,7 @@ void main() {
       addTearDown(container.dispose);
       container
           .read(workerSessionProvider.notifier)
-          .select(mockWorker('Amir Hamzah'));
+          .open(testWorker('Amir Hamzah'));
 
       final provider = deliveryDetailViewModelProvider('ord-2308');
       container.listen(provider, (previous, next) {});
@@ -361,7 +365,7 @@ void main() {
 
       // The bag's collection code, read from the order itself.
       final order = await repository
-          .watchOrder(mockWorker('Amir Hamzah'), 'ord-2308')
+          .watchOrder(testWorker('Amir Hamzah'), 'ord-2308')
           .first;
       final photo = Uint8List.fromList([1, 2, 3]);
 

@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
-import 'package:mae_assignment/features/store_worker/orders/data/mock_worker_orders.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/view_models/pickup_handover_view_model.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/shared/models/verification_method.dart';
 import 'package:mae_assignment/shared/ui/slide_to_confirm.dart';
 
+import '../../helpers/worker_profiles.dart';
 import '../../helpers/worker_test_app.dart';
+import '../../helpers/worker_test_orders.dart';
+import '../../helpers/worker_test_store.dart';
 
 /// Far enough to reach the end of the slider on any phone width.
 const _fullSlide = Offset(500, 0);
@@ -98,7 +100,7 @@ void main() {
       );
 
       await repository.completePickup(
-        mockWorker('Hafiz Zainal'),
+        testWorker('Hafiz Zainal'),
         'ord-1183',
         method: VerificationMethod.manual,
       );
@@ -126,11 +128,11 @@ void main() {
 
       // Once Amir verifies the bag, it is collected and leaves the list.
       // Manual verification matches the bag's collection code.
-      final code = seedWorkerOrders(
+      final code = workerTestOrders(
         DateTime(2026, 10, 15, 12),
       ).firstWhere((order) => order.id == 'ord-2308').collectionCode;
       await repository.verifyCollection(
-        mockWorker('Amir Hamzah'),
+        testWorker('Amir Hamzah'),
         'ord-2308',
         method: VerificationMethod.manual,
         code: code,
@@ -235,7 +237,7 @@ void main() {
       );
 
       await repository.completePickup(
-        mockWorker('Hakim Roslan'),
+        testWorker('Hakim Roslan'),
         'ord-2306',
         method: VerificationMethod.manual,
       );
@@ -255,7 +257,7 @@ void main() {
       );
 
       await repository.completePickup(
-        mockWorker('Daniel Lee'),
+        testWorker('Daniel Lee'),
         'ord-2306',
         method: VerificationMethod.manual,
       );
@@ -335,8 +337,7 @@ void main() {
 
   group('PickupHandoverViewModel', () {
     test('a second completion returns who already did it', () async {
-      final repository = WorkerOrdersRepository();
-      addTearDown(repository.dispose);
+      final repository = (await WorkerTestStore.create()).repository;
       final container = ProviderContainer(
         overrides: [
           workerOrdersRepositoryProvider.overrideWithValue(repository),
@@ -345,10 +346,10 @@ void main() {
       addTearDown(container.dispose);
       container
           .read(workerSessionProvider.notifier)
-          .select(mockWorker('Hakim Roslan'));
+          .open(testWorker('Hakim Roslan'));
 
       await repository.completePickup(
-        mockWorker('Daniel Lee'),
+        testWorker('Daniel Lee'),
         'ord-2306',
         method: VerificationMethod.manual,
       );

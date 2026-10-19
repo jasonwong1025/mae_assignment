@@ -6,9 +6,11 @@ import 'package:go_router/go_router.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/core/utilities/validators.dart';
+import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/authentication/presentation/view_models/google_sign_in_view_model.dart';
 import 'package:mae_assignment/features/authentication/presentation/view_models/login_view_model.dart';
-import 'package:mae_assignment/features/store_worker/session/worker_preview.dart';
+import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/ui/bottom_action_bar.dart';
 import 'package:mae_assignment/shared/ui/brand_header.dart';
@@ -42,15 +44,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
   }
 
   Future<void> _onContinueAs(UserRole role) async {
-    // While the Store Worker app runs on mock data (development builds),
-    // its button opens the mock worker list instead of signing in, so no
-    // email or password is needed.
-    if (role == UserRole.storeWorker &&
-        ref.read(workerPreviewEnabledProvider)) {
-      unawaited(context.push(AppRoutes.workerDevSelect));
-      return;
-    }
-
     final isValid = _formKey.currentState!.validate();
     if (!isValid) return;
 
@@ -67,11 +60,27 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
     // Each role lands on its own home. go() instead of push() so the user
     // cannot go "back" to sign-in.
-    context.go(switch (role) {
-      UserRole.storeAdmin => AppRoutes.adminDashboard,
-      UserRole.customer => AppRoutes.customerCatalogue,
-      UserRole.storeWorker => AppRoutes.home,
-    });
+    final String home;
+    switch (role) {
+      case UserRole.storeAdmin:
+        home = AppRoutes.adminDashboard;
+      case UserRole.customer:
+        home = AppRoutes.customerCatalogue;
+      case UserRole.storeWorker:
+        // Workers need their profile (role and branch) before any screen.
+        final error = await ref.read(workerSessionProvider.notifier).start();
+        if (!mounted) return;
+        final worker = ref.read(workerSessionProvider);
+        if (error != null || worker == null) {
+          await ref.read(authRepositoryProvider).signOut();
+          if (!mounted) return;
+          _showMessage(error ?? 'Could not start your session.');
+          setState(() => _selectedRole = null);
+          return;
+        }
+        home = workerHomeFor(worker);
+    }
+    context.go(home);
   }
 
   void _onForgotPassword() {

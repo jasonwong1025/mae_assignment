@@ -1,9 +1,10 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 
 part 'sale.freezed.dart';
 
 /// One paid order, as Sales sees it. Orders are paid from the wallet at
-/// checkout and cannot be cancelled, so every sale is final.
+/// checkout, so every order that was not cancelled is a sale.
 @freezed
 abstract class Sale with _$Sale {
   const factory Sale({
@@ -18,6 +19,28 @@ abstract class Sale with _$Sale {
   }) = _Sale;
 
   const Sale._();
+
+  /// The sale made by [order], on the day it was placed.
+  factory Sale.fromOrder(Order order) {
+    return Sale(
+      orderNumber: order.number,
+      branchId: order.branchId,
+      paidAt: order.placedAt ?? order.statusStartedAt,
+      isDelivery: order.isDelivery,
+      deliveryFee: order.deliveryFee,
+      items: [
+        for (final item in order.items)
+          SaleItem(
+            productId: item.productId,
+            productName: item.name,
+            categoryId: item.categoryId,
+            categoryName: item.category,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+          ),
+      ],
+    );
+  }
 
   double get itemsTotal {
     var sum = 0.0;
@@ -37,6 +60,9 @@ abstract class SaleItem with _$SaleItem {
     required String productId,
     required String productName,
     required String categoryId,
+
+    /// Category name when it was sold. Empty if unknown.
+    required String categoryName,
     required int quantity,
 
     /// Price of one when it was sold, in ringgit.

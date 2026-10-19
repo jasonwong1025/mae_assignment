@@ -1,18 +1,9 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
 import 'package:mae_assignment/shared/models/worker_role.dart';
 
-/// Workers offered by the Mock Worker Selector.
-/// A provider, so tests can swap in their own list.
-final mockWorkerProfilesProvider = Provider<List<WorkerProfile>>((ref) {
-  return mockWorkerProfiles;
-});
-
-/// Sample Store Workers for the preview. Packers' branch ids match the
-/// store admin's sample branches; drivers have no branch (they deliver for
-/// any branch).
-// TODO(team): delete once worker profiles come from the backend.
-const mockWorkerProfiles = [
+/// Store Workers for the worker tests. Their ids match the people in
+/// `workerTestOrders` (test/helpers/worker_test_orders.dart).
+const testWorkers = [
   // Branch A: SS15 Subang.
   WorkerProfile(
     id: 'mock-daniel',
@@ -53,7 +44,6 @@ const mockWorkerProfiles = [
     branchName: 'SS15 Subang',
     isActive: false,
   ),
-
   // Branch B: Bukit Jalil.
   WorkerProfile(
     id: 'mock-hafiz',
@@ -71,7 +61,11 @@ const mockWorkerProfiles = [
     email: 'weijie.tan@grocerly.my',
     phone: '016-555 0129',
     role: WorkerRole.deliveryDriver,
-    // No branch: drivers take deliveries from any branch.
     isActive: true,
   ),
 ];
+
+/// A test worker by name, e.g. "Daniel Lee".
+WorkerProfile testWorker(String name) {
+  return testWorkers.firstWhere((worker) => worker.name == name);
+}

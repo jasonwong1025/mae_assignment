@@ -1,0 +1,151 @@
+{
+  "branches": [
+    {
+      "id": "puchong",
+      "name": "Puchong",
+      "address": "21, Jalan Puteri 1/2, 47100 Bandar Puteri Puchong, Selangor",
+      "phone": "03-8061 7720",
+      "location": [3.0235, 101.617],
+      "hours": { "opensAt": 480, "closesAt": 1200 },
+      "maxDeliveryKm": 6,
+      "baseDeliveryFee": 4,
+      "feePerKm": 0.6
+    }
+  ],
+  "workers": [
+    {
+      "uid": "packer-daniel",
+      "name": "Daniel Lee",
+      "email": "daniel.lee@grocerly.my",
+      "phone": "012-555 0141",
+      "role": "packingStaff",
+      "branchId": "ss15",
+      "isActive": true
+    },
+    {
+      "uid": "packer-hakim",
+      "name": "Hakim Roslan",
+      "email": "hakim.roslan@grocerly.my",
+      "phone": "017-555 0162",
+      "role": "packingStaff",
+      "branchId": "ss15",
+      "isActive": true
+    },
+    {
+      "uid": "packer-bryan",
+      "name": "Bryan Ong",
+      "email": "bryan.ong@grocerly.my",
+      "phone": "012-555 0103",
+      "role": "packingStaff",
+      "branchId": "ss15",
+      "isActive": true
+    },
+    {
+      "uid": "packer-nadia",
+      "name": "Nadia Yusof",
+      "email": "nadia.yusof@grocerly.my",
+      "phone": "013-555 0188",
+      "role": "packingStaff",
+      "branchId": "ss15",
+      "isActive": false
+    },
+    {
+      "uid": "packer-hafiz",
+      "name": "Hafiz Zainal",
+      "email": "hafiz.zainal@grocerly.my",
+      "phone": "019-555 0117",
+      "role": "packingStaff",
+      "branchId": "bukit-jalil",
+      "isActive": true
+    },
+    {
+      "uid": "packer-syafiq",
+      "name": "Syafiq Azman",
+      "email": "syafiq.azman@grocerly.my",
+      "phone": "011-555 0122",
+      "role": "packingStaff",
+      "branchId": "puchong",
+      "isActive": true
+    },
+    {
+      "uid": "driver-amir",
+      "name": "Amir Hamzah",
+      "email": "amir.hamzah@grocerly.my",
+      "phone": "011-555 0175",
+      "role": "deliveryDriver",
+      "isActive": true,
+      "location": [3.0752, 101.58]
+    },
+    {
+      "uid": "driver-firdaus",
+      "name": "Firdaus Rahim",
+      "email": "firdaus.rahim@grocerly.my",
+      "phone": "012-555 0164",
+      "role": "deliveryDriver",
+      "isActive": true,
+      "location": [3.04, 101.586]
+    },
+    {
+      "uid": "driver-lau",
+      "name": "Lau Wei Jie",
+      "email": "lau.weijie@grocerly.my",
+      "phone": "016-555 0133",
+      "role": "deliveryDriver",
+      "isActive": true,
+      "location": [3.06, 101.681]
+    },
+    {
+      "uid": "driver-weijie",
+      "name": "Tan Wei Jie",
+      "email": "weijie.tan@grocerly.my",
+      "phone": "016-555 0129",
+      "role": "deliveryDriver",
+      "isActive": true,
+      "location": [3.056, 101.684]
+    },
+    {
+      "uid": "driver-kumar",
+      "name": "Kumar Selvam",
+      "email": "kumar.selvam@grocerly.my",
+      "phone": "012-555 0191",
+      "role": "deliveryDriver",
+      "isActive": true,
+      "location": [3.069, 101.599]
+    },
+    {
+      "uid": "driver-azlan",
+      "name": "Azlan Shah",
+      "email": "azlan.shah@grocerly.my",
+      "phone": "013-555 0152",
+      "role": "deliveryDriver",
+      "isActive": true,
+      "location": [3.082, 101.605]
+    },
+    {
+      "uid": "driver-jason",
+      "name": "Jason Tan",
+      "email": "jason.tan@grocerly.my",
+      "phone": "017-555 0146",
+      "role": "deliveryDriver",
+      "isActive": true,
+      "location": [3.088, 101.575]
+    },
+    {
+      "uid": "driver-marcus",
+      "name": "Marcus Ho",
+      "email": "marcus.ho@grocerly.my",
+      "phone": "019-555 0171",
+      "role": "deliveryDriver",
+      "isActive": true,
+      "location": [3.05, 101.7]
+    },
+    {
+      "uid": "driver-ridzuan",
+      "name": "Ridzuan Ali",
+      "email": "ridzuan.ali@grocerly.my",
+      "phone": "011-555 0188",
+      "role": "deliveryDriver",
+      "isActive": false
+    }
+  ]
+}

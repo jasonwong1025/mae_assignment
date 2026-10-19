@@ -1,21 +1,21 @@
-import 'package:mae_assignment/features/store_admin/inventory/data/sample_inventory.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/models/verification_method.dart';
 
-/// Sample orders for the Store Worker preview, used while the backend is
-/// not connected. Times are worked out from [now], so the lists always
-/// look like "today"; pass a fixed [now] in tests for repeatable results.
+import 'sample_inventory.dart';
+
+/// Orders for the Store Worker tests. Times are worked out from [now], so
+/// the lists always look like "today"; pass a fixed [now] for repeatable
+/// results.
 ///
-/// Worker and branch ids match the mock workers in mock_workers.dart:
+/// Worker and branch ids match the workers in test/helpers/worker_profiles.dart:
 /// - SS15 Subang: Daniel and Hakim (packers)
 /// - Bukit Jalil: Hafiz (packer)
 /// - Drivers Amir and Wei Jie have no branch: each has deliveries from both
 ///   branches (Amir: SS15 orders and #1184; Wei Jie: #2301 and the other
 ///   Bukit Jalil orders).
 ///
-// TODO(team): delete once orders come from the backend.
-List<Order> seedWorkerOrders(DateTime now) {
+List<Order> workerTestOrders(DateTime now) {
   DateTime ago(int minutes) => now.subtract(Duration(minutes: minutes));
 
   // [days] days back, [minutes] before this time of day; for My history.

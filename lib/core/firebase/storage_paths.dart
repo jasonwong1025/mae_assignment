@@ -8,4 +8,8 @@ class StoragePaths {
   static String productPhoto(String productId, String fileName) {
     return 'products/$productId/$fileName';
   }
+
+  /// The photo a driver takes when delivering: orders/{orderId}/proof.jpg.
+  /// Only a Store Worker writes it; staff and the order's customer read it.
+  static String deliveryProof(String orderId) => 'orders/$orderId/proof.jpg';
 }

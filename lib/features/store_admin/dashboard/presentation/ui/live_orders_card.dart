@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/store_admin/dashboard/data/models/dashboard_summary.dart';
 import 'package:mae_assignment/features/store_admin/dashboard/presentation/ui/dashboard_card.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 
 /// "Right now" card: every order that is not finished yet.
 /// Orders with a problem are highlighted.
@@ -107,17 +107,19 @@ class _OrderRow extends StatelessWidget {
 class _StatusLabel extends StatelessWidget {
   const _StatusLabel({required this.status});
 
-  final LiveOrderStatus status;
+  final OrderStatus status;
 
   Color get _color {
     switch (status) {
-      case LiveOrderStatus.pending:
+      case OrderStatus.pending:
+      case OrderStatus.cancelled:
         return AppColors.textSecondary;
-      case LiveOrderStatus.packing:
+      case OrderStatus.packing:
         return AppColors.info;
-      case LiveOrderStatus.ready:
+      case OrderStatus.ready:
+      case OrderStatus.completed:
         return AppColors.success;
-      case LiveOrderStatus.outForDelivery:
+      case OrderStatus.outForDelivery:
         return AppColors.darkGreen;
     }
   }

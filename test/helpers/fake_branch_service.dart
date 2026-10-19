@@ -1,7 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
-import 'package:mae_assignment/shared/repositories/sample_branches.dart';
 import 'package:mae_assignment/shared/services/branch_service.dart';
+
+import 'sample_branches.dart';
 
 /// In-memory BranchService, so tests do not need Firebase.
 /// Starts with the 3 sample branches, or none if empty is true.

@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/models/inventory_item.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/models/product.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/repositories/inventory_repository.dart';
-import 'package:mae_assignment/features/store_admin/inventory/data/sample_inventory.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/services/inventory_service.dart';
 import 'package:mae_assignment/features/store_admin/inventory/data/services/product_photo_service.dart';
 import 'package:mae_assignment/shared/repositories/branch_repository.dart';
@@ -13,6 +12,7 @@ import 'package:mae_assignment/shared/services/branch_service.dart';
 
 import 'fake_branch_service.dart';
 import 'fake_image_picker_service.dart';
+import 'sample_inventory.dart';
 
 /// In-memory InventoryService, so tests exercise the Inventory tab with no
 /// Firebase. Starts with the sample catalogue (sample categories, products

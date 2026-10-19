@@ -21,6 +21,10 @@ class DashboardViewModel extends AsyncNotifier<DashboardSummary> {
     // every time the admin switches.
     final branchState = await ref.watch(branchViewModelProvider.future);
     final repository = ref.watch(dashboardRepositoryProvider);
-    return await repository.getSummary(branchState.selected.id);
+    final branch = branchState.selected;
+    return await repository.getSummary(
+      branch.id,
+      openingHour: branch.hoursOn(DateTime.now()).opensAt ~/ 60,
+    );
   }
 }

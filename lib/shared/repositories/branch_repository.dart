@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/core/errors/app_exception.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
 import 'package:mae_assignment/shared/models/page_result.dart';
-import 'package:mae_assignment/shared/repositories/sample_branches.dart';
 import 'package:mae_assignment/shared/services/branch_service.dart';
 
 final Provider<BranchRepository> branchRepositoryProvider =
@@ -59,14 +58,6 @@ class BranchRepository {
   Future<void> updateBranch(Branch branch) async {
     await _checkNameIsFree(branch.name, exceptId: branch.id);
     await _run(() => _service.updateBranch(branch));
-  }
-
-  /// One-time setup: adds the 3 sample branches, in order, so SS15 Subang
-  /// comes first.
-  Future<void> addSampleBranches() async {
-    for (final branch in sampleBranches()) {
-      await _run(() => _service.createBranch(branch));
-    }
   }
 
   Future<void> _checkNameIsFree(String name, {String? exceptId}) async {

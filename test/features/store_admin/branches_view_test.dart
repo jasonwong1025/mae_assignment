@@ -9,13 +9,13 @@ import 'package:mae_assignment/features/store_admin/branches/presentation/views/
 import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
 import 'package:mae_assignment/shared/repositories/branch_repository.dart';
-import 'package:mae_assignment/shared/repositories/sample_branches.dart';
 import 'package:mae_assignment/shared/services/branch_service.dart';
 
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_branch_service.dart';
 import '../../helpers/fake_inventory.dart';
 import '../../helpers/map_test_setup.dart';
+import '../../helpers/sample_branches.dart';
 
 const _admin = AppUser(
   uid: 'uid-1',
@@ -185,17 +185,13 @@ void main() {
     );
   });
 
-  testWidgets('With no branches, the sample branches can be added', (
+  testWidgets('With no branches, a message points to the add button', (
     tester,
   ) async {
     await _pumpBranches(tester, desktop, empty: true);
 
-    expect(find.text('Add sample branches'), findsOneWidget);
-    await tester.tap(find.text('Add sample branches'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('1-3 of 3 branches'), findsOneWidget);
-    expect(find.text('The 3 sample branches were added.'), findsOneWidget);
+    expect(find.textContaining('No branches yet'), findsWidgets);
+    expect(find.text('Add sample branches'), findsNothing);
   });
 
   testWidgets('Phone shows cards', (tester) async {

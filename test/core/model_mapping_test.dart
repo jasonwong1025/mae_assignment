@@ -17,7 +17,7 @@ import 'package:mae_assignment/shared/models/customer_address.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_review.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
-import 'package:mae_assignment/shared/repositories/sample_branches.dart';
+import '../helpers/sample_branches.dart';
 
 /// The Firestore mapping is written by hand, so these tests are its safety
 /// net: every document model must read back what it writes, and must write
@@ -292,6 +292,8 @@ void main() {
       shoppingScore: 5,
       productScore: 4,
       deliveryScore: 3,
+      driverId: 'driver-1',
+      driverName: 'Amir Hamzah',
       comment: 'Fast and fresh',
     );
 
@@ -305,6 +307,8 @@ void main() {
         ReviewFields.shoppingScore,
         ReviewFields.productScore,
         ReviewFields.deliveryScore,
+        ReviewFields.driverId,
+        ReviewFields.driverName,
         ReviewFields.comment,
       });
       expect(OrderReview.fromFirestore('o1', map), review);
@@ -312,9 +316,16 @@ void main() {
 
     test('leaves out a missing delivery score and an empty comment', () {
       final map = review
-          .copyWith(deliveryScore: null, comment: '')
+          .copyWith(
+            deliveryScore: null,
+            driverId: null,
+            driverName: null,
+            comment: '',
+          )
           .toFirestore();
       expect(map.containsKey(ReviewFields.deliveryScore), isFalse);
+      expect(map.containsKey(ReviewFields.driverId), isFalse);
+      expect(map.containsKey(ReviewFields.driverName), isFalse);
       expect(map.containsKey(ReviewFields.comment), isFalse);
     });
 

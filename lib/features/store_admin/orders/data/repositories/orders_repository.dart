@@ -1,53 +1,86 @@
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mae_assignment/features/store_admin/orders/data/sample_orders.dart';
+import 'package:mae_assignment/core/errors/app_exception.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/services/staff_service.dart';
 import 'package:mae_assignment/shared/models/order.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
+import 'package:mae_assignment/shared/services/order_service.dart';
 
 final ordersRepositoryProvider = Provider<OrdersRepository>((ref) {
-  final repository = OrdersRepository();
-  ref.onDispose(repository.dispose);
-  return repository;
+  return OrdersRepository(
+    ref.watch(orderServiceProvider),
+    ref.watch(staffServiceProvider),
+  );
 });
 
-/// Orders for the store admin.
-///
-/// The backend is not connected yet, so this keeps sample orders in memory.
-/// It is already a Stream (a value that can keep changing), so later only
-/// the inside of this class changes (to listen to Firestore) and the board
-/// then updates live with no changes to the screens.
+/// Error with a message to show on screen.
+class OrdersException extends AppException {
+  const OrdersException(super.message);
+}
+
+/// Orders for the store admin, read live from the shared `orders`
+/// collection, so the board updates as customers and workers act.
 class OrdersRepository {
-  /// Orders of each branch, by branch id. Made on first use.
-  final Map<String, List<Order>> _orders = {};
+  OrdersRepository(this._orders, this._staff, {DateTime Function()? clock})
+    : _clock = clock ?? DateTime.now;
 
-  /// Sends the id of a branch whose orders changed.
-  final _changes = StreamController<String>.broadcast();
+  final OrderService _orders;
+  final StaffService _staff;
+  final DateTime Function() _clock;
 
-  /// Today's orders for one branch. Sends a new list whenever any of
-  /// them changes.
-  Stream<List<Order>> watchTodaysOrders(String branchId) async* {
-    yield List.unmodifiable(_ordersOf(branchId));
-    await for (final changedId in _changes.stream) {
-      if (changedId == branchId) yield List.unmodifiable(_ordersOf(branchId));
-    }
+  /// The branch's orders for the board: everything still in progress, plus
+  /// what was completed today. Cancelled orders are not shown. Sends a new
+  /// list whenever any of them changes.
+  Stream<List<Order>> watchBoardOrders(String branchId) {
+    return _orders.watchBranchOrders(branchId).map((orders) {
+      final clock = _clock();
+      final today = DateTime(clock.year, clock.month, clock.day);
+      return [
+        for (final order in orders)
+          if (order.status != OrderStatus.cancelled &&
+              (!order.status.isFinished ||
+                  !order.statusStartedAt.isBefore(today)))
+            order,
+      ];
+    });
   }
 
-  /// Replaces the order that has the same id.
-  Future<void> updateOrder(String branchId, Order order) async {
-    final orders = _ordersOf(branchId);
-    final index = orders.indexWhere((old) => old.id == order.id);
-    if (index == -1) return;
-
-    orders[index] = order;
-    _changes.add(branchId);
-  }
-
-  List<Order> _ordersOf(String branchId) {
-    return _orders.putIfAbsent(
-      branchId,
-      () => sampleOrdersFor(branchId, DateTime.now()),
+  /// Active packers of [branchId], sorted by name.
+  Future<List<Worker>> getPackers(String branchId) {
+    return guard(
+      () async {
+        final workers = await _staff.getWorkers();
+        return workers
+            .where(
+              (worker) =>
+                  !worker.isDriver &&
+                  worker.isActive &&
+                  worker.branchId == branchId,
+            )
+            .toList()
+          ..sort(
+            (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+          );
+      },
+      label: 'packers',
+      onError: () => const OrdersException(
+        'Could not load the packers. Please try again.',
+      ),
     );
   }
 
-  void dispose() => _changes.close();
+  /// Gives [order] to [packer], who then sees it in My Tasks.
+  Future<void> assignPacker(Order order, Worker packer) {
+    return guard(
+      () => _orders.assignPacker(
+        order.id,
+        packerId: packer.id,
+        packerName: packer.name,
+      ),
+      label: 'assign packer',
+      onError: () => const OrdersException(
+        'Could not assign the packer. Please try again.',
+      ),
+    );
+  }
 }

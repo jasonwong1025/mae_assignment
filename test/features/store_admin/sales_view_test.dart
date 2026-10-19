@@ -1,17 +1,23 @@
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/app/theme/app_theme.dart';
+import 'package:mae_assignment/core/firebase/firestore_refs.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/store_admin/sales/data/models/sales_period.dart';
 import 'package:mae_assignment/features/store_admin/sales/data/repositories/sales_repository.dart';
 import 'package:mae_assignment/features/store_admin/sales/presentation/ui/top_products_rows.dart';
 import 'package:mae_assignment/features/store_admin/sales/presentation/views/sales_view.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
+import 'package:mae_assignment/shared/models/order.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/services/branch_service.dart';
+import 'package:mae_assignment/shared/services/order_service.dart';
 
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_branch_service.dart';
+import '../../helpers/worker_test_store.dart';
 
 const _admin = AppUser(
   uid: 'uid-1',
@@ -36,6 +42,7 @@ Future<void> _pumpSales(WidgetTester tester, Size size) async {
       overrides: [
         authRepositoryProvider.overrideWithValue(repository),
         branchServiceProvider.overrideWithValue(FakeBranchService()),
+        firebaseFirestoreProvider.overrideWithValue(await _salesDatabase()),
       ],
       child: MaterialApp(theme: AppTheme.light, home: const SalesView()),
     ),
@@ -43,8 +50,67 @@ Future<void> _pumpSales(WidgetTester tester, Size size) async {
   await tester.pumpAndSettle();
 }
 
-SalesRepository _repository() {
-  return SalesRepository();
+/// 30 days of completed orders: SS15 has 3 a day, Puchong 1 a day. Orders
+/// cycle through 30 products in 5 categories, so the top products fill
+/// more than one page.
+Future<FakeFirebaseFirestore> _salesDatabase() async {
+  final firestore = FakeFirebaseFirestore();
+  final today = DateTime.now();
+  var number = 1000;
+  for (final (branch, perDay) in [('ss15', 3), ('puchong', 1)]) {
+    for (var day = 0; day < 30; day++) {
+      for (var i = 0; i < perDay; i++) {
+        number++;
+        final items = [
+          for (var line = 0; line < 4; line++)
+            OrderItem(
+              lineId: 'L${line + 1}',
+              productId: 'p${(day * 3 + i + line * 7) % 30}',
+              name: 'Product ${(day * 3 + i + line * 7) % 30}',
+              brand: 'Brand',
+              packSize: '1',
+              quantity: 1 + line,
+              unitPrice: 5.0 + line,
+              categoryId: 'c${(day + line) % 5}',
+              category: 'Category ${(day + line) % 5}',
+            ),
+        ];
+        final subtotal = items.fold<double>(0, (sum, i) => sum + i.lineTotal);
+        final placed = DateTime(
+          today.year,
+          today.month,
+          today.day - day,
+          10 + i,
+        );
+        await putOrder(
+          firestore,
+          Order(
+            id: 'o$number',
+            number: number,
+            customerId: 'customer',
+            customerName: 'Customer',
+            customerPhone: '012',
+            branchId: branch,
+            branchName: branch,
+            isDelivery: i.isEven,
+            items: items,
+            subtotal: subtotal,
+            deliveryFee: i.isEven ? 4 : 0,
+            discount: 0,
+            total: subtotal + (i.isEven ? 4 : 0),
+            status: OrderStatus.completed,
+            placedAt: placed,
+            statusSince: placed,
+          ),
+        );
+      }
+    }
+  }
+  return firestore;
+}
+
+Future<SalesRepository> _repository() async {
+  return SalesRepository(OrderService(await _salesDatabase()));
 }
 
 void main() {
@@ -83,7 +149,7 @@ void main() {
         SalesPreset.last30Days,
         DateTime.now(),
       );
-      final report = await _repository().getReport('ss15', period);
+      final report = await (await _repository()).getReport('ss15', period);
       final totals = report.totals;
 
       expect(totals.orderCount, greaterThan(0));
@@ -102,7 +168,7 @@ void main() {
     });
 
     test('branches are kept separate', () async {
-      final repository = _repository();
+      final repository = await _repository();
       final period = SalesPeriod.fromPreset(
         SalesPreset.last7Days,
         DateTime.now(),
@@ -119,7 +185,7 @@ void main() {
         SalesPreset.last30Days,
         DateTime.now(),
       );
-      final first = await _repository().getTopProducts('ss15', period);
+      final first = await (await _repository()).getTopProducts('ss15', period);
       final revenues = first.items.map((product) => product.revenue).toList();
 
       expect(first.items.length, 20);

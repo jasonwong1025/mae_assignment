@@ -182,8 +182,9 @@ the admin chose). Dart: `BranchStock`. Service: `InventoryService`.
 One document per placed order: the single contract shared by the customer,
 Store Worker and Store Admin apps. Dart: `Order`, `OrderItem`, `OrderEvent`,
 `VerificationMethod` (all in `lib/shared/models/`). The customer app reads and
-writes it through `OrderService`; the admin and worker apps use the same
-models but still keep their orders in memory (sample data) for now.
+writes it through `OrderService`; Store Admin (`OrdersRepository`,
+`DispatchRepository`, `SalesRepository`, `DashboardRepository`) and Store Worker
+(`WorkerOrdersRepository`) read and update the same documents.
 
 Every field belongs to one write group, and `firestore.rules` lets each role
 write only its own group (`OrderFields.checkoutKeys`, `assignmentKeys`,
@@ -218,7 +219,7 @@ Assignment fields (Store Admin; all optional):
 | Field | Type | Notes |
 | --- | --- | --- |
 | `dueAt` | timestamp | When the customer was promised the order. |
-| `packerId`, `packerName`, `packerAssignedAt` | string, string, timestamp | A worker only sees a packing task when `packerId` is theirs. Nothing assigns a packer to a customer order yet. |
+| `packerId`, `packerName`, `packerAssignedAt` | string, string, timestamp | A worker only sees a packing task when `packerId` is theirs. Store Admin assigns the packer from the order details (`OrdersRepository.assignPacker`). |
 | `driverId`, `driverName`, `driverAssignedAt` | string, string, timestamp | Delivery orders only. |
 
 Fulfilment fields (Store Worker; all optional):
@@ -233,7 +234,7 @@ Fulfilment fields (Store Worker; all optional):
 | `collectionVerification`, `collectionVerifiedBy`, `collectionVerifiedAt` | string, string, timestamp | The driver checking the bag. |
 | `outForDeliveryAt` | timestamp | |
 | `deliveredBy`, `deliveredByName` | string | |
-| `proofPhotoUrl` | string | Download URL of the delivery photo. The worker mock keeps the bytes in memory for now; uploading to Storage is not built yet. |
+| `proofPhotoUrl` | string | Download URL of the delivery photo, uploaded to Storage (`orders/{orderId}/proof.jpg`) by `DeliveryProofService` just before the order is completed. |
 | `completedAt` | timestamp | Pickup or delivery done. |
 
 Each `items` entry: `lineId` (unique in the order), `productId`, `name`,
@@ -245,6 +246,14 @@ stored: `Order.timeline` works it out from the timestamps above. The bag
 label's `collectionCode` is also not stored. It is computed from the order id,
 so it is a mock only and not secure; the real version needs a random code made
 and checked on the server.
+
+Queries and indexes (`firestore.indexes.json`): a branch's orders by
+`branchId` + `placedAt` (admin board, Sales, packers), a driver's orders by
+`driverId` + `placedAt`, a customer's by `customerId` + `placedAt`. Dispatch
+reads every delivery that is `ready` or `outForDelivery` (`isDelivery` and
+`status` equalities, no composite index needed). A worker's change is one
+transaction (`OrderService.updateOrder`) that writes only the fields that
+changed.
 
 Rules: the owner reads their orders and staff read all; a customer creates only
 their own order, starting `pending`, with `number, customerId, branchId, items,
@@ -261,8 +270,8 @@ nobody deletes. Index: `customerId` ascending + `placedAt` descending
 
 A customer's rating of one completed order. The document id is the order id,
 so an order can be rated once. Reviews are immutable. Dart: `OrderReview`.
-Service: `ReviewService`. This is the contract the Store Admin Reviews tab will
-read when it is connected (driver attribution comes from the order).
+Service: `ReviewService`. The Store Admin Reviews tab reads a branch's reviews
+(`branchId` + `createdAt` index).
 
 | Field | Type | Notes |
 | --- | --- | --- |
@@ -273,6 +282,7 @@ read when it is connected (driver attribution comes from the order).
 | `shoppingScore` | int | Required, 1 to 5. |
 | `productScore` | int | Required, 1 to 5. |
 | `deliveryScore` | int | 1 to 5. Present **only** for delivery orders. |
+| `driverId`, `driverName` | string | Delivery orders only: the order's driver, copied so the admin can rate drivers. The rules require them to equal the order's. |
 | `comment` | string | Optional, at most 500 characters. |
 | `createdAt` | timestamp | Server time. |
 
@@ -280,6 +290,24 @@ Rules: the owner and staff read (a customer may also read a review that does not
 exist yet, to find out whether they have rated); a customer creates a review for
 their own order only once its status is `completed`, with exactly the fields
 above and `createdAt == request.time`; no update, no delete.
+
+## `driverLocations/{driverId}`
+
+Where a delivery driver is now, for the Dispatch map. The document id is the
+driver's uid. Service: `DriverLocationService`. A driver without a document is
+shown as offline. Nothing writes these from the worker app yet (it needs a GPS
+plugin), so for now they are seeded.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `position` | geopoint | Required. Last known position. |
+| `updatedAt` | timestamp | Required. Server time. |
+
+A driver's route is not stored: Dispatch works out the stop ahead from the
+order (the branch for a `ready` order, the customer for one `outForDelivery`).
+
+Rules: staff read all; a Store Worker writes only their own document, with a
+map location and `updatedAt == request.time`; no delete.
 
 ## `counters/{name}`
 
@@ -310,17 +338,21 @@ download URLs in `imageUrls`. Rules are in `storage.rules` (tested in
 | Path | Who | Notes |
 | --- | --- | --- |
 | `products/{productId}/{fileName}` | Any signed-in user reads; only the admin uploads or deletes | An image under 5 MB. `ProductPhotoService` names files by time, so a photo is never overwritten. |
+| `orders/{orderId}/proof.jpg` | Staff read; only the driver assigned to the order writes | The delivery proof photo, an image under 5 MB. `DeliveryProofService` uploads it. |
 
 The default bucket must exist before photos work: enable Storage once in the
 Firebase console (this needs the Blaze plan), then run
 `firebase deploy --only storage`.
 
-## Not stored yet
+## Demo data
 
-The Store Admin and Store Worker screens for dispatch, drivers, reviews, sales,
-dashboard, orders, packing and delivery still run on sample data (`sample_*.dart`,
-`mock_*.dart`). When one is connected, add its collection here first, then
-follow the checklist below.
+Nothing in the apps is hardcoded. The demo data lives in `test_firebase/`:
+`seed.mjs` with `seed-data/staff.json` (Store Workers and the driver positions),
+`seed-data/orders.json` (orders in every state) and `seed-data/history.mjs`
+(about 35 days of completed orders and reviews for Sales, Reviews and the
+dashboard). The Store Admin and Store Worker tests load the same JSON files
+(`test/helpers/seed_data.dart`), so tests and the real project agree. See the
+header of `seed.mjs` for the options and the worker logins.
 
 ## Adding or changing a collection
 

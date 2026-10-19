@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_scaffold.dart';
@@ -11,15 +12,15 @@ import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
 import 'package:mae_assignment/shared/ui/worker_badges.dart';
 
 /// Account tab for both worker roles: who is signed in, their role and
-/// branch, and the way out of the preview. Read-only.
+/// branch, and sign out. Read-only.
 class WorkerAccountView extends ConsumerWidget {
   const WorkerAccountView({super.key});
 
-  /// Leaves the preview and returns to sign-in, where the preview started.
-  void _exitPreview(BuildContext context, WidgetRef ref) {
-    // Navigate first, so this page is not left showing an empty session.
-    context.go(AppRoutes.login);
+  /// Signs out and returns to onboarding.
+  Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+    await ref.read(authRepositoryProvider).signOut();
     ref.read(workerSessionProvider.notifier).exit();
+    if (context.mounted) context.go(AppRoutes.onboarding);
   }
 
   @override
@@ -52,16 +53,10 @@ class WorkerAccountView extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xl),
-                FilledButton.icon(
-                  onPressed: () => context.go(AppRoutes.workerDevSelect),
-                  icon: const Icon(Icons.swap_horiz_rounded),
-                  label: const Text('Switch worker'),
-                ),
-                const SizedBox(height: AppSpacing.m),
                 OutlinedButton.icon(
-                  onPressed: () => _exitPreview(context, ref),
+                  onPressed: () => _signOut(context, ref),
                   icon: const Icon(Icons.logout_rounded),
-                  label: const Text('Exit preview'),
+                  label: const Text('Sign out'),
                 ),
               ],
             ),

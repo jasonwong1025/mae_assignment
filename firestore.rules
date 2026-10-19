@@ -272,11 +272,15 @@ service cloud.firestore {
         && request.resource.data.branchId == order().branchId
         && request.resource.data.keys().hasOnly(
             ['orderNumber', 'branchId', 'customerId', 'customerName',
-             'shoppingScore', 'productScore', 'deliveryScore', 'comment',
-             'createdAt'])
+             'shoppingScore', 'productScore', 'deliveryScore', 'driverId',
+             'driverName', 'comment', 'createdAt'])
         && request.resource.data.keys().hasAll(
             ['orderNumber', 'branchId', 'customerId', 'customerName',
              'shoppingScore', 'productScore', 'createdAt'])
+        && request.resource.data.get('driverId', null)
+            == order().get('driverId', null)
+        && request.resource.data.get('driverName', null)
+            == order().get('driverName', null)
         && validScore(request.resource.data.shoppingScore)
         && validScore(request.resource.data.productScore)
         && (('deliveryScore' in request.resource.data)
@@ -289,6 +293,21 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time;
 
       allow update, delete: if false;
+    }
+
+    // Where each delivery driver is now, for the Dispatch map. Staff read all
+    // of them; a Store Worker writes only their own document, and only a
+    // real position with the server time. Nobody deletes.
+    match /driverLocations/{driverId} {
+      allow read: if isStaff();
+      allow create, update: if request.auth != null
+        && request.auth.uid == driverId
+        && get(/databases/$(database)/documents/users/$(request.auth.uid))
+            .data.role == 'storeWorker'
+        && request.resource.data.keys().hasOnly(['position', 'updatedAt'])
+        && request.resource.data.position is latlng
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
     }
 
     // Monotonic counters, e.g. the order-number sequence. Any signed-in

@@ -4,15 +4,17 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
-import 'package:mae_assignment/features/store_worker/session/data/mock_workers.dart';
 import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/models/verification_method.dart';
 
+import '../../helpers/worker_profiles.dart';
+import '../../helpers/worker_test_store.dart';
+
 WorkerProfile _worker(String name) {
-  return mockWorkerProfiles.firstWhere((worker) => worker.name == name);
+  return testWorkers.firstWhere((worker) => worker.name == name);
 }
 
 final WorkerProfile _daniel = _worker('Daniel Lee');
@@ -26,13 +28,14 @@ final WorkerProfile _weiJie = _worker('Tan Wei Jie');
 final Uint8List _proofPhoto = Uint8List.fromList([1, 2, 3]);
 
 /// A repository with a fixed clock and no delay.
-WorkerOrdersRepository _repository({Duration delay = Duration.zero}) {
-  final repository = WorkerOrdersRepository(
+Future<WorkerOrdersRepository> _repository({
+  Duration delay = Duration.zero,
+}) async {
+  final store = await WorkerTestStore.create(
     clock: () => DateTime(2026, 10, 15, 12),
-    actionDelay: delay,
+    delay: delay,
   );
-  addTearDown(repository.dispose);
-  return repository;
+  return store.repository;
 }
 
 List<String> _ids(List<Order> orders) {
@@ -64,7 +67,7 @@ Matcher get _throwsWorkerOrderException {
 void main() {
   group('lists', () {
     test('each list starts with the current orders in scope', () async {
-      final repository = _repository();
+      final repository = await _repository();
 
       expect(await repository.watchMyPackingTasks(_daniel).first.then(_ids), [
         'ord-2301',
@@ -103,7 +106,7 @@ void main() {
     });
 
     test("roles get nothing from the other role's lists", () async {
-      final repository = _repository();
+      final repository = await _repository();
 
       expect(await repository.watchMyPackingTasks(_amir).first, isEmpty);
       expect(await repository.watchReadyForPickup(_amir).first, isEmpty);
@@ -111,14 +114,14 @@ void main() {
     });
 
     test('an inactive worker gets empty lists', () async {
-      final repository = _repository();
+      final repository = await _repository();
 
       expect(await repository.watchMyPackingTasks(_nadia).first, isEmpty);
       expect(await repository.watchReadyForPickup(_nadia).first, isEmpty);
     });
 
     test("watchOrder hides orders outside the worker's scope", () async {
-      final repository = _repository();
+      final repository = await _repository();
 
       expect(await repository.watchOrder(_daniel, 'ord-2302').first, isNotNull);
       expect(await repository.watchOrder(_hakim, 'ord-2302').first, isNull);
@@ -132,7 +135,7 @@ void main() {
 
   group('packing', () {
     test('pending -> packing -> ready by the assigned packer', () async {
-      final repository = _repository();
+      final repository = await _repository();
 
       await repository.startPacking(_daniel, 'ord-2301');
       for (final line in ['L1', 'L2', 'L3']) {
@@ -152,7 +155,7 @@ void main() {
     });
 
     test('ticking and unticking change the progress', () async {
-      final repository = _repository();
+      final repository = await _repository();
 
       await repository.setItemPacked(_daniel, 'ord-2302', 'L3', packed: true);
       var order = await repository.watchOrder(_daniel, 'ord-2302').first;
@@ -164,7 +167,7 @@ void main() {
     });
 
     test('ready is refused until every line is packed', () async {
-      final repository = _repository();
+      final repository = await _repository();
 
       expect(
         repository.markReady(_daniel, 'ord-2302'),
@@ -175,7 +178,7 @@ void main() {
     });
 
     test('invalid packing actions are refused and change nothing', () async {
-      final repository = _repository();
+      final repository = await _repository();
 
       expect(
         repository.setItemPacked(_daniel, 'ord-2301', 'L1', packed: true),
@@ -198,8 +201,8 @@ void main() {
       expect(order!.packedLineIds, {'L1', 'L2'});
     });
 
-    test('an unknown order is reported clearly', () {
-      final repository = _repository();
+    test('an unknown order is reported clearly', () async {
+      final repository = await _repository();
 
       expect(
         repository.startPacking(_daniel, 'missing'),
@@ -210,7 +213,7 @@ void main() {
 
   group('pickup', () {
     test('a packer hands over an order packed by someone else', () async {
-      final repository = _repository();
+      final repository = await _repository();
       final hakimQueue = await _record(repository.watchReadyForPickup(_hakim));
 
       await repository.completePickup(
@@ -240,7 +243,7 @@ void main() {
     });
 
     test('a second handover fails with who did it', () async {
-      final repository = _repository();
+      final repository = await _repository();
 
       await repository.completePickup(
         _daniel,
@@ -260,26 +263,33 @@ void main() {
       );
     });
 
-    test('two packers finishing at once: only the first succeeds', () async {
-      final repository = _repository(delay: const Duration(milliseconds: 1));
+    test(
+      'two packers finishing one after the other: only the first wins',
+      () async {
+        // Firestore transactions retry when two workers touch the same order
+        // at once, so the second one sees the finished order and is refused.
+        // The in-memory test database runs them one at a time.
+        final repository = await _repository();
 
-      final first = repository.completePickup(
-        _daniel,
-        'ord-2305',
-        method: VerificationMethod.manual,
-      );
-      final second = repository.completePickup(
-        _hakim,
-        'ord-2305',
-        method: VerificationMethod.manual,
-      );
+        await repository.completePickup(
+          _daniel,
+          'ord-2305',
+          method: VerificationMethod.manual,
+        );
 
-      await first;
-      await expectLater(second, _throwsWorkerOrderException);
-    });
+        await expectLater(
+          repository.completePickup(
+            _hakim,
+            'ord-2305',
+            method: VerificationMethod.manual,
+          ),
+          _throwsWorkerOrderException,
+        );
+      },
+    );
 
-    test('other branches, drivers and delivery orders are refused', () {
-      final repository = _repository();
+    test('other branches, drivers and delivery orders are refused', () async {
+      final repository = await _repository();
       const manual = VerificationMethod.manual;
 
       expect(
@@ -303,7 +313,7 @@ void main() {
 
   group('delivery', () {
     test('ready -> verify -> out for delivery -> completed', () async {
-      final repository = _repository();
+      final repository = await _repository();
       final deliveries = await _record(repository.watchMyDeliveries(_amir));
 
       // Manual verification matches the bag's collection code, read from the
@@ -339,8 +349,8 @@ void main() {
       ]);
     });
 
-    test('start is refused before verification', () {
-      final repository = _repository();
+    test('start is refused before verification', () async {
+      final repository = await _repository();
 
       expect(
         repository.startDelivery(_amir, 'ord-2308'),
@@ -349,7 +359,7 @@ void main() {
     });
 
     test('a wrong code does not verify the order', () async {
-      final repository = _repository();
+      final repository = await _repository();
 
       expect(
         repository.verifyCollection(
@@ -364,8 +374,8 @@ void main() {
       expect(order!.collectionVerifiedBy, isNull);
     });
 
-    test('nothing can happen before the order is ready', () {
-      final repository = _repository();
+    test('nothing can happen before the order is ready', () async {
+      final repository = await _repository();
 
       expect(
         repository.verifyCollection(
@@ -383,7 +393,7 @@ void main() {
     });
 
     test('a second completion fails', () async {
-      final repository = _repository();
+      final repository = await _repository();
 
       await repository.completeDelivery(_amir, 'ord-2309', photo: _proofPhoto);
 
@@ -393,8 +403,8 @@ void main() {
       );
     });
 
-    test('other drivers and packers cannot touch the delivery', () {
-      final repository = _repository();
+    test('other drivers and packers cannot touch the delivery', () async {
+      final repository = await _repository();
 
       expect(
         repository.completeDelivery(_weiJie, 'ord-2309', photo: _proofPhoto),
@@ -415,7 +425,7 @@ void main() {
     test(
       'open lists update and late listeners start from the latest',
       () async {
-        final repository = _repository();
+        final repository = await _repository();
         final danielTasks = await _record(
           repository.watchMyPackingTasks(_daniel),
         );
@@ -438,7 +448,7 @@ void main() {
     );
 
     test('a list does not resend when an unrelated order changes', () async {
-      final repository = _repository();
+      final repository = await _repository();
       final hafizTasks = await _record(repository.watchMyPackingTasks(_hafiz));
 
       await repository.startPacking(_daniel, 'ord-2301');
@@ -448,16 +458,20 @@ void main() {
     });
 
     test('switching workers keeps the orders and changes the scope', () async {
-      final container = ProviderContainer();
+      final repository = await _repository();
+      final container = ProviderContainer(
+        overrides: [
+          workerOrdersRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
       addTearDown(container.dispose);
-      final repository = container.read(workerOrdersRepositoryProvider);
       final session = container.read(workerSessionProvider.notifier);
 
       // Daniel packs the last line of 2303.
       // The two session.select calls are separate steps of the scenario,
       // not a cascade.
       // ignore: cascade_invocations
-      session.select(_daniel);
+      session.open(_daniel);
       await repository.setItemPacked(
         container.read(workerSessionProvider)!,
         'ord-2303',
@@ -466,7 +480,7 @@ void main() {
       );
 
       // Switch to Amir: same store, his scope.
-      session.select(_amir);
+      session.open(_amir);
       final amir = container.read(workerSessionProvider)!;
       expect(container.read(workerOrdersRepositoryProvider), same(repository));
 
@@ -478,37 +492,15 @@ void main() {
       expect(await repository.watchMyDeliveries(amir).first, hasLength(7));
 
       // Back to Daniel: his change is still there.
-      session.select(_daniel);
+      session.open(_daniel);
       final again = await repository
           .watchOrder(container.read(workerSessionProvider)!, 'ord-2303')
           .first;
       expect(again!.packedLineIds, {'L1', 'L2', 'L3', 'L4'});
     });
 
-    test('reset puts everything back and updates open lists', () async {
-      final repository = _repository();
-      final queue = await _record(repository.watchReadyForPickup(_daniel));
-
-      await repository.completePickup(
-        _daniel,
-        'ord-2305',
-        method: VerificationMethod.manual,
-      );
-      await repository.startPacking(_daniel, 'ord-2301');
-      repository.resetDemoData();
-      await _settle();
-
-      expect(queue, [
-        ['ord-2305', 'ord-2306'],
-        ['ord-2306'],
-        ['ord-2305', 'ord-2306'],
-      ]);
-      final order = await repository.watchOrder(_daniel, 'ord-2301').first;
-      expect(order!.status, OrderStatus.pending);
-    });
-
     test('cancelling a subscription stops its updates', () async {
-      final repository = _repository();
+      final repository = await _repository();
       final values = <List<Order>>[];
       final subscription = repository
           .watchReadyForPickup(_daniel)

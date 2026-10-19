@@ -13,16 +13,37 @@
 // Target the local emulator instead:
 //   FIRESTORE_EMULATOR_HOST=localhost:8085 node seed.mjs
 //
-// Re-running is safe: it overwrites the same document ids. This is a
-// development convenience; the team's canonical seed will replace it.
+// Re-running is safe: it overwrites the same document ids.
+//
+// What it writes (nothing in the apps is hardcoded any more):
+//   catalogue    branches, categories, products, inventory
+//   staff        Store Worker logins + profiles + driver positions
+//   orders       orders in every state (Orders board, Dispatch, worker app)
+//   history      ~35 days of completed orders and reviews (Sales, Reviews)
+//
+// Store Worker logins (all use password Worker123!):
+//   packers   daniel.lee@grocerly.my (SS15), hakim.roslan@grocerly.my (SS15),
+//             bryan.ong@grocerly.my (SS15), hafiz.zainal@grocerly.my
+//             (Bukit Jalil), syafiq.azman@grocerly.my (Puchong)
+//   drivers   amir.hamzah@grocerly.my, firdaus.rahim@grocerly.my,
+//             lau.weijie@grocerly.my, weijie.tan@grocerly.my,
+//             kumar.selvam@grocerly.my, azlan.shah@grocerly.my,
+//             jason.tan@grocerly.my, marcus.ho@grocerly.my
+//   inactive  nadia.yusof@grocerly.my, ridzuan.ali@grocerly.my (cannot sign in)
+// Options:
+//   --catalogue-only  only the catalogue (no staff, orders or history)
+//   --with-customer   emulator only: also the E2E customer and admin
 
 import { cert, initializeApp, applicationDefault } from "firebase-admin/app";
 import {
   getFirestore,
   GeoPoint,
   FieldValue,
+  Timestamp,
 } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { readFileSync } from "node:fs";
+import { buildHistory } from "./seed-data/history.mjs";
 
 const PROJECT_ID = "mae-assignment-grocerly";
 
@@ -41,6 +62,8 @@ const db = getFirestore(app);
 // one saved address) for the Patrol end-to-end journey. Only meant for the
 // emulator, never the real shared project.
 const WITH_CUSTOMER = process.argv.includes("--with-customer");
+// `--catalogue-only` skips the staff, orders, reviews and history below.
+const SKIP_DEMO = process.argv.includes("--catalogue-only");
 const E2E_CUSTOMER = {
   uid: "e2e-customer",
   email: "e2e.customer@grocerly.test",
@@ -130,52 +153,6 @@ const inventory = {
   },
 };
 
-async function seed() {
-  const target = process.env.FIRESTORE_EMULATOR_HOST
-    ? `emulator (${process.env.FIRESTORE_EMULATOR_HOST})`
-    : `real project (${PROJECT_ID})`;
-  console.log(`Seeding ${target}...`);
-
-  const batch = db.batch();
-
-  for (const { id, ...data } of branches) {
-    batch.set(db.collection("branches").doc(id), {
-      ...data,
-      createdAt: FieldValue.serverTimestamp(),
-    });
-  }
-  for (const { id, ...data } of categories) {
-    batch.set(db.collection("categories").doc(id), data);
-  }
-  for (const { id, ...data } of products) {
-    batch.set(db.collection("products").doc(id), { ...data, imageUrls: [] });
-  }
-  for (const [branchId, items] of Object.entries(inventory)) {
-    for (const [productId, item] of Object.entries(items)) {
-      batch.set(
-        db
-          .collection("branches")
-          .doc(branchId)
-          .collection("inventory")
-          .doc(productId),
-        { isHidden: false, ...item }
-      );
-    }
-  }
-
-  await batch.commit();
-  console.log(
-    `Done: ${branches.length} branches, ${categories.length} categories, ` +
-      `${products.length} products, inventory for ${Object.keys(inventory).length} branches.`
-  );
-
-  if (WITH_CUSTOMER) {
-    await seedTestCustomer();
-  }
-
-  process.exit(0);
-}
-
 /** Creates the E2E test customer: auth account, profile, one address. */
 async function seedTestCustomer() {
   const onEmulator = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
@@ -238,6 +215,224 @@ async function seedTestCustomer() {
   console.log(
     `Test customer ready: ${E2E_CUSTOMER.email} / ${E2E_CUSTOMER.password}`
   );
+}
+
+// ---------------------------------------------------------------------------
+// Demo data for the Store Admin and Store Worker apps. It lives in
+// seed-data/*.json (hand-written people and orders) and seed-data/history.mjs
+// (a repeatable history of completed orders and reviews), so the apps contain
+// no sample data of their own.
+// ---------------------------------------------------------------------------
+
+/** Password of every seeded Store Worker account (demo accounts only). */
+const WORKER_PASSWORD = "Worker123!";
+
+/** The seed's "now". Seed files store times as minutes from this moment. */
+const NOW = new Date();
+
+/** Admin account for end-to-end tests, created only with --with-customer. */
+const E2E_ADMIN = {
+  uid: "e2e-admin",
+  email: "e2e.admin@grocerly.test",
+  password: "Password123!",
+  name: "E2E Admin",
+  phone: "0123456780",
+};
+
+function readJson(name) {
+  return JSON.parse(readFileSync(new URL(`./seed-data/${name}`, import.meta.url), "utf8"));
+}
+
+/** Turns {$minutes} / {$geo} markers in seed files into Firestore values. */
+function resolve(value) {
+  if (Array.isArray(value)) return value.map(resolve);
+  if (value && typeof value === "object") {
+    if ("$minutes" in value) {
+      return Timestamp.fromMillis(NOW.getTime() + value.$minutes * 60000);
+    }
+    if ("$geo" in value) return new GeoPoint(value.$geo[0], value.$geo[1]);
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, resolve(v)]));
+  }
+  return value;
+}
+
+/** True when Auth can be reached: the real project, or the Auth emulator. */
+function canUseAuth() {
+  return !ON_EMULATOR || Boolean(process.env.FIREBASE_AUTH_EMULATOR_HOST);
+}
+
+/** Creates the account, or resets its password if it already exists. */
+async function ensureAccount({ uid, email, password, name }) {
+  const auth = getAuth(app);
+  try {
+    await auth.createUser({ uid, email, password, displayName: name });
+  } catch (error) {
+    if (error.code !== "auth/uid-already-exists" &&
+        error.code !== "auth/email-already-exists") {
+      throw error;
+    }
+    await auth.updateUser(uid, { email, password, displayName: name });
+  }
+}
+
+/** Adds branches that other demo data needs, without touching existing ones. */
+async function seedExtraBranches() {
+  const { branches } = readJson("staff.json");
+  for (const branch of branches) {
+    const ref = db.collection("branches").doc(branch.id);
+    if ((await ref.get()).exists) continue;
+    await ref.set({
+      name: branch.name,
+      address: branch.address,
+      phone: branch.phone,
+      location: new GeoPoint(branch.location[0], branch.location[1]),
+      weeklyHours: everyDay(branch.hours.opensAt, branch.hours.closesAt),
+      maxDeliveryKm: branch.maxDeliveryKm,
+      baseDeliveryFee: branch.baseDeliveryFee,
+      feePerKm: branch.feePerKm,
+      isTemporarilyClosed: false,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    console.log(`Added branch ${branch.name}`);
+  }
+}
+
+/** Store Workers: login, users/{uid} profile, and a driver's position. */
+async function seedStaff() {
+  const { workers } = readJson("staff.json");
+  const withAuth = canUseAuth();
+  if (!withAuth) {
+    console.log("No Auth emulator: skipping worker logins (profiles are still written).");
+  }
+  for (const worker of workers) {
+    if (withAuth) {
+      await ensureAccount({
+        uid: worker.uid,
+        email: worker.email,
+        password: WORKER_PASSWORD,
+        name: worker.name,
+      });
+    }
+    await db.collection("users").doc(worker.uid).set({
+      name: worker.name,
+      email: worker.email,
+      phone: worker.phone,
+      role: "storeWorker",
+      workerRole: worker.role,
+      branchId: worker.branchId ?? null,
+      isActive: worker.isActive,
+      joinedAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    if (worker.location && worker.isActive) {
+      await db.collection("driverLocations").doc(worker.uid).set({
+        position: new GeoPoint(worker.location[0], worker.location[1]),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    }
+  }
+  console.log(`Staff: ${workers.length} workers (password for all: ${WORKER_PASSWORD}).`);
+}
+
+/** Writes documents in bulk, overwriting the same ids on a re-run. */
+async function writeAll(collection, documents) {
+  const writer = db.bulkWriter();
+  for (const { id, data } of documents) {
+    writer.set(db.collection(collection).doc(id), resolve(data));
+  }
+  await writer.close();
+}
+
+/** Orders in every state, for the Orders board, Dispatch and the worker app. */
+async function seedOrders() {
+  const orders = readJson("orders.json");
+  await writeAll("orders", orders);
+  console.log(`Orders: ${orders.length} in progress or recently finished.`);
+}
+
+/** Completed orders and reviews for Sales, Reviews and the dashboard. */
+async function seedHistory() {
+  const { workers, branches: extraBranches } = readJson("staff.json");
+  const allBranches = [...branches, ...extraBranches.map((b) => ({ ...b, location: b.location }))];
+  const { orders, reviews } = buildHistory({
+    now: NOW,
+    products,
+    categories,
+    inventory,
+    drivers: workers
+      .filter((w) => w.role === "deliveryDriver" && w.isActive)
+      .map((w) => ({ id: w.uid, name: w.name })),
+    branches: allBranches.map((b) => ({
+      id: b.id,
+      name: b.name,
+      location: Array.isArray(b.location) ? b.location : [b.location.latitude, b.location.longitude],
+    })),
+  });
+  await writeAll("orders", orders);
+  await writeAll("reviews", reviews);
+  console.log(`History: ${orders.length} completed orders, ${reviews.length} reviews.`);
+}
+
+/** Admin account for the Patrol end-to-end journey. Emulator only. */
+async function seedTestAdmin() {
+  await ensureAccount(E2E_ADMIN);
+  await db.collection("users").doc(E2E_ADMIN.uid).set({
+    name: E2E_ADMIN.name,
+    email: E2E_ADMIN.email,
+    phone: E2E_ADMIN.phone,
+    role: "storeAdmin",
+    createdAt: FieldValue.serverTimestamp(),
+  });
+  console.log(`Test admin ready: ${E2E_ADMIN.email} / ${E2E_ADMIN.password}`);
+}
+
+async function seed() {
+  const target = process.env.FIRESTORE_EMULATOR_HOST
+    ? `emulator (${process.env.FIRESTORE_EMULATOR_HOST})`
+    : `real project (${PROJECT_ID})`;
+  console.log(`Seeding ${target}...`);
+  const batch = db.batch();
+  for (const { id, ...data } of branches) {
+    batch.set(db.collection("branches").doc(id), {
+      ...data,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  }
+  for (const { id, ...data } of categories) {
+    batch.set(db.collection("categories").doc(id), data);
+  }
+  for (const { id, ...data } of products) {
+    batch.set(db.collection("products").doc(id), { ...data, imageUrls: [] });
+  }
+  for (const [branchId, items] of Object.entries(inventory)) {
+    for (const [productId, item] of Object.entries(items)) {
+      batch.set(
+        db
+          .collection("branches")
+          .doc(branchId)
+          .collection("inventory")
+          .doc(productId),
+        { isHidden: false, ...item }
+      );
+    }
+  }
+  await batch.commit();
+  console.log(
+    `Done: ${branches.length} branches, ${categories.length} categories, ` +
+      `${products.length} products, inventory for ${Object.keys(inventory).length} branches.`
+  );
+
+  if (!SKIP_DEMO) {
+    await seedExtraBranches();
+    await seedStaff();
+    await seedOrders();
+    await seedHistory();
+  }
+  if (WITH_CUSTOMER) {
+    await seedTestCustomer();
+    await seedTestAdmin();
+  }
+  process.exit(0);
 }
 
 seed().catch((error) => {

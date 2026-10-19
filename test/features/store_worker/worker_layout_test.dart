@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
+import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
 
+import '../../helpers/worker_profiles.dart';
 import '../../helpers/worker_test_app.dart';
 
 // Every Store Worker screen at narrow-to-wide phone widths, with normal and
@@ -29,7 +31,7 @@ Future<(ProviderContainer, WorkerOrdersRepository)> _pump(
   final result = await pumpWorkerApp(
     tester,
     worker,
-    location: AppRoutes.workerDevSelect,
+    location: workerHomeFor(testWorker(worker)),
   );
   tester.view.physicalSize = Size(width, _height);
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
@@ -65,8 +67,7 @@ void main() {
           textScale: textScale,
         );
 
-        // Selector, then the three packer tabs.
-        expect(find.text('Store Worker preview'), findsOneWidget);
+        // The three packer tabs.
         await _show(tester, container, AppRoutes.workerPacking);
         expect(find.text('#2301'), findsOneWidget);
         await _show(tester, container, AppRoutes.workerPickup);
@@ -79,7 +80,7 @@ void main() {
 
         // Review sheet and success screen for a fully packed order.
         await repository.setItemPacked(
-          mockWorker('Daniel Lee'),
+          testWorker('Daniel Lee'),
           'ord-2303',
           'L4',
           packed: true,

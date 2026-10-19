@@ -70,6 +70,8 @@ class ReviewRepository {
       productScore: productScore,
       // A pickup order has no delivery score, whatever the caller passed.
       deliveryScore: order.isDelivery ? deliveryScore : null,
+      driverId: order.isDelivery ? order.driverId : null,
+      driverName: order.isDelivery ? order.driverName : null,
       comment: (text == null || text.isEmpty) ? null : text,
     );
     await guard(
