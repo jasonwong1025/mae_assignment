@@ -221,17 +221,19 @@ void main() {
 
   testWidgets('Phone lists top products as tiles', (tester) async {
     await _pumpSales(tester, phone);
-
-    await tester.scrollUntilVisible(
-      find.text('Top products'),
-      400,
-      scrollable: find
-          .descendant(
-            of: find.byType(CustomScrollView),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
+    // Tiles are only built once scrolled into view: drag the page up until
+    // the first one appears.
+    final page = find
+        .descendant(
+          of: find.byType(CustomScrollView),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    for (var i = 0; i < 30; i++) {
+      if (find.byType(TopProductTile).evaluate().isNotEmpty) break;
+      await tester.drag(page, const Offset(0, -300));
+      await tester.pumpAndSettle();
+    }
     expect(find.byType(TopProductTile), findsWidgets);
   });
 }
