@@ -196,10 +196,15 @@ class OrderService {
         .where(OrderFields.branchId, isEqualTo: branchId)
         .where(OrderFields.placedAt, isGreaterThanOrEqualTo: toTimestamp(start))
         .where(OrderFields.placedAt, isLessThan: toTimestamp(end))
-        .orderBy(OrderFields.placedAt)
+        // Newest first, to use the same branchId + placedAt (descending)
+        // index as the branch watcher; reversed below.
+        .orderBy(OrderFields.placedAt, descending: true)
         .get()
         .timeout(FirestoreConfig.readTimeout);
-    return snapshot.toModels(fromFirestore: Order.fromFirestore);
+    return snapshot
+        .toModels(fromFirestore: Order.fromFirestore)
+        .reversed
+        .toList();
   }
 
   /// Changes an order in one transaction and returns the saved order, or
