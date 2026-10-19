@@ -1,22 +1,51 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 /// Opens the camera full screen and returns the first QR code it reads,
-/// or null if the driver goes back.
-Future<String?> scanBagQrCode(BuildContext context) {
+/// or null if the person goes back. [title] heads the page and [hint] tells
+/// them what to point at.
+Future<String?> scanQrCode(
+  BuildContext context, {
+  required String title,
+  required String hint,
+}) {
   return Navigator.of(context).push<String>(
     MaterialPageRoute(
       fullscreenDialog: true,
-      builder: (context) => const _QrScannerPage(),
+      builder: (context) => _QrScannerPage(title: title, hint: hint),
     ),
   );
 }
 
+/// Scans the QR code on a bag label (the driver collecting a bag).
+Future<String?> scanBagQrCode(BuildContext context) {
+  return scanQrCode(
+    context,
+    title: 'Scan bag label',
+    hint: 'Point the camera at the QR code on the bag label.',
+  );
+}
+
+/// How screens open the camera. A provider, so tests can answer with a
+/// fixed code instead of opening a camera.
+final qrScannerProvider =
+    Provider<
+      Future<String?> Function(
+        BuildContext context, {
+        required String title,
+        required String hint,
+      })
+    >((ref) => scanQrCode);
+
 class _QrScannerPage extends StatefulWidget {
-  const _QrScannerPage();
+  const _QrScannerPage({required this.title, required this.hint});
+
+  final String title;
+  final String hint;
 
   @override
   State<_QrScannerPage> createState() => _QrScannerPageState();
@@ -53,7 +82,7 @@ class _QrScannerPageState extends State<_QrScannerPage> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        title: const Text('Scan bag label'),
+        title: Text(widget.title),
         actions: [
           IconButton(
             tooltip: 'Torch',
@@ -91,13 +120,13 @@ class _QrScannerPageState extends State<_QrScannerPage> {
               ),
             ),
           ),
-          const Positioned(
+          Positioned(
             left: AppSpacing.xl,
             right: AppSpacing.xl,
             bottom: AppSpacing.xl * 2,
             child: Text(
-              'Point the camera at the QR code on the bag label.',
-              style: TextStyle(color: Colors.white, fontSize: 16),
+              widget.hint,
+              style: const TextStyle(color: Colors.white, fontSize: 16),
               textAlign: TextAlign.center,
             ),
           ),

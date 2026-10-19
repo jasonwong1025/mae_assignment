@@ -21,6 +21,7 @@ import 'package:mae_assignment/shared/repositories/order_repository.dart';
 import 'package:mae_assignment/shared/repositories/review_repository.dart';
 import 'package:mae_assignment/shared/services/branch_service.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_branch_service.dart';
@@ -474,5 +475,37 @@ void main() {
       expect(find.byKey(const Key('rate_order_button')), findsNothing);
       expect(find.byKey(const Key('reorder_button')), findsOneWidget);
     });
+  });
+
+  group('pickup QR code', () {
+    testWidgets('a ready pickup order shows the QR code to collect it', (
+      tester,
+    ) async {
+      await pump(tester, _order(status: OrderStatus.ready, isDelivery: false));
+
+      expect(find.text('Ready for pickup'), findsWidgets);
+      expect(find.byType(QrImageView), findsOneWidget);
+      expect(
+        find.text('Show this QR code at the counter of SS15 Subang.'),
+        findsOneWidget,
+      );
+    });
+
+    final others = {
+      'before packing': _order(isDelivery: false),
+      'while packing': _order(status: OrderStatus.packing, isDelivery: false),
+      'after collection': _order(
+        status: OrderStatus.completed,
+        isDelivery: false,
+      ),
+      'for a delivery order': _order(status: OrderStatus.ready),
+    };
+    for (final entry in others.entries) {
+      testWidgets('no QR code ${entry.key}', (tester) async {
+        await pump(tester, entry.value);
+
+        expect(find.byType(QrImageView), findsNothing);
+      });
+    }
   });
 }

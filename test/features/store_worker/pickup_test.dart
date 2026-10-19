@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
+import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/qr_scanner_page.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/view_models/pickup_handover_view_model.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
@@ -15,6 +17,13 @@ import '../../helpers/worker_test_store.dart';
 
 /// Far enough to reach the end of the slider on any phone width.
 const _fullSlide = Offset(500, 0);
+
+/// Answers the camera with [code] (null: the packer went back).
+Override _scanReturns(String? code) {
+  return qrScannerProvider.overrideWithValue(
+    (context, {required title, required hint}) async => code,
+  );
+}
 
 void main() {
   group('Ready for Pickup list', () {
@@ -206,6 +215,64 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('Handed over by you at'), findsOneWidget);
       expect(find.textContaining('(manual check)'), findsOneWidget);
+    });
+
+    testWidgets("scanning the customer's QR code hands the order over", (
+      tester,
+    ) async {
+      final payload = workerTestOrders(
+        DateTime.now(),
+      ).firstWhere((order) => order.id == 'ord-2306').handoverQrPayload;
+      await pumpWorkerApp(
+        tester,
+        'Daniel Lee',
+        location: AppRoutes.workerPickupOrder('ord-2306'),
+        overrides: [_scanReturns(payload)],
+      );
+
+      await tester.tap(find.text('Scan customer QR code'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Order #2306 handed over to Kelvin Lim.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a QR code for another order is explained and refused', (
+      tester,
+    ) async {
+      final wrong = workerTestOrders(
+        DateTime.now(),
+      ).firstWhere((order) => order.id == 'ord-2305').handoverQrPayload;
+      final (container, _) = await pumpWorkerApp(
+        tester,
+        'Daniel Lee',
+        location: AppRoutes.workerPickupOrder('ord-2306'),
+        overrides: [_scanReturns(wrong)],
+      );
+
+      await tester.tap(find.text('Scan customer QR code'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('This QR code is not for order #2306.'), findsOneWidget);
+      // Still on the handover screen, order still waiting.
+      expect(find.text('Slide to hand over'), findsOneWidget);
+      expect(routerLocation(container), isNot(AppRoutes.workerPickup));
+    });
+
+    testWidgets('backing out of the camera changes nothing', (tester) async {
+      await pumpWorkerApp(
+        tester,
+        'Daniel Lee',
+        location: AppRoutes.workerPickupOrder('ord-2306'),
+        overrides: [_scanReturns(null)],
+      );
+
+      await tester.tap(find.text('Scan customer QR code'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Slide to hand over'), findsOneWidget);
     });
 
     testWidgets('a short slide does not hand over', (tester) async {

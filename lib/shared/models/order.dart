@@ -313,6 +313,11 @@ abstract class Order with _$Order {
   /// the QR cannot be made up from the order number alone.
   String get qrPayload => 'grocerly:order:$id:$collectionCode';
 
+  /// Text inside the QR code the customer shows at the counter to collect a
+  /// self-pickup order. It differs from [qrPayload] (the bag label), so
+  /// scanning the label by mistake is told apart from the customer's code.
+  String get handoverQrPayload => 'grocerly:handover:$id:$collectionCode';
+
   /// Short code printed on the bag label and nowhere in the driver's app,
   /// typed by the driver when the QR code cannot be scanned. Proves they
   /// are holding the bag, since the order number is already on their

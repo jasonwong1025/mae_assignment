@@ -254,13 +254,66 @@ void main() {
       expect(await repository.watchOrder(_hafiz, 'ord-2306').first, isNull);
     });
 
+    test("a packer hands over with the customer's QR code", () async {
+      final repository = await _repository();
+      final order = (await repository.watchOrder(_daniel, 'ord-2306').first)!;
+
+      await repository.completePickup(
+        _daniel,
+        'ord-2306',
+        method: VerificationMethod.qr,
+        code: order.handoverQrPayload,
+      );
+
+      final done = (await repository.watchOrder(_daniel, 'ord-2306').first)!;
+      expect(done.status, OrderStatus.completed);
+      expect(done.pickupVerification, VerificationMethod.qr);
+    });
+
+    test('a wrong QR code leaves the order waiting', () async {
+      final repository = await _repository();
+      final order = (await repository.watchOrder(_daniel, 'ord-2306').first)!;
+
+      await expectLater(
+        repository.completePickup(
+          _daniel,
+          'ord-2306',
+          method: VerificationMethod.qr,
+          code: 'grocerly:handover:other:ABCDEF',
+        ),
+        _throwsMessage('This QR code is not for order #2306.'),
+      );
+      await expectLater(
+        repository.completePickup(
+          _daniel,
+          'ord-2306',
+          method: VerificationMethod.qr,
+          code: order.qrPayload,
+        ),
+        _throwsMessage(
+          "That is a bag label. Scan the QR code on the customer's phone.",
+        ),
+      );
+      await expectLater(
+        repository.completePickup(
+          _daniel,
+          'ord-2306',
+          method: VerificationMethod.qr,
+        ),
+        _throwsWorkerOrderException,
+      );
+
+      final still = (await repository.watchOrder(_daniel, 'ord-2306').first)!;
+      expect(still.status, OrderStatus.ready);
+    });
+
     test('a second handover fails with who did it', () async {
       final repository = await _repository();
 
       await repository.completePickup(
         _daniel,
         'ord-2306',
-        method: VerificationMethod.qr,
+        method: VerificationMethod.manual,
       );
 
       expect(

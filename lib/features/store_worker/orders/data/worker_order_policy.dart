@@ -246,6 +246,18 @@ class WorkerOrderPolicy {
     };
   }
 
+  /// Checks the QR code a packer scanned from the customer's phone when
+  /// handing over a pickup order. A packer who looks at the order and the
+  /// customer's name instead ([VerificationMethod.manual]) needs no code.
+  static String? checkPickupQr(Order order, String code) {
+    final scanned = code.trim();
+    if (scanned == order.handoverQrPayload) return null;
+    if (scanned.startsWith('grocerly:order:')) {
+      return "That is a bag label. Scan the QR code on the customer's phone.";
+    }
+    return 'This QR code is not for order #${order.number}.';
+  }
+
   /// Spaces and letter case are ignored, so "k7p 4qa" matches "K7P4QA".
   static bool _matchesCollectionCode(Order order, String typed) {
     final cleaned = typed.replaceAll(RegExp(r'\s'), '').toUpperCase();

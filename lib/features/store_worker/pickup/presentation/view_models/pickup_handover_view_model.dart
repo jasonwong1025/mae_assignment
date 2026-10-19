@@ -34,16 +34,19 @@ class PickupHandoverViewModel extends StreamNotifier<Order?> {
         .watchOrder(worker, orderId);
   }
 
-  /// Hands the order to the customer, checked by [method]. Returns an
-  /// error message (e.g. someone else already handed it over), or null if
-  /// it worked.
-  Future<String?> completePickup({required VerificationMethod method}) async {
+  /// Hands the order to the customer, checked by [method] ([code] is the
+  /// scanned QR text for [VerificationMethod.qr]). Returns an error message
+  /// (e.g. someone else already handed it over), or null if it worked.
+  Future<String?> completePickup({
+    required VerificationMethod method,
+    String? code,
+  }) async {
     final worker = ref.read(workerSessionProvider);
     if (worker == null) return 'Choose a worker first.';
     try {
       await ref
           .read(workerOrdersRepositoryProvider)
-          .completePickup(worker, orderId, method: method);
+          .completePickup(worker, orderId, method: method, code: code);
       return null;
     } on WorkerOrderException catch (e) {
       return e.message;

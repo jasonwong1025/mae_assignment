@@ -141,6 +141,16 @@ void main() {
       expect(base().qrPayload, 'grocerly:order:o1:${base().collectionCode}');
     });
 
+    test("the customer's pickup QR differs from the bag label's", () {
+      final order = base(isDelivery: false);
+
+      expect(
+        order.handoverQrPayload,
+        'grocerly:handover:o1:${order.collectionCode}',
+      );
+      expect(order.handoverQrPayload, isNot(order.qrPayload));
+    });
+
     test('minutesInStatus falls back when server times are missing', () {
       final now = at(30);
       expect(base().minutesInStatus(now), 30);

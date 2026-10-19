@@ -5,6 +5,7 @@ import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/qr_scanner_page.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/bag_label_screen.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/product_details_sheet.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/ui/pickup_order_card.dart';
@@ -66,6 +67,32 @@ class _PickupHandoverViewState extends ConsumerState<PickupHandoverView> {
     }
     setState(() => _isLeaving = true);
     return true;
+  }
+
+  /// The customer shows a QR code on their phone; the packer scans it. A
+  /// code that belongs to this order hands it over straight away, so the
+  /// slider is not needed. Any other code is explained and nothing changes.
+  Future<void> _scanCustomerQr() async {
+    final order = _lastOrder;
+    if (order == null) return;
+    final code = await ref.read(qrScannerProvider)(
+      context,
+      title: 'Scan customer QR',
+      hint: "Point the camera at the QR code on the customer's phone.",
+    );
+    if (code == null || !mounted) return;
+    final error = await ref
+        .read(pickupHandoverViewModelProvider(widget.orderId).notifier)
+        .completePickup(method: VerificationMethod.qr, code: code);
+    if (!mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+    setState(() => _isLeaving = true);
+    _afterHandover(order);
   }
 
   /// After the tick: back to Ready for Pickup with a success message.
@@ -155,6 +182,7 @@ class _PickupHandoverViewState extends ConsumerState<PickupHandoverView> {
                   // The slider shows its own spinner and ignores slides
                   // while the handover runs.
                   onComplete: _completePickup,
+                  onScanQr: _scanCustomerQr,
                   onCompleted: () => _afterHandover(order),
                   onBack: () => context.go(AppRoutes.workerPickup),
                 );
@@ -172,6 +200,7 @@ class _HandoverContent extends StatelessWidget {
     required this.order,
     required this.workerId,
     required this.onComplete,
+    required this.onScanQr,
     required this.onCompleted,
     required this.onBack,
   });
@@ -179,6 +208,9 @@ class _HandoverContent extends StatelessWidget {
   final Order order;
   final String workerId;
   final Future<bool> Function() onComplete;
+
+  /// Scans the customer's QR code, which hands the order over.
+  final VoidCallback onScanQr;
 
   /// Runs after the slider's tick has shown.
   final VoidCallback onCompleted;
@@ -255,6 +287,12 @@ class _HandoverContent extends StatelessWidget {
         if (_canHandOver)
           BottomActionBar(
             children: [
+              OutlinedButton.icon(
+                onPressed: onScanQr,
+                icon: const Icon(Icons.qr_code_scanner_rounded),
+                label: const Text('Scan customer QR code'),
+              ),
+              const SizedBox(height: AppSpacing.m),
               SlideToConfirm(
                 label: 'Slide to hand over',
                 onConfirmed: onComplete,

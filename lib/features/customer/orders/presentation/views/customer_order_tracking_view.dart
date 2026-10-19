@@ -11,6 +11,7 @@ import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
 import 'package:mae_assignment/shared/ui/location_map.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 /// Live tracking for one order (wireframe 3): a status timeline, the items,
 /// the price breakdown, and the fulfilment details. Pushed over the Orders
@@ -78,6 +79,10 @@ class _OrderBody extends StatelessWidget {
           const SizedBox(height: AppSpacing.l),
           _StatusTimeline(order: order),
           const SizedBox(height: AppSpacing.l),
+          if (order.isPickup && order.status == OrderStatus.ready) ...[
+            _PickupQrCard(order: order),
+            const SizedBox(height: AppSpacing.l),
+          ],
           _FulfilmentSummary(order: order),
           const SizedBox(height: AppSpacing.l),
           _ItemsCard(order: order),
@@ -246,6 +251,55 @@ class _TimelineRow extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The QR code a customer shows at the counter to collect a ready pickup
+/// order. The packer scans it, which proves the right person is collecting
+/// the right order.
+class _PickupQrCard extends StatelessWidget {
+  const _PickupQrCard({required this.order});
+
+  final Order order;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.l),
+      decoration: BoxDecoration(
+        color: AppColors.greenTint,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Text('Ready for pickup', style: textTheme.titleMedium),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Show this QR code at the counter of ${order.branchName}.',
+            style: textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.m),
+          // White behind the code, whatever the theme, so it scans.
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.m),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: QrImageView(
+              data: order.handoverQrPayload,
+              size: 200,
+              semanticsLabel: 'Pickup QR code for order ${order.number}',
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s),
+          Text('Order #${order.number}', style: textTheme.titleSmall),
         ],
       ),
     );

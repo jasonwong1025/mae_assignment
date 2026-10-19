@@ -325,6 +325,44 @@ void main() {
     });
   });
 
+  group('pickup QR code', () {
+    final pickup = _order('ord-2306');
+
+    test("accepts the order's own handover code", () {
+      expect(
+        WorkerOrderPolicy.checkPickupQr(pickup, pickup.handoverQrPayload),
+        isNull,
+      );
+      expect(
+        WorkerOrderPolicy.checkPickupQr(
+          pickup,
+          ' ${pickup.handoverQrPayload}\n',
+        ),
+        isNull,
+      );
+    });
+
+    test("refuses another order's code or anything else", () {
+      final other = _order('ord-2305');
+      expect(
+        WorkerOrderPolicy.checkPickupQr(pickup, other.handoverQrPayload),
+        'This QR code is not for order #2306.',
+      );
+      expect(
+        WorkerOrderPolicy.checkPickupQr(pickup, 'https://example.com'),
+        'This QR code is not for order #2306.',
+      );
+      expect(WorkerOrderPolicy.checkPickupQr(pickup, ''), isNotNull);
+    });
+
+    test('a bag label is recognised and explained', () {
+      expect(
+        WorkerOrderPolicy.checkPickupQr(pickup, pickup.qrPayload),
+        "That is a bag label. Scan the QR code on the customer's phone.",
+      );
+    });
+  });
+
   group('delivery rules', () {
     test('verification waits until the order is ready', () {
       expect(

@@ -203,14 +203,20 @@ class WorkerOrdersRepository {
   // ---------------------------------------------------------------------
 
   /// Hands a ready pickup order to the customer. The screen checks the
-  /// customer first and passes how it was checked as [method].
+  /// customer first and passes how it was checked as [method]. For
+  /// [VerificationMethod.qr], [code] is the text scanned from the customer's
+  /// phone and must be that order's handover code.
   Future<void> completePickup(
     WorkerProfile worker,
     String orderId, {
     required VerificationMethod method,
+    String? code,
   }) {
     return _act(orderId, (order) {
       _allow(WorkerOrderPolicy.checkCompletePickup(worker, order));
+      if (method == VerificationMethod.qr) {
+        _allow(WorkerOrderPolicy.checkPickupQr(order, code ?? ''));
+      }
       final now = _clock();
       return order.copyWith(
         status: OrderStatus.completed,
