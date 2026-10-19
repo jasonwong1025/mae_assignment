@@ -6,6 +6,7 @@ import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/customer/orders/presentation/ui/order_actions.dart';
+import 'package:mae_assignment/features/customer/orders/presentation/ui/shortage_replies.dart';
 import 'package:mae_assignment/features/customer/orders/presentation/view_models/customer_orders_view_model.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
@@ -79,6 +80,10 @@ class _OrderBody extends StatelessWidget {
           const SizedBox(height: AppSpacing.l),
           _StatusTimeline(order: order),
           const SizedBox(height: AppSpacing.l),
+          if (ShortageReplies.isNeeded(order)) ...[
+            ShortageReplies(order: order),
+            const SizedBox(height: AppSpacing.l),
+          ],
           if (order.isPickup && order.status == OrderStatus.ready) ...[
             _PickupQrCard(order: order),
             const SizedBox(height: AppSpacing.l),
@@ -390,31 +395,92 @@ class _ItemsCard extends StatelessWidget {
             style: textTheme.titleMedium,
           ),
           const SizedBox(height: AppSpacing.s),
-          for (final item in order.items)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-              child: Row(
-                children: [
-                  Text('${item.quantity}×', style: textTheme.bodyMedium),
-                  const SizedBox(width: AppSpacing.s),
-                  Expanded(
-                    child: Text(
-                      item.brand.isEmpty
-                          ? item.name
-                          : '${item.name} — ${item.brand}',
-                      style: textTheme.bodyMedium,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+          for (final item in order.items) _ItemRows(order: order, item: item),
+        ],
+      ),
+    );
+  }
+}
+
+/// One ordered line. A line with a shortage shows what happened to it: the
+/// original is struck through, followed by the replacement if accepted.
+class _ItemRows extends StatelessWidget {
+  const _ItemRows({required this.order, required this.item});
+
+  final Order order;
+  final OrderItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final shortage = order.shortageOf(item.lineId);
+    final replacement = shortage?.status == ShortageStatus.accepted
+        ? shortage?.replacement
+        : null;
+    final struck =
+        shortage != null && shortage.status != ShortageStatus.proposed;
+    final note = switch (shortage?.status) {
+      ShortageStatus.proposed => 'Waiting for your reply',
+      ShortageStatus.accepted => 'Unavailable, replaced',
+      ShortageStatus.removed => 'Unavailable, removed',
+      null => null,
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _line(context, item, struck: struck, note: note),
+        if (replacement != null)
+          _line(context, replacement, note: 'Replacement', indent: true),
+      ],
+    );
+  }
+
+  Widget _line(
+    BuildContext context,
+    OrderItem item, {
+    bool struck = false,
+    String? note,
+    bool indent = false,
+  }) {
+    final textTheme = Theme.of(context).textTheme;
+    final style = textTheme.bodyMedium?.copyWith(
+      decoration: struck ? TextDecoration.lineThrough : null,
+      color: struck ? AppColors.textSecondary : null,
+    );
+    return Padding(
+      padding: EdgeInsets.only(
+        top: AppSpacing.xs,
+        bottom: AppSpacing.xs,
+        left: indent ? AppSpacing.l : 0,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('${item.quantity}×', style: style),
+          const SizedBox(width: AppSpacing.s),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.brand.isEmpty
+                      ? item.name
+                      : '${item.name} — ${item.brand}',
+                  style: style,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (note != null)
+                  Text(
+                    note,
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.s),
-                  Text(
-                    Formatters.money(item.lineTotal),
-                    style: textTheme.bodyMedium,
-                  ),
-                ],
-              ),
+              ],
             ),
+          ),
+          const SizedBox(width: AppSpacing.s),
+          Text(Formatters.money(item.lineTotal), style: style),
         ],
       ),
     );
@@ -456,10 +522,51 @@ class _TotalsCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total', style: textTheme.titleLarge),
-              Text(Formatters.money(order.total), style: textTheme.titleLarge),
+              Expanded(
+                child: Text(
+                  order.shortages.isEmpty ? 'Total' : 'Paid at checkout',
+                  style: order.shortages.isEmpty
+                      ? textTheme.titleLarge
+                      : textTheme.bodyLarge,
+                ),
+              ),
+              Text(
+                Formatters.money(order.total),
+                style: order.shortages.isEmpty
+                    ? textTheme.titleLarge
+                    : textTheme.bodyLarge,
+              ),
             ],
           ),
+          if (order.shortages.isNotEmpty) ...[
+            _row(
+              textTheme,
+              order.adjustment <= 0 ? 'Refund for changes' : 'Extra to pay',
+              Formatters.money(order.adjustment.abs()),
+              highlight: order.adjustment < 0,
+            ),
+            const Divider(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(child: Text('New total', style: textTheme.titleLarge)),
+                Text(
+                  Formatters.money(order.adjustedTotal),
+                  style: textTheme.titleLarge,
+                ),
+              ],
+            ),
+            if (order.hasOpenShortage)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xs),
+                child: Text(
+                  'Final once you reply to the items above.',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+          ],
         ],
       ),
     );
@@ -476,7 +583,7 @@ class _TotalsCard extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: textTheme.bodyLarge),
+          Expanded(child: Text(label, style: textTheme.bodyLarge)),
           Text(
             value,
             style: textTheme.bodyLarge?.copyWith(

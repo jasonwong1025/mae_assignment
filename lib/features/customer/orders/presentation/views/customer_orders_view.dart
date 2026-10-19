@@ -6,6 +6,7 @@ import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/customer/cart/presentation/view_models/cart_view_model.dart';
+import 'package:mae_assignment/features/customer/orders/presentation/ui/shortage_replies.dart';
 import 'package:mae_assignment/features/customer/orders/presentation/view_models/customer_orders_view_model.dart';
 import 'package:mae_assignment/features/customer/shell/customer_routes.dart';
 import 'package:mae_assignment/features/customer/shell/presentation/ui/customer_scaffold.dart';
@@ -105,9 +106,19 @@ class _OrderTile extends StatelessWidget {
             Text(
               '${order.isDelivery ? 'Delivery' : 'Pickup'} · '
               '${order.itemCount == 1 ? '1 item' : '${order.itemCount} items'}'
-              ' · ${Formatters.money(order.total)}',
+              ' · ${Formatters.money(order.adjustedTotal)}',
               style: textTheme.bodyMedium,
             ),
+            if (ShortageReplies.isNeeded(order)) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Needs your reply',
+                style: textTheme.labelLarge?.copyWith(
+                  color: AppColors.error,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
             if (order.placedAt != null) ...[
               const SizedBox(height: AppSpacing.xs),
               Text(

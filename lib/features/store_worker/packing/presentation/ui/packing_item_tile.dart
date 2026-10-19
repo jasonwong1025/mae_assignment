@@ -15,6 +15,10 @@ class PackingItemTile extends StatelessWidget {
     super.key,
     this.onTap,
     this.showCheckbox = true,
+    this.note,
+    this.noteColor,
+    this.faded = false,
+    this.onMarkUnavailable,
   });
 
   final OrderItem item;
@@ -30,12 +34,22 @@ class PackingItemTile extends StatelessWidget {
   /// everything is already packed and nothing can be ticked.
   final bool showCheckbox;
 
+  /// A line under the product, e.g. "Waiting for the customer".
+  final String? note;
+  final Color? noteColor;
+
+  /// Greyed out, for a line that is no longer part of the order.
+  final bool faded;
+
+  /// Shows an "Unavailable?" button under the product. Null hides it.
+  final VoidCallback? onMarkUnavailable;
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final enabled = onChanged != null;
 
-    return Card(
+    final tile = Card(
       elevation: 0,
       color: isPacked ? AppColors.greenTint : AppColors.surface,
       clipBehavior: Clip.antiAlias,
@@ -61,6 +75,28 @@ class PackingItemTile extends StatelessWidget {
                       '${item.brand} · ${item.packSize}',
                       style: textTheme.bodyMedium,
                     ),
+                    if (note != null) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        note!,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: noteColor,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                    if (onMarkUnavailable != null)
+                      TextButton.icon(
+                        onPressed: onMarkUnavailable,
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(48, 36),
+                          alignment: Alignment.centerLeft,
+                          foregroundColor: AppColors.error,
+                        ),
+                        icon: const Icon(Icons.report_gmailerrorred_rounded),
+                        label: const Text('Item unavailable?'),
+                      ),
                   ],
                 ),
               ),
@@ -84,6 +120,7 @@ class PackingItemTile extends StatelessWidget {
         ),
       ),
     );
+    return faded ? Opacity(opacity: 0.55, child: tile) : tile;
   }
 }
 

@@ -61,6 +61,28 @@ class OrderActionsViewModel extends Notifier<bool> {
     }
   }
 
+  /// Answers the replacement offered for [lineId] on [order]: accepts it, or
+  /// (if [accept] is false) removes the item. Returns an error message, or
+  /// null if it worked.
+  Future<String?> respondToShortage(
+    Order order,
+    String lineId, {
+    required bool accept,
+  }) async {
+    if (state) return null;
+    state = true;
+    try {
+      await ref
+          .read(orderRepositoryProvider)
+          .respondToShortage(order.id, lineId, accept: accept);
+      return null;
+    } on AppException catch (error) {
+      return error.message;
+    } finally {
+      if (ref.mounted) state = false;
+    }
+  }
+
   /// Replaces the cart with [order]'s products, priced and stocked as they
   /// are now at the order's store, and switches the customer to that store.
   ///
@@ -90,7 +112,7 @@ class OrderActionsViewModel extends Notifier<bool> {
 
       // One cart line per product, even if the order listed it twice.
       final wanted = <String, int>{};
-      for (final item in order.items) {
+      for (final item in order.effectiveItems) {
         wanted.update(
           item.productId,
           (quantity) => quantity + item.quantity,
@@ -103,7 +125,9 @@ class OrderActionsViewModel extends Notifier<bool> {
         final product = byId[entry.key];
         if (product == null || product.isOutOfStock) {
           unavailable.add(
-            order.items.firstWhere((item) => item.productId == entry.key).name,
+            order.effectiveItems
+                .firstWhere((item) => item.productId == entry.key)
+                .name,
           );
           continue;
         }

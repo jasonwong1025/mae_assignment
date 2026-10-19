@@ -69,6 +69,24 @@ class OrdersRepository {
     );
   }
 
+  /// Cancels an order that is not finished, for example one that has waited
+  /// too long for the customer to answer a replacement. Throws an
+  /// [OrdersException] if it was finished or cancelled in the meantime.
+  Future<void> cancelOrder(Order order) async {
+    final cancelled = await guard(
+      () => _orders.cancelOrderAsAdmin(order.id),
+      label: 'cancel order',
+      onError: () => const OrdersException(
+        'Could not cancel the order. Please try again.',
+      ),
+    );
+    if (!cancelled) {
+      throw const OrdersException(
+        'This order has already finished or been cancelled.',
+      );
+    }
+  }
+
   /// Gives [order] to [packer], who then sees it in My Tasks.
   Future<void> assignPacker(Order order, Worker packer) {
     return guard(

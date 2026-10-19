@@ -496,7 +496,7 @@ class _ItemsSection extends StatelessWidget {
         children: [
           // A plain read-only list: the checklist belongs to the packer,
           // and the driver only needs to know what is in the bag.
-          for (final (index, item) in order.items.indexed) ...[
+          for (final (index, item) in order.effectiveItems.indexed) ...[
             if (index > 0) const Divider(height: 1),
             _ItemRow(item: item),
           ],

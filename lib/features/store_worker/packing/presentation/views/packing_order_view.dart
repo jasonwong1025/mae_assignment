@@ -12,6 +12,7 @@ import 'package:mae_assignment/features/store_worker/packing/presentation/ui/bag
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_item_tile.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_review_sheet.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/product_details_sheet.dart';
+import 'package:mae_assignment/features/store_worker/packing/presentation/ui/replacement_sheet.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/view_models/packing_order_view_model.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_notice.dart';
@@ -80,6 +81,30 @@ class _PackingOrderViewState extends ConsumerState<PackingOrderView> {
     if (!mounted) return;
     setState(() => _savingTicks.remove(lineId));
     if (error != null) _showMessage(error);
+  }
+
+  /// Asks what to do about an unavailable item, then reports it.
+  Future<void> _flagUnavailable(OrderItem item) async {
+    final choice = await showReplacementSheet(
+      context,
+      item: item,
+      loadOptions: () => _viewModel.replacementOptions(item.lineId),
+    );
+    if (choice == null || !mounted) return;
+
+    setState(() => _isBusy = true);
+    final error = await _viewModel.flagUnavailable(
+      item.lineId,
+      replacement: choice.replacement,
+    );
+    if (!mounted) return;
+    setState(() => _isBusy = false);
+    _showMessage(
+      error ??
+          (choice.replacement == null
+              ? '${item.name} was removed from the order.'
+              : 'Replacement offered. Waiting for the customer to reply.'),
+    );
   }
 
   Future<void> _reviewAndMarkReady(Order order) async {
@@ -183,6 +208,7 @@ class _PackingOrderViewState extends ConsumerState<PackingOrderView> {
                   isBusy: _isBusy,
                   isSaving: _savingTicks.isNotEmpty,
                   onSetPacked: _setPacked,
+                  onFlagUnavailable: _flagUnavailable,
                   onStart: _startPacking,
                   onReview: () => _reviewAndMarkReady(shown),
                   // Back to wherever the order was opened from (My Tasks
@@ -207,6 +233,7 @@ class _PackingContent extends StatelessWidget {
     required this.isBusy,
     required this.isSaving,
     required this.onSetPacked,
+    required this.onFlagUnavailable,
     required this.onStart,
     required this.onReview,
     required this.onBack,
@@ -227,14 +254,30 @@ class _PackingContent extends StatelessWidget {
   // for a checklist toggle.
   // ignore: avoid_positional_boolean_parameters
   final void Function(String lineId, bool packed) onSetPacked;
+
+  /// Called with the original line when the packer reports it unavailable.
+  final void Function(OrderItem item) onFlagUnavailable;
   final VoidCallback onStart;
   final VoidCallback onReview;
   final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
-    final toPack = order.items.where((i) => !order.isPacked(i.lineId)).toList();
+    bool waiting(OrderItem i) =>
+        order.shortageOf(i.lineId)?.status == ShortageStatus.proposed;
+    final toPack = order.items
+        .where(
+          (i) =>
+              !order.isPacked(i.lineId) &&
+              !order.isRemoved(i.lineId) &&
+              !waiting(i),
+        )
+        .toList();
+    final waitingItems = order.items.where(waiting).toList();
     final packed = order.items.where((i) => order.isPacked(i.lineId)).toList();
+    final removed = order.items
+        .where((i) => order.isRemoved(i.lineId))
+        .toList();
     final counter = '${order.packedLineCount}/${order.lineCount}';
 
     // Null while the checklist cannot be ticked (before Start packing, or
@@ -244,13 +287,36 @@ class _PackingContent extends StatelessWidget {
       return (value) => onSetPacked(item.lineId, value);
     }
 
-    Widget tile(OrderItem item) {
+    Widget tile(OrderItem original) {
+      final shortage = order.shortageOf(original.lineId);
+      final accepted = shortage?.status == ShortageStatus.accepted
+          ? shortage?.replacement
+          : null;
+      // An accepted replacement is what gets packed.
+      final item = accepted ?? original;
+      final isRemoved = shortage?.status == ShortageStatus.removed;
+      final isWaiting = shortage?.status == ShortageStatus.proposed;
+      final note = switch (shortage?.status) {
+        ShortageStatus.accepted => 'Replacement for ${original.name}',
+        ShortageStatus.proposed =>
+          'Waiting for the customer. Offered: '
+              '${shortage?.replacement?.name ?? 'replacement'}',
+        ShortageStatus.removed => 'Removed from the order',
+        null => null,
+      };
       return Padding(
         padding: const EdgeInsets.only(bottom: AppSpacing.s),
         child: PackingItemTile(
           item: item,
           isPacked: order.isPacked(item.lineId),
-          onChanged: onChanged(item),
+          onChanged: isRemoved || isWaiting ? null : onChanged(item),
+          note: note,
+          noteColor: isRemoved ? AppColors.error : AppColors.darkGreen,
+          faded: isRemoved,
+          onMarkUnavailable:
+              canEdit && shortage == null && !order.isPacked(item.lineId)
+              ? () => onFlagUnavailable(original)
+              : null,
           // Only while the order can still be packed; packed, finished and
           // cancelled orders (e.g. from My history) show no checkboxes.
           showCheckbox:
@@ -260,7 +326,7 @@ class _PackingContent extends StatelessWidget {
             context,
             item: item,
             isPacked: order.isPacked(item.lineId),
-            onChanged: onChanged(item),
+            onChanged: isRemoved || isWaiting ? null : onChanged(item),
           ),
         ),
       );
@@ -284,9 +350,17 @@ class _PackingContent extends StatelessWidget {
                 _SectionTitle('To pack (${toPack.length})', trailing: counter),
                 for (final item in toPack) tile(item),
               ],
+              if (waitingItems.isNotEmpty) ...[
+                _SectionTitle('Waiting for customer (${waitingItems.length})'),
+                for (final item in waitingItems) tile(item),
+              ],
               if (packed.isNotEmpty) ...[
                 _SectionTitle('Packed (${packed.length})'),
                 for (final item in packed) tile(item),
+              ],
+              if (removed.isNotEmpty) ...[
+                _SectionTitle('Removed (${removed.length})'),
+                for (final item in removed) tile(item),
               ],
             ],
           ),
@@ -544,15 +618,23 @@ class _ActionBar extends StatelessWidget {
 
     if (order.status == OrderStatus.packing) {
       final left = order.lineCount - order.packedLineCount;
-      final canReview = left == 0 && !isSaving && !isBusy;
+      final waiting = order.hasOpenShortage;
+      final canReview =
+          left == 0 && order.lineCount > 0 && !waiting && !isSaving && !isBusy;
       return BottomActionBar(
         children: [
           FilledButton.icon(
             onPressed: canReview ? onReview : null,
             icon: isBusy
                 ? const ButtonLoadingIndicator()
-                : const Icon(Icons.fact_check_outlined),
-            label: const Text('Review & mark ready'),
+                : Icon(
+                    waiting
+                        ? Icons.hourglass_top_rounded
+                        : Icons.fact_check_outlined,
+                  ),
+            label: Text(
+              waiting ? 'Waiting for the customer' : 'Review & mark ready',
+            ),
           ),
         ],
       );

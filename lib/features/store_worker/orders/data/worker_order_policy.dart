@@ -138,6 +138,34 @@ class WorkerOrderPolicy {
       return 'This order is no longer being packed.';
     }
     if (!order.hasLine(lineId)) return 'This item is not part of the order.';
+    if (order.isRemoved(lineId)) return 'This item was removed from the order.';
+    if (order.shortageOf(lineId)?.status == ShortageStatus.proposed) {
+      return 'Waiting for the customer to reply about this item.';
+    }
+    return null;
+  }
+
+  /// Reporting [lineId] unavailable, with or without a replacement.
+  static String? checkFlagUnavailable(
+    WorkerProfile worker,
+    Order order,
+    String lineId,
+  ) {
+    final error = _packerCheck(worker, order);
+    if (error != null) return error;
+    if (order.status == OrderStatus.pending) {
+      return 'Start packing before reporting an item unavailable.';
+    }
+    if (order.status != OrderStatus.packing) {
+      return 'This order is no longer being packed.';
+    }
+    if (!order.hasLine(lineId)) return 'This item is not part of the order.';
+    if (order.shortageOf(lineId) != null) {
+      return 'This item has already been reported unavailable.';
+    }
+    if (order.isPacked(lineId)) {
+      return 'Untick this item before reporting it unavailable.';
+    }
     return null;
   }
 
@@ -149,6 +177,15 @@ class WorkerOrderPolicy {
     }
     if (order.status != OrderStatus.packing) {
       return 'This order has already been marked ready.';
+    }
+    final open = order.openShortageCount;
+    if (open > 0) {
+      return open == 1
+          ? 'Waiting for the customer to reply about 1 unavailable item.'
+          : 'Waiting for the customer to reply about $open unavailable items.';
+    }
+    if (order.lineCount == 0) {
+      return 'Every item was removed. Ask HQ to cancel this order.';
     }
     final left = order.lineCount - order.packedLineCount;
     if (left > 0) {

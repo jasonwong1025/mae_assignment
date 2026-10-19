@@ -6,6 +6,7 @@ import 'package:mae_assignment/features/store_admin/orders/presentation/view_mod
 import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
+import 'package:mae_assignment/shared/ui/confirm_sheet.dart';
 import 'package:mae_assignment/shared/ui/order_status_label.dart';
 
 /// Everything about one order: customer, delivery, items, payment and
@@ -122,15 +123,37 @@ class _OrderDetails extends ConsumerWidget {
             text: 'Note: ${order.customerNote}',
           ),
 
+        if (order.hasOpenShortage) ...[
+          const _SectionTitle('Awaiting customer'),
+          _AwaitingCustomer(order: order),
+        ],
+
         const _SectionTitle('Items'),
-        for (final item in order.items) _ItemRow(item: item),
+        for (final item in order.items) ..._itemRows(order, item),
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
           child: Divider(),
         ),
         _AmountRow(label: 'Subtotal', amount: order.subtotal),
         _AmountRow(label: 'Delivery fee', amount: order.deliveryFee),
-        _AmountRow(label: 'Total', amount: order.total, isBold: true),
+        _AmountRow(
+          label: order.shortages.isEmpty ? 'Total' : 'Paid at checkout',
+          amount: order.total,
+          isBold: order.shortages.isEmpty,
+        ),
+        if (order.shortages.isNotEmpty) ...[
+          _AmountRow(
+            label: order.adjustment <= 0
+                ? 'Refund for unavailable items'
+                : 'Extra for replacements',
+            amount: order.adjustment.abs(),
+          ),
+          _AmountRow(
+            label: 'Adjusted total',
+            amount: order.adjustedTotal,
+            isBold: true,
+          ),
+        ],
 
         const _SectionTitle('Payment'),
         // Every order is paid from the wallet at checkout.
@@ -141,6 +164,91 @@ class _OrderDetails extends ConsumerWidget {
 
         const _SectionTitle('Timeline'),
         for (final event in order.timeline) _TimelineRow(event: event),
+      ],
+    );
+  }
+}
+
+/// The rows for one ordered line. A line with a shortage is struck through,
+/// followed by its replacement if the customer accepted one.
+List<Widget> _itemRows(Order order, OrderItem item) {
+  final shortage = order.shortageOf(item.lineId);
+  final replacement = shortage?.status == ShortageStatus.accepted
+      ? shortage?.replacement
+      : null;
+  final note = switch (shortage?.status) {
+    ShortageStatus.proposed => 'Unavailable, waiting for the customer',
+    ShortageStatus.accepted => 'Unavailable, replaced',
+    ShortageStatus.removed => 'Unavailable, removed',
+    null => null,
+  };
+  return [
+    _ItemRow(
+      item: item,
+      struck: shortage != null && shortage.status != ShortageStatus.proposed,
+      note: note,
+    ),
+    if (replacement != null) _ItemRow(item: replacement, note: 'Replacement'),
+    if (shortage?.status == ShortageStatus.proposed &&
+        shortage?.replacement != null)
+      _ItemRow(
+        item: shortage!.replacement!,
+        note: 'Offered, not yet accepted',
+        muted: true,
+      ),
+  ];
+}
+
+/// Tells the admin the order is stuck on the customer, with a way out.
+class _AwaitingCustomer extends ConsumerWidget {
+  const _AwaitingCustomer({required this.order});
+
+  final Order order;
+
+  Future<void> _cancel(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showConfirmSheet(
+      context,
+      icon: Icons.cancel_outlined,
+      title: 'Cancel order #${order.number}?',
+      message:
+          'The customer has not replied about an unavailable item. '
+          'Cancelling cannot be undone.',
+      confirmLabel: 'Cancel order',
+      cancelLabel: 'Keep order',
+    );
+    if (!confirmed || !context.mounted) return;
+    final error = await ref
+        .read(ordersViewModelProvider.notifier)
+        .cancelOrder(order);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(error ?? 'Order #${order.number} cancelled.')),
+      );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = order.openShortageCount;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _InfoRow(
+          icon: Icons.hourglass_top_rounded,
+          text:
+              'Packing is paused until the customer replies about '
+              '${count == 1 ? '1 item' : '$count items'}.',
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            key: const Key('cancel_waiting_order_button'),
+            onPressed: () => _cancel(context, ref),
+            icon: const Icon(Icons.cancel_outlined),
+            label: const Text('Cancel order'),
+          ),
+        ),
       ],
     );
   }
@@ -298,13 +406,27 @@ class _InfoRow extends StatelessWidget {
 
 /// "2 x Fresh milk 1L ... RM 15.80".
 class _ItemRow extends StatelessWidget {
-  const _ItemRow({required this.item});
+  const _ItemRow({
+    required this.item,
+    this.struck = false,
+    this.note,
+    this.muted = false,
+  });
 
   final OrderItem item;
+
+  /// Crossed out: the line is unavailable.
+  final bool struck;
+  final String? note;
+
+  /// Lighter, for an offer that is not part of the order yet.
+  final bool muted;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final color = struck || muted ? AppColors.textSecondary : null;
+    final decoration = struck ? TextDecoration.lineThrough : null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
@@ -313,11 +435,37 @@ class _ItemRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 36,
-            child: Text('${item.quantity} x', style: textTheme.bodyMedium),
+            child: Text(
+              '${item.quantity} x',
+              style: textTheme.bodyMedium?.copyWith(
+                color: color,
+                decoration: decoration,
+              ),
+            ),
           ),
-          Expanded(child: Text(item.name, style: textTheme.bodyLarge)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: textTheme.bodyLarge?.copyWith(
+                    color: color,
+                    decoration: decoration,
+                  ),
+                ),
+                if (note != null) Text(note!, style: textTheme.bodySmall),
+              ],
+            ),
+          ),
           const SizedBox(width: 12),
-          Text(Formatters.money(item.lineTotal), style: textTheme.bodyMedium),
+          Text(
+            Formatters.money(item.lineTotal),
+            style: textTheme.bodyMedium?.copyWith(
+              color: color,
+              decoration: decoration,
+            ),
+          ),
         ],
       ),
     );

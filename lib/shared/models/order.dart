@@ -80,6 +80,72 @@ abstract class OrderItem with _$OrderItem {
   }
 }
 
+/// Where a shortage stands.
+enum ShortageStatus {
+  /// The packer offered a replacement; waiting for the customer.
+  proposed,
+
+  /// The customer took the replacement.
+  accepted,
+
+  /// The line is gone: no replacement existed, or the customer declined it.
+  removed,
+}
+
+/// An item a packer found unavailable while packing, and how it was settled.
+/// Stored in `Order.shortages` under the line's id.
+@freezed
+abstract class LineShortage with _$LineShortage {
+  const factory LineShortage({
+    required ShortageStatus status,
+
+    /// The offered replacement, shaped like an order line with the same
+    /// `lineId` as the unavailable one. Null when there is none.
+    OrderItem? replacement,
+
+    /// Null until Firestore has saved the server time.
+    DateTime? flaggedAt,
+
+    /// When the customer decided. Null while [ShortageStatus.proposed].
+    DateTime? decidedAt,
+  }) = _LineShortage;
+
+  const LineShortage._();
+
+  /// Reads one entry of orders/{id}.shortages. An unknown status reads as
+  /// proposed, not removed: guessing "removed" would change what the
+  /// customer pays, while "proposed" changes nothing until someone decides.
+  factory LineShortage.fromMap(Map<String, dynamic> map) {
+    final replacement = map[ShortageFields.replacement];
+    return LineShortage(
+      status: map.enumValue(
+        ShortageFields.status,
+        ShortageStatus.values,
+        fallback: ShortageStatus.proposed,
+      ),
+      replacement: replacement is Map
+          ? OrderItem.fromMap(Map<String, dynamic>.from(replacement))
+          : null,
+      flaggedAt: map.dateTime(ShortageFields.flaggedAt),
+      decidedAt: map.dateTime(ShortageFields.decidedAt),
+    );
+  }
+
+  /// Fields for one entry of orders/{id}.shortages. Unset values are left
+  /// out.
+  Map<String, dynamic> toMap() {
+    return {
+      ShortageFields.status: status.name,
+      if (replacement case final item?)
+        ShortageFields.replacement: item.toMap(),
+      if (flaggedAt case final time?)
+        ShortageFields.flaggedAt: toTimestamp(time),
+      if (decidedAt case final time?)
+        ShortageFields.decidedAt: toTimestamp(time),
+    };
+  }
+}
+
 /// One step in an order's history, e.g. "Packing started" by Daniel.
 @freezed
 abstract class OrderEvent with _$OrderEvent {
@@ -189,6 +255,9 @@ abstract class Order with _$Order {
 
     /// When the order was completed, by pickup or by delivery.
     DateTime? completedAt,
+
+    /// Items a packer found unavailable, by line id. See [LineShortage].
+    @Default(<String, LineShortage>{}) Map<String, LineShortage> shortages,
   }) = _Order;
 
   const Order._();
@@ -255,15 +324,19 @@ abstract class Order with _$Order {
       deliveredByName: data.stringOrNull(OrderFields.deliveredByName),
       proofPhotoUrl: data.stringOrNull(OrderFields.proofPhotoUrl),
       completedAt: data.dateTime(OrderFields.completedAt),
+      shortages: {
+        for (final entry in data.mapOfMaps(OrderFields.shortages).entries)
+          entry.key: LineShortage.fromMap(entry.value),
+      },
     );
   }
 
   bool get isPickup => !isDelivery;
 
-  /// Number of products, counting quantities.
+  /// Number of products, counting quantities, after any shortages.
   int get itemCount {
     var count = 0;
-    for (final item in items) {
+    for (final item in effectiveItems) {
       count += item.quantity;
     }
     return count;
@@ -287,22 +360,93 @@ abstract class Order with _$Order {
 
   // Packing checklist.
 
-  bool isPacked(String lineId) => packedLineIds.contains(lineId);
-
-  /// Order lines packed so far and in total. Worked out from the checklist.
-  int get packedLineCount {
-    return items.where((item) => packedLineIds.contains(item.lineId)).length;
+  /// True if [lineId] is ticked. A removed line is never ticked: it is not
+  /// packed at all.
+  bool isPacked(String lineId) {
+    return !isRemoved(lineId) && packedLineIds.contains(lineId);
   }
 
-  int get lineCount => items.length;
+  /// Order lines packed so far. Worked out from the checklist.
+  int get packedLineCount {
+    return items.where((item) => isPacked(item.lineId)).length;
+  }
 
-  /// True once every line is ticked.
-  bool get isFullyPacked => packedLineCount == lineCount;
+  /// Lines that still have to be packed: every line except removed ones.
+  int get lineCount => items.length - removedLineIds.length;
+
+  /// True once every remaining line is ticked and no replacement is waiting
+  /// for the customer.
+  bool get isFullyPacked => packedLineCount == lineCount && !hasOpenShortage;
 
   /// From 0 to 1, for progress bars.
   double get packingProgress {
     return lineCount == 0 ? 0 : packedLineCount / lineCount;
   }
+
+  // Shortages.
+
+  /// The shortage on [lineId], or null if the line is fine.
+  LineShortage? shortageOf(String lineId) => shortages[lineId];
+
+  /// True if the line was taken out of the order.
+  bool isRemoved(String lineId) {
+    return shortages[lineId]?.status == ShortageStatus.removed;
+  }
+
+  /// Ids of the lines taken out of the order, in order-line order.
+  Set<String> get removedLineIds {
+    return {
+      for (final item in items)
+        if (isRemoved(item.lineId)) item.lineId,
+    };
+  }
+
+  /// Shortages waiting for the customer's decision.
+  int get openShortageCount {
+    return shortages.values
+        .where((shortage) => shortage.status == ShortageStatus.proposed)
+        .length;
+  }
+
+  bool get hasOpenShortage => openShortageCount > 0;
+
+  /// What the order holds now: removed lines are gone and accepted
+  /// replacements stand in for the line they replace. A replacement still
+  /// waiting for the customer changes nothing yet.
+  List<OrderItem> get effectiveItems {
+    return [
+      for (final item in items)
+        if (shortages[item.lineId] case final shortage?)
+          if (shortage.status == ShortageStatus.accepted &&
+              shortage.replacement != null)
+            shortage.replacement!
+          else if (shortage.status == ShortageStatus.proposed)
+            item
+          else
+            ...const <OrderItem>[]
+        else
+          item,
+    ];
+  }
+
+  /// Price of the lines in [effectiveItems], before the fee and discount.
+  double get adjustedSubtotal {
+    return effectiveItems.fold(0, (sum, item) => sum + item.lineTotal);
+  }
+
+  /// What the customer pays after shortages. Without any it is [total]
+  /// exactly. The promo discount never exceeds the new subtotal.
+  double get adjustedTotal {
+    if (shortages.isEmpty) return total;
+    final subtotal = adjustedSubtotal;
+    final reduction = discount > subtotal ? subtotal : discount;
+    final value = subtotal + deliveryFee - reduction;
+    return value < 0 ? 0 : value;
+  }
+
+  /// How much [adjustedTotal] differs from what was paid: negative is a
+  /// refund, positive is extra to pay for a dearer replacement.
+  double get adjustment => adjustedTotal - total;
 
   /// True if the order has a line with this id.
   bool hasLine(String lineId) => items.any((item) => item.lineId == lineId);
@@ -378,6 +522,21 @@ abstract class Order with _$Order {
       completedAt,
       isDelivery ? (deliveredByName ?? driverName) : pickupCompletedByName,
     );
+    for (final item in items) {
+      final shortage = shortages[item.lineId];
+      if (shortage == null) continue;
+      add('${item.name} unavailable', shortage.flaggedAt, packer);
+      final decidedAt = shortage.decidedAt;
+      if (decidedAt != null) {
+        add(
+          shortage.status == ShortageStatus.accepted
+              ? 'Replacement for ${item.name} accepted'
+              : '${item.name} removed',
+          decidedAt,
+          null,
+        );
+      }
+    }
     if (status == OrderStatus.cancelled) {
       add('Cancelled', statusSince, null);
     }
@@ -463,6 +622,10 @@ abstract class Order with _$Order {
         OrderFields.addressLocation: toGeoPoint(location),
       if (packedLineIds.isNotEmpty)
         OrderFields.packedLineIds: packedLineIds.toList()..sort(),
+      if (shortages.isNotEmpty)
+        OrderFields.shortages: {
+          for (final entry in shortages.entries) entry.key: entry.value.toMap(),
+        },
       for (final entry in texts.entries)
         if (has(entry.value)) entry.key: entry.value,
       for (final entry in timestamps.entries)

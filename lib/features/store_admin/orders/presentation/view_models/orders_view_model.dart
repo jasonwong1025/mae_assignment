@@ -29,6 +29,16 @@ class OrdersViewModel extends StreamNotifier<List<Order>> {
     yield* repository.watchBoardOrders(branchState.selected.id);
   }
 
+  /// Cancels [order]. Returns an error message, or null if it worked.
+  Future<String?> cancelOrder(Order order) async {
+    try {
+      await ref.read(ordersRepositoryProvider).cancelOrder(order);
+    } on OrdersException catch (error) {
+      return error.message;
+    }
+    return null;
+  }
+
   /// Gives [order] to [packer]. Returns an error message, or null if it
   /// worked.
   Future<String?> assignPacker(Order order, Worker packer) async {

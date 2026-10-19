@@ -76,7 +76,7 @@ class DashboardRepository {
           ordersYesterday: yesterdays,
           ordersByHour: _ordersByHour(todays, openingHour, clock),
           revenue: todays
-              .fold<double>(0, (sum, order) => sum + order.total)
+              .fold<double>(0, (sum, order) => sum + order.adjustedTotal)
               .round(),
           driversOnRoad: onRoad.length,
           totalDrivers: workers

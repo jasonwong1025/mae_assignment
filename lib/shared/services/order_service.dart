@@ -89,6 +89,120 @@ class OrderService {
         .timeout(FirestoreConfig.readTimeout);
   }
 
+  /// The packer reports line [lineId] unavailable, and returns whether the
+  /// flag was saved.
+  ///
+  /// With a [replacement] the shortage is `proposed` and waits for the
+  /// customer; without one the line is `removed` at once. Nothing is saved
+  /// (false) if the order is not being packed, the line does not exist, is
+  /// already ticked or already flagged. Checked in the transaction, so two
+  /// devices cannot flag the same line twice.
+  ///
+  /// Only the one line's entry is written (a dotted field path), together
+  /// with `shortageLineId` and, for a proposal, `openShortages` + 1, which
+  /// is what `firestore.rules` checks. Totals never change here: the
+  /// adjusted total is worked out from the shortages when read.
+  Future<bool> flagShortage(
+    String orderId,
+    String lineId, {
+    OrderItem? replacement,
+  }) {
+    final document = _refs.order(orderId);
+    return _firestore
+        .runTransaction((transaction) async {
+          final snapshot = await transaction.get(document);
+          final order = snapshot.toModel(fromFirestore: Order.fromFirestore);
+          if (order == null ||
+              order.status != OrderStatus.packing ||
+              !order.items.any((item) => item.lineId == lineId) ||
+              order.packedLineIds.contains(lineId) ||
+              order.shortageOf(lineId) != null) {
+            return false;
+          }
+          final proposed = replacement != null;
+          transaction.update(document, {
+            FieldPath([OrderFields.shortages, lineId]): {
+              ShortageFields.status: proposed
+                  ? ShortageStatus.proposed.name
+                  : ShortageStatus.removed.name,
+              if (replacement != null)
+                ShortageFields.replacement: replacement
+                    .copyWith(lineId: lineId)
+                    .toMap(),
+              ShortageFields.flaggedAt: FieldValue.serverTimestamp(),
+            },
+            OrderFields.shortageLineId: lineId,
+            if (proposed)
+              OrderFields.openShortages: order.openShortageCount + 1,
+          });
+          return true;
+        })
+        .timeout(FirestoreConfig.readTimeout);
+  }
+
+  /// The customer answers the replacement offered for [lineId]: accepts it,
+  /// or declines, which removes the line. Returns whether it was saved
+  /// (false if there is no open proposal for the line any more).
+  Future<bool> respondToShortage(
+    String orderId,
+    String lineId, {
+    required bool accept,
+  }) {
+    final document = _refs.order(orderId);
+    return _firestore
+        .runTransaction((transaction) async {
+          final snapshot = await transaction.get(document);
+          final order = snapshot.toModel(fromFirestore: Order.fromFirestore);
+          final shortage = order?.shortageOf(lineId);
+          if (order == null ||
+              order.status != OrderStatus.packing ||
+              shortage == null ||
+              shortage.status != ShortageStatus.proposed) {
+            return false;
+          }
+          // Re-send the fields the rules require to stay as they were.
+          final stored = snapshot.data()?[OrderFields.shortages];
+          final entry = stored is Map ? stored[lineId] : null;
+          if (entry is! Map) return false;
+          transaction.update(document, {
+            FieldPath([OrderFields.shortages, lineId]): {
+              ...Map<String, dynamic>.from(entry),
+              ShortageFields.status: accept
+                  ? ShortageStatus.accepted.name
+                  : ShortageStatus.removed.name,
+              ShortageFields.decidedAt: FieldValue.serverTimestamp(),
+            },
+            OrderFields.shortageLineId: lineId,
+            OrderFields.openShortages: order.openShortageCount - 1,
+          });
+          return true;
+        })
+        .timeout(FirestoreConfig.readTimeout);
+  }
+
+  /// Store Admin cancels an order that is not finished yet (typically one
+  /// waiting too long for the customer's answer), and returns whether it
+  /// did.
+  Future<bool> cancelOrderAsAdmin(String id) {
+    final document = _refs.order(id);
+    return _firestore
+        .runTransaction((transaction) async {
+          final snapshot = await transaction.get(document);
+          final status = snapshot.data()?[OrderFields.status];
+          if (!snapshot.exists ||
+              status == OrderStatus.completed.name ||
+              status == OrderStatus.cancelled.name) {
+            return false;
+          }
+          transaction.update(document, {
+            OrderFields.status: OrderStatus.cancelled.name,
+            OrderFields.statusSince: FieldValue.serverTimestamp(),
+          });
+          return true;
+        })
+        .timeout(FirestoreConfig.readTimeout);
+  }
+
   /// One order by id, or null if it does not exist.
   Future<Order?> getOrder(String id) async {
     final doc = await _refs

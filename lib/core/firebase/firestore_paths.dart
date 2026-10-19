@@ -297,6 +297,22 @@ class OrderFields {
   static const String proofPhotoUrl = 'proofPhotoUrl';
   static const String completedAt = 'completedAt';
 
+  // Shortages: items a packer found unavailable, and what the customer
+  // decided. See [ShortageFields] and `Order.shortages`.
+
+  /// Map of line id to the shortage on that line (one entry per line).
+  static const String shortages = 'shortages';
+
+  /// The line id the current write is about. A write changes exactly one
+  /// entry of [shortages], and `firestore.rules` reads this field to know
+  /// which one to check. Readers ignore it.
+  static const String shortageLineId = 'shortageLineId';
+
+  /// Number of shortages waiting for the customer's decision. Kept next to
+  /// [shortages] only so `firestore.rules` can see it (rules cannot count
+  /// the entries of a map); the app works the count out from [shortages].
+  static const String openShortages = 'openShortages';
+
   /// Times that Store Worker and Store Admin workflow actions record. They
   /// are always saved as the server time (`FieldValue.serverTimestamp()`),
   /// never the phone's clock, and `firestore.rules` requires that.
@@ -361,6 +377,26 @@ class OrderFields {
     proofPhotoUrl,
     completedAt,
   ];
+}
+
+/// Field keys in one entry of orders/{orderId}.shortages.
+class ShortageFields {
+  ShortageFields._();
+
+  /// `proposed` (waiting for the customer), `accepted` (replacement taken) or
+  /// `removed` (no replacement, or the customer declined it).
+  static const String status = 'status';
+
+  /// The offered replacement, shaped like an order line (see
+  /// [OrderItemFields]) with the same `lineId` as the unavailable one.
+  /// Absent when there is no replacement.
+  static const String replacement = 'replacement';
+
+  /// Server time the packer flagged the line.
+  static const String flaggedAt = 'flaggedAt';
+
+  /// Server time the customer decided. Absent while `proposed`.
+  static const String decidedAt = 'decidedAt';
 }
 
 /// Field keys for one entry in the orders/{orderId}.items array.

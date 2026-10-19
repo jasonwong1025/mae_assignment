@@ -29,7 +29,7 @@ abstract class Sale with _$Sale {
       isDelivery: order.isDelivery,
       deliveryFee: order.deliveryFee,
       items: [
-        for (final item in order.items)
+        for (final item in order.effectiveItems)
           SaleItem(
             productId: item.productId,
             productName: item.name,

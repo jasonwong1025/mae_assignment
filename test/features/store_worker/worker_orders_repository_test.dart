@@ -11,6 +11,7 @@ import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/models/verification_method.dart';
 
 import '../../helpers/worker_profiles.dart';
+import '../../helpers/worker_test_orders.dart';
 import '../../helpers/worker_test_store.dart';
 
 WorkerProfile _worker(String name) {
@@ -36,6 +37,12 @@ Future<WorkerOrdersRepository> _repository({
     delay: delay,
   );
   return store.repository;
+}
+
+double _orderTotal(String id) {
+  return workerTestOrders(
+    DateTime(2026, 10, 15, 12),
+  ).firstWhere((order) => order.id == id).total;
 }
 
 List<String> _ids(List<Order> orders) {
@@ -211,6 +218,92 @@ void main() {
 
       final order = await repository.watchOrder(_daniel, 'ord-2302').first;
       expect(order!.packedLineIds, {'L1', 'L2'});
+    });
+
+    test('a line reported with a replacement waits for the customer', () async {
+      final store = await WorkerTestStore.create(
+        clock: () => DateTime(2026, 10, 15, 12),
+      );
+      const replacement = OrderItem(
+        lineId: 'x',
+        productId: 'p9',
+        name: 'Other milk',
+        brand: 'Brand',
+        packSize: '1L',
+        quantity: 1,
+        unitPrice: 6,
+      );
+
+      await store.repository.flagUnavailable(
+        _daniel,
+        'ord-2302',
+        'L3',
+        replacement: replacement,
+      );
+
+      final order = (await store.read('ord-2302'))!;
+      expect(order.shortageOf('L3')!.status, ShortageStatus.proposed);
+      expect(order.shortageOf('L3')!.replacement!.lineId, 'L3');
+      expect(order.hasOpenShortage, isTrue);
+      expect(
+        store.repository.markReady(_daniel, 'ord-2302'),
+        _throwsMessage(
+          'Waiting for the customer to reply about 1 unavailable item.',
+        ),
+      );
+    });
+
+    test('a line reported with no replacement is removed', () async {
+      final store = await WorkerTestStore.create(
+        clock: () => DateTime(2026, 10, 15, 12),
+      );
+
+      await store.repository.flagUnavailable(_daniel, 'ord-2302', 'L3');
+
+      final order = (await store.read('ord-2302'))!;
+      expect(order.isRemoved('L3'), isTrue);
+      expect(order.hasOpenShortage, isFalse);
+      expect(order.total, _orderTotal('ord-2302'));
+      expect(order.adjustedTotal, lessThan(order.total));
+    });
+
+    test('ready counts removed lines in the checklist', () async {
+      final store = await WorkerTestStore.create(
+        clock: () => DateTime(2026, 10, 15, 12),
+      );
+      await store.repository.flagUnavailable(_daniel, 'ord-2302', 'L3');
+      for (final line in ['L4', 'L5']) {
+        await store.repository.setItemPacked(
+          _daniel,
+          'ord-2302',
+          line,
+          packed: true,
+        );
+      }
+
+      await store.repository.markReady(_daniel, 'ord-2302');
+
+      final order = (await store.read('ord-2302'))!;
+      expect(order.status, OrderStatus.ready);
+      // Every line is accounted for, as firestore.rules requires.
+      expect(order.packedLineIds, {'L1', 'L2', 'L3', 'L4', 'L5'});
+      expect(order.isPacked('L3'), isFalse);
+    });
+
+    test('reporting is refused for a ticked line or another packer', () async {
+      final repository = await _repository();
+      expect(
+        repository.flagUnavailable(_daniel, 'ord-2302', 'L1'),
+        _throwsMessage('Untick this item before reporting it unavailable.'),
+      );
+      expect(
+        repository.flagUnavailable(_hakim, 'ord-2302', 'L3'),
+        _throwsWorkerOrderException,
+      );
+      expect(
+        repository.flagUnavailable(_daniel, 'missing', 'L3'),
+        _throwsMessage('This order no longer exists.'),
+      );
     });
 
     test('an unknown order is reported clearly', () async {

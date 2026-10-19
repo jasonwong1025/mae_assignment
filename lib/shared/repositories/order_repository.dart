@@ -121,6 +121,30 @@ class OrderRepository {
     }, label: 'cancelOrder (orders/$orderId)');
   }
 
+  /// Answers the replacement offered for [lineId]: [accept] takes it,
+  /// otherwise the line is removed from the order. Throws an
+  /// [OrderException] if it has been answered already or the order changed
+  /// (for example Store Admin cancelled it).
+  Future<void> respondToShortage(
+    String orderId,
+    String lineId, {
+    required bool accept,
+  }) {
+    return _run(() async {
+      final saved = await _service.respondToShortage(
+        orderId,
+        lineId,
+        accept: accept,
+      );
+      if (!saved) {
+        throw const OrderException(
+          'This item can no longer be changed. The order may have been '
+          'updated or cancelled.',
+        );
+      }
+    }, label: 'respondToShortage (orders/$orderId)');
+  }
+
   /// One order by id, or null if it does not exist.
   Future<Order?> getOrder(String id) => _run(() => _service.getOrder(id));
 

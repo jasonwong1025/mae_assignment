@@ -740,6 +740,344 @@ describe("customers", () => {
   });
 });
 
+describe("shortages", () => {
+  const replacement = (overrides = {}) => ({
+    lineId: "L2",
+    productId: "p9",
+    name: "Other milk",
+    quantity: 1,
+    unitPrice: 6,
+    ...overrides,
+  });
+  const propose = (overrides = {}) => ({
+    "shortages.L2": {
+      status: "proposed",
+      replacement: replacement(),
+      flaggedAt: serverTimestamp(),
+    },
+    shortageLineId: "L2",
+    openShortages: 1,
+    ...overrides,
+  });
+  const removeLine = (overrides = {}) => ({
+    "shortages.L2": { status: "removed", flaggedAt: serverTimestamp() },
+    shortageLineId: "L2",
+    ...overrides,
+  });
+  const ready = {
+    status: "ready",
+    statusSince: serverTimestamp(),
+    readyAt: serverTimestamp(),
+    readyBy: PACKER.uid,
+  };
+  const at = new Date(2026, 0, 1);
+  const proposed = {
+    status: "proposed",
+    replacement: replacement(),
+    flaggedAt: at,
+  };
+  const decide = (status, overrides = {}) => ({
+    "shortages.L2": { ...proposed, status, decidedAt: serverTimestamp() },
+    shortageLineId: "L2",
+    openShortages: 0,
+    ...overrides,
+  });
+
+  beforeEach(async () => {
+    await seed(testEnv, async (db) => {
+      await setDoc(
+        doc(db, "orders", "o-waiting"),
+        stored({
+          packerId: PACKER.uid,
+          packerName: "Packer",
+          status: "packing",
+          packedLineIds: ["L1"],
+          shortages: { L2: proposed },
+          openShortages: 1,
+        })
+      );
+    });
+  });
+
+  describe("flagging", () => {
+    test("the packer proposes a replacement", async () => {
+      await assertSucceeds(
+        updateDoc(order(as(PACKER), "o-packing"), propose())
+      );
+    });
+
+    test("the packer removes a line with no replacement", async () => {
+      await assertSucceeds(
+        updateDoc(order(as(PACKER), "o-packing"), removeLine())
+      );
+    });
+
+    test("only the assigned, active packer can flag", async () => {
+      await assertFails(updateDoc(order(as(PACKER2), "o-packing"), propose()));
+      await assertFails(updateDoc(order(as(PACKER_BJ), "o-packing"), propose()));
+      await assertFails(updateDoc(order(as(DRIVER), "o-packing"), propose()));
+      await assertFails(updateDoc(order(as(ALICE), "o-packing"), propose()));
+    });
+
+    test("only while packing", async () => {
+      await assertFails(updateDoc(order(as(PACKER), "o-pending"), propose()));
+    });
+
+    test("a ticked line cannot be flagged", async () => {
+      await assertFails(
+        updateDoc(order(as(PACKER), "o-packing"), {
+          "shortages.L1": {
+            status: "removed",
+            flaggedAt: serverTimestamp(),
+          },
+          shortageLineId: "L1",
+        })
+      );
+    });
+
+    test("a line cannot be flagged twice", async () => {
+      await assertFails(updateDoc(order(as(PACKER), "o-waiting"), removeLine()));
+    });
+
+    test("the flag time must be the server time", async () => {
+      await assertFails(
+        updateDoc(
+          order(as(PACKER), "o-packing"),
+          propose({
+            "shortages.L2": { ...proposed, flaggedAt: new Date(2020, 0, 1) },
+          })
+        )
+      );
+    });
+
+    test("a proposal must be counted as open", async () => {
+      await assertFails(
+        updateDoc(
+          order(as(PACKER), "o-packing"),
+          propose({ openShortages: 0 })
+        )
+      );
+      await assertFails(
+        updateDoc(
+          order(as(PACKER), "o-packing"),
+          propose({ openShortages: 5 })
+        )
+      );
+    });
+
+    test("a replacement must be shaped like an item for that line", async () => {
+      const flag = (r) =>
+        propose({
+          "shortages.L2": {
+            status: "proposed",
+            replacement: r,
+            flaggedAt: serverTimestamp(),
+          },
+        });
+      await assertFails(
+        updateDoc(
+          order(as(PACKER), "o-packing"),
+          flag(replacement({ lineId: "L1" }))
+        )
+      );
+      await assertFails(
+        updateDoc(
+          order(as(PACKER), "o-packing"),
+          flag(replacement({ quantity: "1" }))
+        )
+      );
+    });
+
+    test("the packer cannot accept their own proposal", async () => {
+      await assertFails(
+        updateDoc(order(as(PACKER), "o-waiting"), decide("accepted"))
+      );
+    });
+
+    test("flagging cannot touch other fields", async () => {
+      await assertFails(
+        updateDoc(order(as(PACKER), "o-packing"), propose({ total: 0.01 }))
+      );
+    });
+  });
+
+  describe("the customer's reply", () => {
+    test("accepts the replacement", async () => {
+      await assertSucceeds(
+        updateDoc(order(as(ALICE), "o-waiting"), decide("accepted"))
+      );
+    });
+
+    test("declines it, which removes the line", async () => {
+      await assertSucceeds(
+        updateDoc(order(as(ALICE), "o-waiting"), decide("removed"))
+      );
+    });
+
+    test("only the owner replies", async () => {
+      await assertFails(
+        updateDoc(order(as(BOB), "o-waiting"), decide("accepted"))
+      );
+    });
+
+    test("the reply is stamped with the server time", async () => {
+      await assertFails(
+        updateDoc(
+          order(as(ALICE), "o-waiting"),
+          decide("accepted", {
+            "shortages.L2": {
+              ...proposed,
+              status: "accepted",
+              decidedAt: new Date(2020, 0, 1),
+            },
+          })
+        )
+      );
+    });
+
+    test("the reply must close the open count", async () => {
+      await assertFails(
+        updateDoc(
+          order(as(ALICE), "o-waiting"),
+          decide("accepted", { openShortages: 1 })
+        )
+      );
+    });
+
+    test("cannot swap the replacement while accepting", async () => {
+      await assertFails(
+        updateDoc(
+          order(as(ALICE), "o-waiting"),
+          decide("accepted", {
+            "shortages.L2": {
+              ...proposed,
+              replacement: replacement({ unitPrice: 0.01 }),
+              status: "accepted",
+              decidedAt: serverTimestamp(),
+            },
+          })
+        )
+      );
+    });
+
+    test("cannot reply to a line with no proposal", async () => {
+      await assertFails(
+        updateDoc(order(as(ALICE), "o-packing"), decide("accepted"))
+      );
+    });
+
+    test("cannot reply twice", async () => {
+      await seed(testEnv, async (db) => {
+        await setDoc(
+          doc(db, "orders", "o-decided"),
+          stored({
+            status: "packing",
+            packedLineIds: ["L1"],
+            shortages: { L2: { ...proposed, status: "accepted", decidedAt: at } },
+            openShortages: 0,
+          })
+        );
+      });
+      await assertFails(
+        updateDoc(
+          order(as(ALICE), "o-decided"),
+          decide("removed", { openShortages: -1 })
+        )
+      );
+    });
+
+    test("cannot reply once the order has moved past packing", async () => {
+      await seed(testEnv, async (db) => {
+        await setDoc(
+          doc(db, "orders", "o-cancelled"),
+          stored({
+            status: "cancelled",
+            shortages: { L2: proposed },
+            openShortages: 1,
+          })
+        );
+      });
+      await assertFails(
+        updateDoc(order(as(ALICE), "o-cancelled"), decide("accepted"))
+      );
+    });
+  });
+
+  describe("marking ready", () => {
+    test("is blocked while a proposal is open", async () => {
+      await assertFails(
+        updateDoc(order(as(PACKER), "o-waiting"), {
+          ...ready,
+          packedLineIds: ["L1", "L2"],
+        })
+      );
+    });
+
+    test("works once the removed line is counted in the checklist", async () => {
+      await seed(testEnv, async (db) => {
+        await setDoc(
+          doc(db, "orders", "o-removed"),
+          stored({
+            packerId: PACKER.uid,
+            packerName: "Packer",
+            status: "packing",
+            packedLineIds: ["L1"],
+            shortages: { L2: { status: "removed", flaggedAt: at } },
+            openShortages: 0,
+          })
+        );
+      });
+      await assertSucceeds(
+        updateDoc(order(as(PACKER), "o-removed"), {
+          ...ready,
+          packedLineIds: ["L1", "L2"],
+        })
+      );
+    });
+  });
+
+  describe("the admin", () => {
+    const cancel = { status: "cancelled", statusSince: serverTimestamp() };
+
+    test("can cancel an order that is waiting on the customer", async () => {
+      await assertSucceeds(updateDoc(order(as(ADMIN), "o-waiting"), cancel));
+    });
+
+    test("can cancel only, not set any other status", async () => {
+      for (const status of ["completed", "ready", "pending", "packing"]) {
+        await assertFails(
+          updateDoc(order(as(ADMIN), "o-waiting"), {
+            status,
+            statusSince: serverTimestamp(),
+          })
+        );
+      }
+    });
+
+    test("cannot cancel a finished order", async () => {
+      await assertFails(updateDoc(order(as(ADMIN), "o-done"), cancel));
+    });
+
+    test("a cancel needs the server time and nothing else", async () => {
+      await assertFails(
+        updateDoc(order(as(ADMIN), "o-waiting"), {
+          status: "cancelled",
+          statusSince: new Date(0),
+        })
+      );
+      await assertFails(
+        updateDoc(order(as(ADMIN), "o-waiting"), { ...cancel, total: 0.01 })
+      );
+    });
+
+    test("cannot answer for the customer", async () => {
+      await assertFails(
+        updateDoc(order(as(ADMIN), "o-waiting"), decide("accepted"))
+      );
+    });
+  });
+});
+
 describe("deleting", () => {
   test("nobody can delete an order", async () => {
     await assertFails(deleteDoc(order(as(ADMIN), "o-pending")));

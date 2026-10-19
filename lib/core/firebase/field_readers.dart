@@ -111,6 +111,18 @@ extension FieldReaders on Map<String, dynamic> {
     ];
   }
 
+  /// A map whose values are maps (for example an order's shortages by line
+  /// id). Entries that are not maps are skipped.
+  Map<String, Map<String, dynamic>> mapOfMaps(String key) {
+    final value = this[key];
+    if (value is! Map) return const {};
+    return {
+      for (final entry in value.entries)
+        if (entry.value is Map)
+          entry.key.toString(): Map<String, dynamic>.from(entry.value as Map),
+    };
+  }
+
   /// An array of non-empty strings (for example image URLs).
   List<String> strings(String key) {
     final value = this[key];

@@ -508,4 +508,133 @@ void main() {
       });
     }
   });
+
+  group('unavailable items', () {
+    const replacement = OrderItem(
+      lineId: 'l2',
+      productId: 'p9',
+      name: 'Cherry tomato',
+      brand: 'Cameron',
+      packSize: '500g',
+      quantity: 1,
+      unitPrice: 5,
+    );
+    const proposed = LineShortage(
+      status: ShortageStatus.proposed,
+      replacement: replacement,
+    );
+
+    Order packingWith(LineShortage shortage) {
+      return _order(
+        status: OrderStatus.packing,
+        isDelivery: false,
+      ).copyWith(shortages: {'l2': shortage});
+    }
+
+    testWidgets('a proposal asks for a reply and shows the replacement', (
+      tester,
+    ) async {
+      await pump(tester, packingWith(proposed));
+
+      expect(find.text('Your reply is needed'), findsOneWidget);
+      expect(find.text('1× Roma tomato is unavailable'), findsOneWidget);
+      expect(find.text('Cherry tomato'), findsOneWidget);
+      expect(find.text('RM 1.00 more than the original.'), findsOneWidget);
+      expect(find.text('Accept replacement'), findsOneWidget);
+      // 12 paid; the replacement costs 1 more once accepted.
+      expect(
+        find.text('Final once you reply to the items above.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('accepting sends the answer', (tester) async {
+      when(
+        () => orders.respondToShortage('o1', 'l2', accept: true),
+      ).thenAnswer((_) async {});
+      await pump(tester, packingWith(proposed));
+
+      await tester.tap(find.text('Accept replacement'));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => orders.respondToShortage('o1', 'l2', accept: true),
+      ).called(1);
+      expect(find.text('Replacement accepted.'), findsOneWidget);
+    });
+
+    testWidgets('removing the item sends the answer', (tester) async {
+      when(
+        () => orders.respondToShortage('o1', 'l2', accept: false),
+      ).thenAnswer((_) async {});
+      await pump(tester, packingWith(proposed));
+
+      await tester.tap(find.text('Remove item'));
+      await tester.pumpAndSettle();
+
+      verify(
+        () => orders.respondToShortage('o1', 'l2', accept: false),
+      ).called(1);
+      expect(
+        find.text('Roma tomato was removed from your order.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('shows why an answer was refused', (tester) async {
+      when(
+        () => orders.respondToShortage('o1', 'l2', accept: true),
+      ).thenThrow(const OrderException('This item can no longer be changed.'));
+      await pump(tester, packingWith(proposed));
+
+      await tester.tap(find.text('Accept replacement'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('This item can no longer be changed.'), findsOneWidget);
+    });
+
+    testWidgets('an accepted replacement changes the items and the total', (
+      tester,
+    ) async {
+      await pump(
+        tester,
+        packingWith(
+          proposed.copyWith(
+            status: ShortageStatus.accepted,
+            decidedAt: DateTime(2026, 10, 15),
+          ),
+        ),
+      );
+
+      expect(find.text('Your reply is needed'), findsNothing);
+      expect(find.text('Unavailable, replaced'), findsOneWidget);
+      expect(find.textContaining('Cherry tomato'), findsOneWidget);
+      // 2x4 + 1x5 + 3 delivery fee, against 15 paid.
+      expect(find.text('Extra to pay'), findsOneWidget);
+      expect(find.text('New total'), findsOneWidget);
+      expect(find.text('RM 16.00'), findsOneWidget);
+    });
+
+    testWidgets('a removed item is refunded', (tester) async {
+      await pump(
+        tester,
+        packingWith(const LineShortage(status: ShortageStatus.removed)),
+      );
+
+      expect(find.text('Unavailable, removed'), findsOneWidget);
+      expect(find.text('Refund for changes'), findsOneWidget);
+      expect(find.text('Paid at checkout'), findsOneWidget);
+      // 2x4 + 3 delivery fee.
+      expect(find.text('RM 11.00'), findsOneWidget);
+    });
+
+    testWidgets('no reply is asked of an order without proposals', (
+      tester,
+    ) async {
+      await pump(tester, _order(status: OrderStatus.packing));
+
+      expect(find.text('Your reply is needed'), findsNothing);
+      expect(find.text('Total'), findsOneWidget);
+    });
+  });
 }

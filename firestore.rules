@@ -226,12 +226,6 @@ service cloud.firestore {
           && changedKeys().hasAll(['status', 'statusSince']);
       }
 
-      function validStatus() {
-        return request.resource.data.status in
-          ['pending', 'packing', 'ready', 'outForDelivery', 'completed',
-           'cancelled'];
-      }
-
       function validVerification(method) {
         return method in ['qr', 'manual'];
       }
@@ -249,6 +243,47 @@ service cloud.firestore {
         return isDriver()
           && resource.data.isDelivery == true
           && resource.data.get('driverId', null) == request.auth.uid;
+      }
+
+      // Shortages: an item the packer found unavailable. `shortages` maps a
+      // line id to its entry and every write changes exactly one entry. The
+      // writer also sets `shortageLineId` to that line id, so the rules know
+      // which entry to check (rules cannot loop over a map).
+      function shortageId() {
+        return request.resource.data.shortageLineId;
+      }
+
+      function shortagesBefore() {
+        return resource.data.get('shortages', {});
+      }
+
+      function oneShortageChanged() {
+        return shortageId() is string
+          && request.resource.data.shortages
+              .diff(shortagesBefore()).affectedKeys()
+              .hasOnly([shortageId()]);
+      }
+
+      function shortageAfter() {
+        return request.resource.data.shortages[shortageId()];
+      }
+
+      // A replacement is shaped like an order line with the same line id.
+      function validReplacement(replacement) {
+        return replacement is map
+          && replacement.keys().hasOnly(
+              ['lineId', 'productId', 'name', 'brand', 'packSize', 'quantity',
+               'unitPrice', 'categoryId', 'category', 'description',
+               'imageUrl'])
+          && replacement.keys().hasAll(
+              ['lineId', 'productId', 'name', 'quantity', 'unitPrice'])
+          && replacement.lineId == shortageId()
+          && replacement.name is string
+          && replacement.quantity is int
+          && replacement.quantity >= 1
+          && replacement.quantity <= 99
+          && replacement.unitPrice is number
+          && replacement.unitPrice >= 0;
       }
 
       // Read: the owner; the admin (every order); a packer (their branch's
@@ -298,10 +333,17 @@ service cloud.firestore {
       // Store Admin assigns packers and drivers and sets the due time. It
       // cannot touch the checkout fields (customer, items, money) or the
       // worker's fulfilment fields.
+      //
+      // The only status the admin sets is `cancelled`, for an order that is
+      // not finished (for example one waiting too long for the customer to
+      // answer a replacement).
       allow update: if isAdmin()
-        && validStatus()
         && changedKeys().hasOnly(
             assignmentKeys().concat(['status', 'statusSince']))
+        && (('status' in changedKeys()) == ('statusSince' in changedKeys()))
+        && (!('status' in changedKeys())
+            || (request.resource.data.status == 'cancelled'
+                && !(resource.data.status in ['completed', 'cancelled'])))
         && serverTime('statusSince')
         && serverTime('packerAssignedAt')
         && serverTime('driverAssignedAt');
@@ -322,15 +364,52 @@ service cloud.firestore {
         && request.resource.data.packedLineIds.size()
             <= resource.data.items.size();
 
+      // Lines the customer removed (or the packer found no replacement for)
+      // are listed with the packed ones when marking ready, so every line is
+      // accounted for. An item still waiting for the customer's answer blocks
+      // it.
       allow update: if packerOwns()
         && movesStatus('packing', 'ready')
         && changedKeys().hasOnly(
-            ['status', 'statusSince', 'readyAt', 'readyBy'])
+            ['status', 'statusSince', 'readyAt', 'readyBy', 'packedLineIds'])
         && changedKeys().hasAll(['readyAt', 'readyBy'])
         && request.resource.data.readyBy == request.auth.uid
-        && resource.data.get('packedLineIds', []).size()
+        && request.resource.data.get('packedLineIds', []).size()
             == resource.data.items.size()
+        && resource.data.get('openShortages', 0) == 0
         && workflowTimesAreServerTimes();
+
+      // The packer finds an item unavailable while packing: with a
+      // replacement for the customer to accept, or (none exists) removing
+      // the line outright. A line that is already ticked, or already has a
+      // shortage, cannot be flagged.
+      allow update: if packerOwns()
+        && resource.data.status == 'packing'
+        && changedKeys().hasOnly(
+            ['shortages', 'shortageLineId', 'openShortages'])
+        && changedKeys().hasAll(['shortages'])
+        && oneShortageChanged()
+        && !(shortageId() in shortagesBefore())
+        && !(shortageId() in resource.data.get('packedLineIds', []))
+        && shortageAfter().flaggedAt == request.time
+        && shortageAfter().status == 'proposed'
+        && shortageAfter().keys().hasOnly(['status', 'replacement', 'flaggedAt'])
+        && shortageAfter().keys().hasAll(['status', 'replacement', 'flaggedAt'])
+        && validReplacement(shortageAfter().replacement)
+        && request.resource.data.get('openShortages', 0)
+            == resource.data.get('openShortages', 0) + 1;
+
+      allow update: if packerOwns()
+        && resource.data.status == 'packing'
+        && changedKeys().hasOnly(['shortages', 'shortageLineId'])
+        && changedKeys().hasAll(['shortages'])
+        && oneShortageChanged()
+        && !(shortageId() in shortagesBefore())
+        && !(shortageId() in resource.data.get('packedLineIds', []))
+        && shortageAfter().flaggedAt == request.time
+        && shortageAfter().status == 'removed'
+        && shortageAfter().keys().hasOnly(['status', 'flaggedAt'])
+        && shortageAfter().keys().hasAll(['status', 'flaggedAt']);
 
       // Self-pickup handover: any active packer at the branch hands over a
       // ready pickup order, whoever packed it.
@@ -388,6 +467,27 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['status', 'statusSince'])
         && request.resource.data.statusSince == request.time;
+
+      // The customer answers a replacement while the order is being packed:
+      // accept it or remove the item. Only the answer and its server time
+      // change; the packer's proposal stays as it was.
+      allow update: if isOrderOwner()
+        && resource.data.status == 'packing'
+        && changedKeys().hasOnly(
+            ['shortages', 'shortageLineId', 'openShortages'])
+        && changedKeys().hasAll(['shortages', 'openShortages'])
+        && oneShortageChanged()
+        && shortagesBefore()[shortageId()].status == 'proposed'
+        && shortageAfter().status in ['accepted', 'removed']
+        && shortageAfter().keys().hasOnly(
+            ['status', 'replacement', 'flaggedAt', 'decidedAt'])
+        && shortageAfter().keys().hasAll(
+            ['status', 'replacement', 'flaggedAt', 'decidedAt'])
+        && shortageAfter().replacement == shortagesBefore()[shortageId()].replacement
+        && shortageAfter().flaggedAt == shortagesBefore()[shortageId()].flaggedAt
+        && shortageAfter().decidedAt == request.time
+        && request.resource.data.openShortages
+            == resource.data.openShortages - 1;
 
       allow delete: if false;
     }

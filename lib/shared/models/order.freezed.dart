@@ -319,6 +319,311 @@ as String?,
 }
 
 /// @nodoc
+mixin _$LineShortage {
+
+ ShortageStatus get status;/// The offered replacement, shaped like an order line with the same
+/// `lineId` as the unavailable one. Null when there is none.
+ OrderItem? get replacement;/// Null until Firestore has saved the server time.
+ DateTime? get flaggedAt;/// When the customer decided. Null while [ShortageStatus.proposed].
+ DateTime? get decidedAt;
+/// Create a copy of LineShortage
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$LineShortageCopyWith<LineShortage> get copyWith => _$LineShortageCopyWithImpl<LineShortage>(this as LineShortage, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  final _this = this as LineShortage;
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LineShortage&&(identical(other.status, _this.status) || other.status == _this.status)&&(identical(other.replacement, _this.replacement) || other.replacement == _this.replacement)&&(identical(other.flaggedAt, _this.flaggedAt) || other.flaggedAt == _this.flaggedAt)&&(identical(other.decidedAt, _this.decidedAt) || other.decidedAt == _this.decidedAt));
+}
+
+
+@override
+int get hashCode {
+  final _this = this as LineShortage;
+  return Object.hash(runtimeType,_this.status,_this.replacement,_this.flaggedAt,_this.decidedAt);
+}
+
+@override
+String toString() {
+  final _this = this as LineShortage;
+  return 'LineShortage(status: ${_this.status}, replacement: ${_this.replacement}, flaggedAt: ${_this.flaggedAt}, decidedAt: ${_this.decidedAt})';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $LineShortageCopyWith<$Res>  {
+  factory $LineShortageCopyWith(LineShortage value, $Res Function(LineShortage) _then) = _$LineShortageCopyWithImpl;
+@useResult
+$Res call({
+ ShortageStatus status, OrderItem? replacement, DateTime? flaggedAt, DateTime? decidedAt
+});
+
+
+$OrderItemCopyWith<$Res>? get replacement;
+
+}
+/// @nodoc
+class _$LineShortageCopyWithImpl<$Res>
+    implements $LineShortageCopyWith<$Res> {
+  _$LineShortageCopyWithImpl(this._self, this._then);
+
+  final LineShortage _self;
+  final $Res Function(LineShortage) _then;
+
+/// Create a copy of LineShortage
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? status = null,Object? replacement = freezed,Object? flaggedAt = freezed,Object? decidedAt = freezed,}) {
+  return _then(LineShortage(
+status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as ShortageStatus,replacement: freezed == replacement ? _self.replacement : replacement // ignore: cast_nullable_to_non_nullable
+as OrderItem?,flaggedAt: freezed == flaggedAt ? _self.flaggedAt : flaggedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,decidedAt: freezed == decidedAt ? _self.decidedAt : decidedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
+  ));
+}
+/// Create a copy of LineShortage
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$OrderItemCopyWith<$Res>? get replacement {
+    if (_self.replacement == null) {
+    return null;
+  }
+
+  return $OrderItemCopyWith<$Res>(_self.replacement!, (value) {
+    return _then(_self.copyWith(replacement: value));
+  });
+}
+}
+
+
+/// Adds pattern-matching-related methods to [LineShortage].
+extension LineShortagePatterns on LineShortage {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _LineShortage value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _LineShortage() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _LineShortage value)  $default,){
+final _that = this;
+switch (_that) {
+case _LineShortage():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _LineShortage value)?  $default,){
+final _that = this;
+switch (_that) {
+case _LineShortage() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ShortageStatus status,  OrderItem? replacement,  DateTime? flaggedAt,  DateTime? decidedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _LineShortage() when $default != null:
+return $default(_that.status,_that.replacement,_that.flaggedAt,_that.decidedAt);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ShortageStatus status,  OrderItem? replacement,  DateTime? flaggedAt,  DateTime? decidedAt)  $default,) {final _that = this;
+switch (_that) {
+case _LineShortage():
+return $default(_that.status,_that.replacement,_that.flaggedAt,_that.decidedAt);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ShortageStatus status,  OrderItem? replacement,  DateTime? flaggedAt,  DateTime? decidedAt)?  $default,) {final _that = this;
+switch (_that) {
+case _LineShortage() when $default != null:
+return $default(_that.status,_that.replacement,_that.flaggedAt,_that.decidedAt);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class _LineShortage extends LineShortage {
+  const _LineShortage({required this.status, this.replacement, this.flaggedAt, this.decidedAt}): super._();
+  
+
+@override final  ShortageStatus status;
+/// The offered replacement, shaped like an order line with the same
+/// `lineId` as the unavailable one. Null when there is none.
+@override final  OrderItem? replacement;
+/// Null until Firestore has saved the server time.
+@override final  DateTime? flaggedAt;
+/// When the customer decided. Null while [ShortageStatus.proposed].
+@override final  DateTime? decidedAt;
+
+/// Create a copy of LineShortage
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$LineShortageCopyWith<_LineShortage> get copyWith => __$LineShortageCopyWithImpl<_LineShortage>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _LineShortage&&(identical(other.status, status) || other.status == status)&&(identical(other.replacement, replacement) || other.replacement == replacement)&&(identical(other.flaggedAt, flaggedAt) || other.flaggedAt == flaggedAt)&&(identical(other.decidedAt, decidedAt) || other.decidedAt == decidedAt));
+}
+
+
+@override
+int get hashCode {
+    return Object.hash(runtimeType,status,replacement,flaggedAt,decidedAt);
+}
+
+@override
+String toString() {
+    return 'LineShortage(status: $status, replacement: $replacement, flaggedAt: $flaggedAt, decidedAt: $decidedAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$LineShortageCopyWith<$Res> implements $LineShortageCopyWith<$Res> {
+  factory _$LineShortageCopyWith(_LineShortage value, $Res Function(_LineShortage) _then) = __$LineShortageCopyWithImpl;
+@override @useResult
+$Res call({
+ ShortageStatus status, OrderItem? replacement, DateTime? flaggedAt, DateTime? decidedAt
+});
+
+
+@override $OrderItemCopyWith<$Res>? get replacement;
+
+}
+/// @nodoc
+class __$LineShortageCopyWithImpl<$Res>
+    implements _$LineShortageCopyWith<$Res> {
+  __$LineShortageCopyWithImpl(this._self, this._then);
+
+  final _LineShortage _self;
+  final $Res Function(_LineShortage) _then;
+
+/// Create a copy of LineShortage
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? status = null,Object? replacement = freezed,Object? flaggedAt = freezed,Object? decidedAt = freezed,}) {
+  return _then(_LineShortage(
+status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as ShortageStatus,replacement: freezed == replacement ? _self.replacement : replacement // ignore: cast_nullable_to_non_nullable
+as OrderItem?,flaggedAt: freezed == flaggedAt ? _self.flaggedAt : flaggedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,decidedAt: freezed == decidedAt ? _self.decidedAt : decidedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
+  ));
+}
+
+/// Create a copy of LineShortage
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$OrderItemCopyWith<$Res>? get replacement {
+    if (_self.replacement == null) {
+    return null;
+  }
+
+  return $OrderItemCopyWith<$Res>(_self.replacement!, (value) {
+    return _then(_self.copyWith(replacement: value));
+  });
+}
+}
+
+/// @nodoc
 mixin _$OrderEvent {
 
  String get title; DateTime get time;/// Staff member who did it. Null for things the customer did.
@@ -611,7 +916,8 @@ mixin _$Order {
 /// driver assigned now, so a replacement driver must verify again.
  String? get collectionVerifiedBy; DateTime? get collectionVerifiedAt; DateTime? get outForDeliveryAt; String? get deliveredBy; String? get deliveredByName;/// Photo the driver took when delivering, as a Storage download URL.
  String? get proofPhotoUrl;/// When the order was completed, by pickup or by delivery.
- DateTime? get completedAt;
+ DateTime? get completedAt;/// Items a packer found unavailable, by line id. See [LineShortage].
+ Map<String, LineShortage> get shortages;
 /// Create a copy of Order
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -623,20 +929,20 @@ $OrderCopyWith<Order> get copyWith => _$OrderCopyWithImpl<Order>(this as Order, 
 @override
 bool operator ==(Object other) {
   final _this = this as Order;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Order&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.number, _this.number) || other.number == _this.number)&&(identical(other.customerId, _this.customerId) || other.customerId == _this.customerId)&&(identical(other.customerName, _this.customerName) || other.customerName == _this.customerName)&&(identical(other.customerPhone, _this.customerPhone) || other.customerPhone == _this.customerPhone)&&(identical(other.branchId, _this.branchId) || other.branchId == _this.branchId)&&(identical(other.branchName, _this.branchName) || other.branchName == _this.branchName)&&(identical(other.isDelivery, _this.isDelivery) || other.isDelivery == _this.isDelivery)&&const DeepCollectionEquality().equals(other.items, _this.items)&&(identical(other.subtotal, _this.subtotal) || other.subtotal == _this.subtotal)&&(identical(other.deliveryFee, _this.deliveryFee) || other.deliveryFee == _this.deliveryFee)&&(identical(other.discount, _this.discount) || other.discount == _this.discount)&&(identical(other.total, _this.total) || other.total == _this.total)&&(identical(other.status, _this.status) || other.status == _this.status)&&(identical(other.address, _this.address) || other.address == _this.address)&&(identical(other.addressLocation, _this.addressLocation) || other.addressLocation == _this.addressLocation)&&(identical(other.customerNote, _this.customerNote) || other.customerNote == _this.customerNote)&&(identical(other.promoCode, _this.promoCode) || other.promoCode == _this.promoCode)&&(identical(other.branchAddress, _this.branchAddress) || other.branchAddress == _this.branchAddress)&&(identical(other.placedAt, _this.placedAt) || other.placedAt == _this.placedAt)&&(identical(other.statusSince, _this.statusSince) || other.statusSince == _this.statusSince)&&(identical(other.dueAt, _this.dueAt) || other.dueAt == _this.dueAt)&&(identical(other.packerId, _this.packerId) || other.packerId == _this.packerId)&&(identical(other.packerName, _this.packerName) || other.packerName == _this.packerName)&&(identical(other.packerAssignedAt, _this.packerAssignedAt) || other.packerAssignedAt == _this.packerAssignedAt)&&(identical(other.driverId, _this.driverId) || other.driverId == _this.driverId)&&(identical(other.driverName, _this.driverName) || other.driverName == _this.driverName)&&(identical(other.driverAssignedAt, _this.driverAssignedAt) || other.driverAssignedAt == _this.driverAssignedAt)&&const DeepCollectionEquality().equals(other.packedLineIds, _this.packedLineIds)&&(identical(other.packingStartedAt, _this.packingStartedAt) || other.packingStartedAt == _this.packingStartedAt)&&(identical(other.readyAt, _this.readyAt) || other.readyAt == _this.readyAt)&&(identical(other.readyBy, _this.readyBy) || other.readyBy == _this.readyBy)&&(identical(other.pickupVerification, _this.pickupVerification) || other.pickupVerification == _this.pickupVerification)&&(identical(other.pickupCompletedBy, _this.pickupCompletedBy) || other.pickupCompletedBy == _this.pickupCompletedBy)&&(identical(other.pickupCompletedByName, _this.pickupCompletedByName) || other.pickupCompletedByName == _this.pickupCompletedByName)&&(identical(other.collectionVerification, _this.collectionVerification) || other.collectionVerification == _this.collectionVerification)&&(identical(other.collectionVerifiedBy, _this.collectionVerifiedBy) || other.collectionVerifiedBy == _this.collectionVerifiedBy)&&(identical(other.collectionVerifiedAt, _this.collectionVerifiedAt) || other.collectionVerifiedAt == _this.collectionVerifiedAt)&&(identical(other.outForDeliveryAt, _this.outForDeliveryAt) || other.outForDeliveryAt == _this.outForDeliveryAt)&&(identical(other.deliveredBy, _this.deliveredBy) || other.deliveredBy == _this.deliveredBy)&&(identical(other.deliveredByName, _this.deliveredByName) || other.deliveredByName == _this.deliveredByName)&&(identical(other.proofPhotoUrl, _this.proofPhotoUrl) || other.proofPhotoUrl == _this.proofPhotoUrl)&&(identical(other.completedAt, _this.completedAt) || other.completedAt == _this.completedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Order&&(identical(other.id, _this.id) || other.id == _this.id)&&(identical(other.number, _this.number) || other.number == _this.number)&&(identical(other.customerId, _this.customerId) || other.customerId == _this.customerId)&&(identical(other.customerName, _this.customerName) || other.customerName == _this.customerName)&&(identical(other.customerPhone, _this.customerPhone) || other.customerPhone == _this.customerPhone)&&(identical(other.branchId, _this.branchId) || other.branchId == _this.branchId)&&(identical(other.branchName, _this.branchName) || other.branchName == _this.branchName)&&(identical(other.isDelivery, _this.isDelivery) || other.isDelivery == _this.isDelivery)&&const DeepCollectionEquality().equals(other.items, _this.items)&&(identical(other.subtotal, _this.subtotal) || other.subtotal == _this.subtotal)&&(identical(other.deliveryFee, _this.deliveryFee) || other.deliveryFee == _this.deliveryFee)&&(identical(other.discount, _this.discount) || other.discount == _this.discount)&&(identical(other.total, _this.total) || other.total == _this.total)&&(identical(other.status, _this.status) || other.status == _this.status)&&(identical(other.address, _this.address) || other.address == _this.address)&&(identical(other.addressLocation, _this.addressLocation) || other.addressLocation == _this.addressLocation)&&(identical(other.customerNote, _this.customerNote) || other.customerNote == _this.customerNote)&&(identical(other.promoCode, _this.promoCode) || other.promoCode == _this.promoCode)&&(identical(other.branchAddress, _this.branchAddress) || other.branchAddress == _this.branchAddress)&&(identical(other.placedAt, _this.placedAt) || other.placedAt == _this.placedAt)&&(identical(other.statusSince, _this.statusSince) || other.statusSince == _this.statusSince)&&(identical(other.dueAt, _this.dueAt) || other.dueAt == _this.dueAt)&&(identical(other.packerId, _this.packerId) || other.packerId == _this.packerId)&&(identical(other.packerName, _this.packerName) || other.packerName == _this.packerName)&&(identical(other.packerAssignedAt, _this.packerAssignedAt) || other.packerAssignedAt == _this.packerAssignedAt)&&(identical(other.driverId, _this.driverId) || other.driverId == _this.driverId)&&(identical(other.driverName, _this.driverName) || other.driverName == _this.driverName)&&(identical(other.driverAssignedAt, _this.driverAssignedAt) || other.driverAssignedAt == _this.driverAssignedAt)&&const DeepCollectionEquality().equals(other.packedLineIds, _this.packedLineIds)&&(identical(other.packingStartedAt, _this.packingStartedAt) || other.packingStartedAt == _this.packingStartedAt)&&(identical(other.readyAt, _this.readyAt) || other.readyAt == _this.readyAt)&&(identical(other.readyBy, _this.readyBy) || other.readyBy == _this.readyBy)&&(identical(other.pickupVerification, _this.pickupVerification) || other.pickupVerification == _this.pickupVerification)&&(identical(other.pickupCompletedBy, _this.pickupCompletedBy) || other.pickupCompletedBy == _this.pickupCompletedBy)&&(identical(other.pickupCompletedByName, _this.pickupCompletedByName) || other.pickupCompletedByName == _this.pickupCompletedByName)&&(identical(other.collectionVerification, _this.collectionVerification) || other.collectionVerification == _this.collectionVerification)&&(identical(other.collectionVerifiedBy, _this.collectionVerifiedBy) || other.collectionVerifiedBy == _this.collectionVerifiedBy)&&(identical(other.collectionVerifiedAt, _this.collectionVerifiedAt) || other.collectionVerifiedAt == _this.collectionVerifiedAt)&&(identical(other.outForDeliveryAt, _this.outForDeliveryAt) || other.outForDeliveryAt == _this.outForDeliveryAt)&&(identical(other.deliveredBy, _this.deliveredBy) || other.deliveredBy == _this.deliveredBy)&&(identical(other.deliveredByName, _this.deliveredByName) || other.deliveredByName == _this.deliveredByName)&&(identical(other.proofPhotoUrl, _this.proofPhotoUrl) || other.proofPhotoUrl == _this.proofPhotoUrl)&&(identical(other.completedAt, _this.completedAt) || other.completedAt == _this.completedAt)&&const DeepCollectionEquality().equals(other.shortages, _this.shortages));
 }
 
 
 @override
 int get hashCode {
   final _this = this as Order;
-  return Object.hashAll([runtimeType,_this.id,_this.number,_this.customerId,_this.customerName,_this.customerPhone,_this.branchId,_this.branchName,_this.isDelivery,const DeepCollectionEquality().hash(_this.items),_this.subtotal,_this.deliveryFee,_this.discount,_this.total,_this.status,_this.address,_this.addressLocation,_this.customerNote,_this.promoCode,_this.branchAddress,_this.placedAt,_this.statusSince,_this.dueAt,_this.packerId,_this.packerName,_this.packerAssignedAt,_this.driverId,_this.driverName,_this.driverAssignedAt,const DeepCollectionEquality().hash(_this.packedLineIds),_this.packingStartedAt,_this.readyAt,_this.readyBy,_this.pickupVerification,_this.pickupCompletedBy,_this.pickupCompletedByName,_this.collectionVerification,_this.collectionVerifiedBy,_this.collectionVerifiedAt,_this.outForDeliveryAt,_this.deliveredBy,_this.deliveredByName,_this.proofPhotoUrl,_this.completedAt]);
+  return Object.hashAll([runtimeType,_this.id,_this.number,_this.customerId,_this.customerName,_this.customerPhone,_this.branchId,_this.branchName,_this.isDelivery,const DeepCollectionEquality().hash(_this.items),_this.subtotal,_this.deliveryFee,_this.discount,_this.total,_this.status,_this.address,_this.addressLocation,_this.customerNote,_this.promoCode,_this.branchAddress,_this.placedAt,_this.statusSince,_this.dueAt,_this.packerId,_this.packerName,_this.packerAssignedAt,_this.driverId,_this.driverName,_this.driverAssignedAt,const DeepCollectionEquality().hash(_this.packedLineIds),_this.packingStartedAt,_this.readyAt,_this.readyBy,_this.pickupVerification,_this.pickupCompletedBy,_this.pickupCompletedByName,_this.collectionVerification,_this.collectionVerifiedBy,_this.collectionVerifiedAt,_this.outForDeliveryAt,_this.deliveredBy,_this.deliveredByName,_this.proofPhotoUrl,_this.completedAt,const DeepCollectionEquality().hash(_this.shortages)]);
 }
 
 @override
 String toString() {
   final _this = this as Order;
-  return 'Order(id: ${_this.id}, number: ${_this.number}, customerId: ${_this.customerId}, customerName: ${_this.customerName}, customerPhone: ${_this.customerPhone}, branchId: ${_this.branchId}, branchName: ${_this.branchName}, isDelivery: ${_this.isDelivery}, items: ${_this.items}, subtotal: ${_this.subtotal}, deliveryFee: ${_this.deliveryFee}, discount: ${_this.discount}, total: ${_this.total}, status: ${_this.status}, address: ${_this.address}, addressLocation: ${_this.addressLocation}, customerNote: ${_this.customerNote}, promoCode: ${_this.promoCode}, branchAddress: ${_this.branchAddress}, placedAt: ${_this.placedAt}, statusSince: ${_this.statusSince}, dueAt: ${_this.dueAt}, packerId: ${_this.packerId}, packerName: ${_this.packerName}, packerAssignedAt: ${_this.packerAssignedAt}, driverId: ${_this.driverId}, driverName: ${_this.driverName}, driverAssignedAt: ${_this.driverAssignedAt}, packedLineIds: ${_this.packedLineIds}, packingStartedAt: ${_this.packingStartedAt}, readyAt: ${_this.readyAt}, readyBy: ${_this.readyBy}, pickupVerification: ${_this.pickupVerification}, pickupCompletedBy: ${_this.pickupCompletedBy}, pickupCompletedByName: ${_this.pickupCompletedByName}, collectionVerification: ${_this.collectionVerification}, collectionVerifiedBy: ${_this.collectionVerifiedBy}, collectionVerifiedAt: ${_this.collectionVerifiedAt}, outForDeliveryAt: ${_this.outForDeliveryAt}, deliveredBy: ${_this.deliveredBy}, deliveredByName: ${_this.deliveredByName}, proofPhotoUrl: ${_this.proofPhotoUrl}, completedAt: ${_this.completedAt})';
+  return 'Order(id: ${_this.id}, number: ${_this.number}, customerId: ${_this.customerId}, customerName: ${_this.customerName}, customerPhone: ${_this.customerPhone}, branchId: ${_this.branchId}, branchName: ${_this.branchName}, isDelivery: ${_this.isDelivery}, items: ${_this.items}, subtotal: ${_this.subtotal}, deliveryFee: ${_this.deliveryFee}, discount: ${_this.discount}, total: ${_this.total}, status: ${_this.status}, address: ${_this.address}, addressLocation: ${_this.addressLocation}, customerNote: ${_this.customerNote}, promoCode: ${_this.promoCode}, branchAddress: ${_this.branchAddress}, placedAt: ${_this.placedAt}, statusSince: ${_this.statusSince}, dueAt: ${_this.dueAt}, packerId: ${_this.packerId}, packerName: ${_this.packerName}, packerAssignedAt: ${_this.packerAssignedAt}, driverId: ${_this.driverId}, driverName: ${_this.driverName}, driverAssignedAt: ${_this.driverAssignedAt}, packedLineIds: ${_this.packedLineIds}, packingStartedAt: ${_this.packingStartedAt}, readyAt: ${_this.readyAt}, readyBy: ${_this.readyBy}, pickupVerification: ${_this.pickupVerification}, pickupCompletedBy: ${_this.pickupCompletedBy}, pickupCompletedByName: ${_this.pickupCompletedByName}, collectionVerification: ${_this.collectionVerification}, collectionVerifiedBy: ${_this.collectionVerifiedBy}, collectionVerifiedAt: ${_this.collectionVerifiedAt}, outForDeliveryAt: ${_this.outForDeliveryAt}, deliveredBy: ${_this.deliveredBy}, deliveredByName: ${_this.deliveredByName}, proofPhotoUrl: ${_this.proofPhotoUrl}, completedAt: ${_this.completedAt}, shortages: ${_this.shortages})';
 }
 
 
@@ -647,7 +953,7 @@ abstract mixin class $OrderCopyWith<$Res>  {
   factory $OrderCopyWith(Order value, $Res Function(Order) _then) = _$OrderCopyWithImpl;
 @useResult
 $Res call({
- String id, int number, String customerId, String customerName, String customerPhone, String branchId, String branchName, bool isDelivery, List<OrderItem> items, double subtotal, double deliveryFee, double discount, double total, OrderStatus status, String? address, LatLng? addressLocation, String? customerNote, String? promoCode, String? branchAddress, DateTime? placedAt, DateTime? statusSince, DateTime? dueAt, String? packerId, String? packerName, DateTime? packerAssignedAt, String? driverId, String? driverName, DateTime? driverAssignedAt, Set<String> packedLineIds, DateTime? packingStartedAt, DateTime? readyAt, String? readyBy, VerificationMethod? pickupVerification, String? pickupCompletedBy, String? pickupCompletedByName, VerificationMethod? collectionVerification, String? collectionVerifiedBy, DateTime? collectionVerifiedAt, DateTime? outForDeliveryAt, String? deliveredBy, String? deliveredByName, String? proofPhotoUrl, DateTime? completedAt
+ String id, int number, String customerId, String customerName, String customerPhone, String branchId, String branchName, bool isDelivery, List<OrderItem> items, double subtotal, double deliveryFee, double discount, double total, OrderStatus status, String? address, LatLng? addressLocation, String? customerNote, String? promoCode, String? branchAddress, DateTime? placedAt, DateTime? statusSince, DateTime? dueAt, String? packerId, String? packerName, DateTime? packerAssignedAt, String? driverId, String? driverName, DateTime? driverAssignedAt, Set<String> packedLineIds, DateTime? packingStartedAt, DateTime? readyAt, String? readyBy, VerificationMethod? pickupVerification, String? pickupCompletedBy, String? pickupCompletedByName, VerificationMethod? collectionVerification, String? collectionVerifiedBy, DateTime? collectionVerifiedAt, DateTime? outForDeliveryAt, String? deliveredBy, String? deliveredByName, String? proofPhotoUrl, DateTime? completedAt, Map<String, LineShortage> shortages
 });
 
 
@@ -664,7 +970,7 @@ class _$OrderCopyWithImpl<$Res>
 
 /// Create a copy of Order
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? number = null,Object? customerId = null,Object? customerName = null,Object? customerPhone = null,Object? branchId = null,Object? branchName = null,Object? isDelivery = null,Object? items = null,Object? subtotal = null,Object? deliveryFee = null,Object? discount = null,Object? total = null,Object? status = null,Object? address = freezed,Object? addressLocation = freezed,Object? customerNote = freezed,Object? promoCode = freezed,Object? branchAddress = freezed,Object? placedAt = freezed,Object? statusSince = freezed,Object? dueAt = freezed,Object? packerId = freezed,Object? packerName = freezed,Object? packerAssignedAt = freezed,Object? driverId = freezed,Object? driverName = freezed,Object? driverAssignedAt = freezed,Object? packedLineIds = null,Object? packingStartedAt = freezed,Object? readyAt = freezed,Object? readyBy = freezed,Object? pickupVerification = freezed,Object? pickupCompletedBy = freezed,Object? pickupCompletedByName = freezed,Object? collectionVerification = freezed,Object? collectionVerifiedBy = freezed,Object? collectionVerifiedAt = freezed,Object? outForDeliveryAt = freezed,Object? deliveredBy = freezed,Object? deliveredByName = freezed,Object? proofPhotoUrl = freezed,Object? completedAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? number = null,Object? customerId = null,Object? customerName = null,Object? customerPhone = null,Object? branchId = null,Object? branchName = null,Object? isDelivery = null,Object? items = null,Object? subtotal = null,Object? deliveryFee = null,Object? discount = null,Object? total = null,Object? status = null,Object? address = freezed,Object? addressLocation = freezed,Object? customerNote = freezed,Object? promoCode = freezed,Object? branchAddress = freezed,Object? placedAt = freezed,Object? statusSince = freezed,Object? dueAt = freezed,Object? packerId = freezed,Object? packerName = freezed,Object? packerAssignedAt = freezed,Object? driverId = freezed,Object? driverName = freezed,Object? driverAssignedAt = freezed,Object? packedLineIds = null,Object? packingStartedAt = freezed,Object? readyAt = freezed,Object? readyBy = freezed,Object? pickupVerification = freezed,Object? pickupCompletedBy = freezed,Object? pickupCompletedByName = freezed,Object? collectionVerification = freezed,Object? collectionVerifiedBy = freezed,Object? collectionVerifiedAt = freezed,Object? outForDeliveryAt = freezed,Object? deliveredBy = freezed,Object? deliveredByName = freezed,Object? proofPhotoUrl = freezed,Object? completedAt = freezed,Object? shortages = null,}) {
   return _then(Order(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,number: null == number ? _self.number : number // ignore: cast_nullable_to_non_nullable
@@ -709,7 +1015,8 @@ as DateTime?,deliveredBy: freezed == deliveredBy ? _self.deliveredBy : delivered
 as String?,deliveredByName: freezed == deliveredByName ? _self.deliveredByName : deliveredByName // ignore: cast_nullable_to_non_nullable
 as String?,proofPhotoUrl: freezed == proofPhotoUrl ? _self.proofPhotoUrl : proofPhotoUrl // ignore: cast_nullable_to_non_nullable
 as String?,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,shortages: null == shortages ? _self.shortages : shortages // ignore: cast_nullable_to_non_nullable
+as Map<String, LineShortage>,
   ));
 }
 
@@ -794,10 +1101,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  int number,  String customerId,  String customerName,  String customerPhone,  String branchId,  String branchName,  bool isDelivery,  List<OrderItem> items,  double subtotal,  double deliveryFee,  double discount,  double total,  OrderStatus status,  String? address,  LatLng? addressLocation,  String? customerNote,  String? promoCode,  String? branchAddress,  DateTime? placedAt,  DateTime? statusSince,  DateTime? dueAt,  String? packerId,  String? packerName,  DateTime? packerAssignedAt,  String? driverId,  String? driverName,  DateTime? driverAssignedAt,  Set<String> packedLineIds,  DateTime? packingStartedAt,  DateTime? readyAt,  String? readyBy,  VerificationMethod? pickupVerification,  String? pickupCompletedBy,  String? pickupCompletedByName,  VerificationMethod? collectionVerification,  String? collectionVerifiedBy,  DateTime? collectionVerifiedAt,  DateTime? outForDeliveryAt,  String? deliveredBy,  String? deliveredByName,  String? proofPhotoUrl,  DateTime? completedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  int number,  String customerId,  String customerName,  String customerPhone,  String branchId,  String branchName,  bool isDelivery,  List<OrderItem> items,  double subtotal,  double deliveryFee,  double discount,  double total,  OrderStatus status,  String? address,  LatLng? addressLocation,  String? customerNote,  String? promoCode,  String? branchAddress,  DateTime? placedAt,  DateTime? statusSince,  DateTime? dueAt,  String? packerId,  String? packerName,  DateTime? packerAssignedAt,  String? driverId,  String? driverName,  DateTime? driverAssignedAt,  Set<String> packedLineIds,  DateTime? packingStartedAt,  DateTime? readyAt,  String? readyBy,  VerificationMethod? pickupVerification,  String? pickupCompletedBy,  String? pickupCompletedByName,  VerificationMethod? collectionVerification,  String? collectionVerifiedBy,  DateTime? collectionVerifiedAt,  DateTime? outForDeliveryAt,  String? deliveredBy,  String? deliveredByName,  String? proofPhotoUrl,  DateTime? completedAt,  Map<String, LineShortage> shortages)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Order() when $default != null:
-return $default(_that.id,_that.number,_that.customerId,_that.customerName,_that.customerPhone,_that.branchId,_that.branchName,_that.isDelivery,_that.items,_that.subtotal,_that.deliveryFee,_that.discount,_that.total,_that.status,_that.address,_that.addressLocation,_that.customerNote,_that.promoCode,_that.branchAddress,_that.placedAt,_that.statusSince,_that.dueAt,_that.packerId,_that.packerName,_that.packerAssignedAt,_that.driverId,_that.driverName,_that.driverAssignedAt,_that.packedLineIds,_that.packingStartedAt,_that.readyAt,_that.readyBy,_that.pickupVerification,_that.pickupCompletedBy,_that.pickupCompletedByName,_that.collectionVerification,_that.collectionVerifiedBy,_that.collectionVerifiedAt,_that.outForDeliveryAt,_that.deliveredBy,_that.deliveredByName,_that.proofPhotoUrl,_that.completedAt);case _:
+return $default(_that.id,_that.number,_that.customerId,_that.customerName,_that.customerPhone,_that.branchId,_that.branchName,_that.isDelivery,_that.items,_that.subtotal,_that.deliveryFee,_that.discount,_that.total,_that.status,_that.address,_that.addressLocation,_that.customerNote,_that.promoCode,_that.branchAddress,_that.placedAt,_that.statusSince,_that.dueAt,_that.packerId,_that.packerName,_that.packerAssignedAt,_that.driverId,_that.driverName,_that.driverAssignedAt,_that.packedLineIds,_that.packingStartedAt,_that.readyAt,_that.readyBy,_that.pickupVerification,_that.pickupCompletedBy,_that.pickupCompletedByName,_that.collectionVerification,_that.collectionVerifiedBy,_that.collectionVerifiedAt,_that.outForDeliveryAt,_that.deliveredBy,_that.deliveredByName,_that.proofPhotoUrl,_that.completedAt,_that.shortages);case _:
   return orElse();
 
 }
@@ -815,10 +1122,10 @@ return $default(_that.id,_that.number,_that.customerId,_that.customerName,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  int number,  String customerId,  String customerName,  String customerPhone,  String branchId,  String branchName,  bool isDelivery,  List<OrderItem> items,  double subtotal,  double deliveryFee,  double discount,  double total,  OrderStatus status,  String? address,  LatLng? addressLocation,  String? customerNote,  String? promoCode,  String? branchAddress,  DateTime? placedAt,  DateTime? statusSince,  DateTime? dueAt,  String? packerId,  String? packerName,  DateTime? packerAssignedAt,  String? driverId,  String? driverName,  DateTime? driverAssignedAt,  Set<String> packedLineIds,  DateTime? packingStartedAt,  DateTime? readyAt,  String? readyBy,  VerificationMethod? pickupVerification,  String? pickupCompletedBy,  String? pickupCompletedByName,  VerificationMethod? collectionVerification,  String? collectionVerifiedBy,  DateTime? collectionVerifiedAt,  DateTime? outForDeliveryAt,  String? deliveredBy,  String? deliveredByName,  String? proofPhotoUrl,  DateTime? completedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  int number,  String customerId,  String customerName,  String customerPhone,  String branchId,  String branchName,  bool isDelivery,  List<OrderItem> items,  double subtotal,  double deliveryFee,  double discount,  double total,  OrderStatus status,  String? address,  LatLng? addressLocation,  String? customerNote,  String? promoCode,  String? branchAddress,  DateTime? placedAt,  DateTime? statusSince,  DateTime? dueAt,  String? packerId,  String? packerName,  DateTime? packerAssignedAt,  String? driverId,  String? driverName,  DateTime? driverAssignedAt,  Set<String> packedLineIds,  DateTime? packingStartedAt,  DateTime? readyAt,  String? readyBy,  VerificationMethod? pickupVerification,  String? pickupCompletedBy,  String? pickupCompletedByName,  VerificationMethod? collectionVerification,  String? collectionVerifiedBy,  DateTime? collectionVerifiedAt,  DateTime? outForDeliveryAt,  String? deliveredBy,  String? deliveredByName,  String? proofPhotoUrl,  DateTime? completedAt,  Map<String, LineShortage> shortages)  $default,) {final _that = this;
 switch (_that) {
 case _Order():
-return $default(_that.id,_that.number,_that.customerId,_that.customerName,_that.customerPhone,_that.branchId,_that.branchName,_that.isDelivery,_that.items,_that.subtotal,_that.deliveryFee,_that.discount,_that.total,_that.status,_that.address,_that.addressLocation,_that.customerNote,_that.promoCode,_that.branchAddress,_that.placedAt,_that.statusSince,_that.dueAt,_that.packerId,_that.packerName,_that.packerAssignedAt,_that.driverId,_that.driverName,_that.driverAssignedAt,_that.packedLineIds,_that.packingStartedAt,_that.readyAt,_that.readyBy,_that.pickupVerification,_that.pickupCompletedBy,_that.pickupCompletedByName,_that.collectionVerification,_that.collectionVerifiedBy,_that.collectionVerifiedAt,_that.outForDeliveryAt,_that.deliveredBy,_that.deliveredByName,_that.proofPhotoUrl,_that.completedAt);case _:
+return $default(_that.id,_that.number,_that.customerId,_that.customerName,_that.customerPhone,_that.branchId,_that.branchName,_that.isDelivery,_that.items,_that.subtotal,_that.deliveryFee,_that.discount,_that.total,_that.status,_that.address,_that.addressLocation,_that.customerNote,_that.promoCode,_that.branchAddress,_that.placedAt,_that.statusSince,_that.dueAt,_that.packerId,_that.packerName,_that.packerAssignedAt,_that.driverId,_that.driverName,_that.driverAssignedAt,_that.packedLineIds,_that.packingStartedAt,_that.readyAt,_that.readyBy,_that.pickupVerification,_that.pickupCompletedBy,_that.pickupCompletedByName,_that.collectionVerification,_that.collectionVerifiedBy,_that.collectionVerifiedAt,_that.outForDeliveryAt,_that.deliveredBy,_that.deliveredByName,_that.proofPhotoUrl,_that.completedAt,_that.shortages);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -835,10 +1142,10 @@ return $default(_that.id,_that.number,_that.customerId,_that.customerName,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  int number,  String customerId,  String customerName,  String customerPhone,  String branchId,  String branchName,  bool isDelivery,  List<OrderItem> items,  double subtotal,  double deliveryFee,  double discount,  double total,  OrderStatus status,  String? address,  LatLng? addressLocation,  String? customerNote,  String? promoCode,  String? branchAddress,  DateTime? placedAt,  DateTime? statusSince,  DateTime? dueAt,  String? packerId,  String? packerName,  DateTime? packerAssignedAt,  String? driverId,  String? driverName,  DateTime? driverAssignedAt,  Set<String> packedLineIds,  DateTime? packingStartedAt,  DateTime? readyAt,  String? readyBy,  VerificationMethod? pickupVerification,  String? pickupCompletedBy,  String? pickupCompletedByName,  VerificationMethod? collectionVerification,  String? collectionVerifiedBy,  DateTime? collectionVerifiedAt,  DateTime? outForDeliveryAt,  String? deliveredBy,  String? deliveredByName,  String? proofPhotoUrl,  DateTime? completedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  int number,  String customerId,  String customerName,  String customerPhone,  String branchId,  String branchName,  bool isDelivery,  List<OrderItem> items,  double subtotal,  double deliveryFee,  double discount,  double total,  OrderStatus status,  String? address,  LatLng? addressLocation,  String? customerNote,  String? promoCode,  String? branchAddress,  DateTime? placedAt,  DateTime? statusSince,  DateTime? dueAt,  String? packerId,  String? packerName,  DateTime? packerAssignedAt,  String? driverId,  String? driverName,  DateTime? driverAssignedAt,  Set<String> packedLineIds,  DateTime? packingStartedAt,  DateTime? readyAt,  String? readyBy,  VerificationMethod? pickupVerification,  String? pickupCompletedBy,  String? pickupCompletedByName,  VerificationMethod? collectionVerification,  String? collectionVerifiedBy,  DateTime? collectionVerifiedAt,  DateTime? outForDeliveryAt,  String? deliveredBy,  String? deliveredByName,  String? proofPhotoUrl,  DateTime? completedAt,  Map<String, LineShortage> shortages)?  $default,) {final _that = this;
 switch (_that) {
 case _Order() when $default != null:
-return $default(_that.id,_that.number,_that.customerId,_that.customerName,_that.customerPhone,_that.branchId,_that.branchName,_that.isDelivery,_that.items,_that.subtotal,_that.deliveryFee,_that.discount,_that.total,_that.status,_that.address,_that.addressLocation,_that.customerNote,_that.promoCode,_that.branchAddress,_that.placedAt,_that.statusSince,_that.dueAt,_that.packerId,_that.packerName,_that.packerAssignedAt,_that.driverId,_that.driverName,_that.driverAssignedAt,_that.packedLineIds,_that.packingStartedAt,_that.readyAt,_that.readyBy,_that.pickupVerification,_that.pickupCompletedBy,_that.pickupCompletedByName,_that.collectionVerification,_that.collectionVerifiedBy,_that.collectionVerifiedAt,_that.outForDeliveryAt,_that.deliveredBy,_that.deliveredByName,_that.proofPhotoUrl,_that.completedAt);case _:
+return $default(_that.id,_that.number,_that.customerId,_that.customerName,_that.customerPhone,_that.branchId,_that.branchName,_that.isDelivery,_that.items,_that.subtotal,_that.deliveryFee,_that.discount,_that.total,_that.status,_that.address,_that.addressLocation,_that.customerNote,_that.promoCode,_that.branchAddress,_that.placedAt,_that.statusSince,_that.dueAt,_that.packerId,_that.packerName,_that.packerAssignedAt,_that.driverId,_that.driverName,_that.driverAssignedAt,_that.packedLineIds,_that.packingStartedAt,_that.readyAt,_that.readyBy,_that.pickupVerification,_that.pickupCompletedBy,_that.pickupCompletedByName,_that.collectionVerification,_that.collectionVerifiedBy,_that.collectionVerifiedAt,_that.outForDeliveryAt,_that.deliveredBy,_that.deliveredByName,_that.proofPhotoUrl,_that.completedAt,_that.shortages);case _:
   return null;
 
 }
@@ -850,7 +1157,7 @@ return $default(_that.id,_that.number,_that.customerId,_that.customerName,_that.
 
 
 class _Order extends Order {
-  const _Order({required this.id, required this.number, required this.customerId, required this.customerName, required this.customerPhone, required this.branchId, required this.branchName, required this.isDelivery, required  List<OrderItem> items, required this.subtotal, required this.deliveryFee, required this.discount, required this.total, required this.status, this.address, this.addressLocation, this.customerNote, this.promoCode, this.branchAddress, this.placedAt, this.statusSince, this.dueAt, this.packerId, this.packerName, this.packerAssignedAt, this.driverId, this.driverName, this.driverAssignedAt,  Set<String> packedLineIds = const <String>{}, this.packingStartedAt, this.readyAt, this.readyBy, this.pickupVerification, this.pickupCompletedBy, this.pickupCompletedByName, this.collectionVerification, this.collectionVerifiedBy, this.collectionVerifiedAt, this.outForDeliveryAt, this.deliveredBy, this.deliveredByName, this.proofPhotoUrl, this.completedAt}): _items = items,_packedLineIds = packedLineIds,super._();
+  const _Order({required this.id, required this.number, required this.customerId, required this.customerName, required this.customerPhone, required this.branchId, required this.branchName, required this.isDelivery, required  List<OrderItem> items, required this.subtotal, required this.deliveryFee, required this.discount, required this.total, required this.status, this.address, this.addressLocation, this.customerNote, this.promoCode, this.branchAddress, this.placedAt, this.statusSince, this.dueAt, this.packerId, this.packerName, this.packerAssignedAt, this.driverId, this.driverName, this.driverAssignedAt,  Set<String> packedLineIds = const <String>{}, this.packingStartedAt, this.readyAt, this.readyBy, this.pickupVerification, this.pickupCompletedBy, this.pickupCompletedByName, this.collectionVerification, this.collectionVerifiedBy, this.collectionVerifiedAt, this.outForDeliveryAt, this.deliveredBy, this.deliveredByName, this.proofPhotoUrl, this.completedAt,  Map<String, LineShortage> shortages = const <String, LineShortage>{}}): _items = items,_packedLineIds = packedLineIds,_shortages = shortages,super._();
   
 
 @override final  String id;
@@ -927,6 +1234,15 @@ class _Order extends Order {
 @override final  String? proofPhotoUrl;
 /// When the order was completed, by pickup or by delivery.
 @override final  DateTime? completedAt;
+/// Items a packer found unavailable, by line id. See [LineShortage].
+ final  Map<String, LineShortage> _shortages;
+/// Items a packer found unavailable, by line id. See [LineShortage].
+@override@JsonKey() Map<String, LineShortage> get shortages {
+  if (_shortages is EqualUnmodifiableMapView) return _shortages;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_shortages);
+}
+
 
 /// Create a copy of Order
 /// with the given fields replaced by the non-null parameter values.
@@ -938,18 +1254,18 @@ _$OrderCopyWith<_Order> get copyWith => __$OrderCopyWithImpl<_Order>(this, _$ide
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Order&&(identical(other.id, id) || other.id == id)&&(identical(other.number, number) || other.number == number)&&(identical(other.customerId, customerId) || other.customerId == customerId)&&(identical(other.customerName, customerName) || other.customerName == customerName)&&(identical(other.customerPhone, customerPhone) || other.customerPhone == customerPhone)&&(identical(other.branchId, branchId) || other.branchId == branchId)&&(identical(other.branchName, branchName) || other.branchName == branchName)&&(identical(other.isDelivery, isDelivery) || other.isDelivery == isDelivery)&&const DeepCollectionEquality().equals(other.items, _items)&&(identical(other.subtotal, subtotal) || other.subtotal == subtotal)&&(identical(other.deliveryFee, deliveryFee) || other.deliveryFee == deliveryFee)&&(identical(other.discount, discount) || other.discount == discount)&&(identical(other.total, total) || other.total == total)&&(identical(other.status, status) || other.status == status)&&(identical(other.address, address) || other.address == address)&&(identical(other.addressLocation, addressLocation) || other.addressLocation == addressLocation)&&(identical(other.customerNote, customerNote) || other.customerNote == customerNote)&&(identical(other.promoCode, promoCode) || other.promoCode == promoCode)&&(identical(other.branchAddress, branchAddress) || other.branchAddress == branchAddress)&&(identical(other.placedAt, placedAt) || other.placedAt == placedAt)&&(identical(other.statusSince, statusSince) || other.statusSince == statusSince)&&(identical(other.dueAt, dueAt) || other.dueAt == dueAt)&&(identical(other.packerId, packerId) || other.packerId == packerId)&&(identical(other.packerName, packerName) || other.packerName == packerName)&&(identical(other.packerAssignedAt, packerAssignedAt) || other.packerAssignedAt == packerAssignedAt)&&(identical(other.driverId, driverId) || other.driverId == driverId)&&(identical(other.driverName, driverName) || other.driverName == driverName)&&(identical(other.driverAssignedAt, driverAssignedAt) || other.driverAssignedAt == driverAssignedAt)&&const DeepCollectionEquality().equals(other.packedLineIds, _packedLineIds)&&(identical(other.packingStartedAt, packingStartedAt) || other.packingStartedAt == packingStartedAt)&&(identical(other.readyAt, readyAt) || other.readyAt == readyAt)&&(identical(other.readyBy, readyBy) || other.readyBy == readyBy)&&(identical(other.pickupVerification, pickupVerification) || other.pickupVerification == pickupVerification)&&(identical(other.pickupCompletedBy, pickupCompletedBy) || other.pickupCompletedBy == pickupCompletedBy)&&(identical(other.pickupCompletedByName, pickupCompletedByName) || other.pickupCompletedByName == pickupCompletedByName)&&(identical(other.collectionVerification, collectionVerification) || other.collectionVerification == collectionVerification)&&(identical(other.collectionVerifiedBy, collectionVerifiedBy) || other.collectionVerifiedBy == collectionVerifiedBy)&&(identical(other.collectionVerifiedAt, collectionVerifiedAt) || other.collectionVerifiedAt == collectionVerifiedAt)&&(identical(other.outForDeliveryAt, outForDeliveryAt) || other.outForDeliveryAt == outForDeliveryAt)&&(identical(other.deliveredBy, deliveredBy) || other.deliveredBy == deliveredBy)&&(identical(other.deliveredByName, deliveredByName) || other.deliveredByName == deliveredByName)&&(identical(other.proofPhotoUrl, proofPhotoUrl) || other.proofPhotoUrl == proofPhotoUrl)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _Order&&(identical(other.id, id) || other.id == id)&&(identical(other.number, number) || other.number == number)&&(identical(other.customerId, customerId) || other.customerId == customerId)&&(identical(other.customerName, customerName) || other.customerName == customerName)&&(identical(other.customerPhone, customerPhone) || other.customerPhone == customerPhone)&&(identical(other.branchId, branchId) || other.branchId == branchId)&&(identical(other.branchName, branchName) || other.branchName == branchName)&&(identical(other.isDelivery, isDelivery) || other.isDelivery == isDelivery)&&const DeepCollectionEquality().equals(other.items, _items)&&(identical(other.subtotal, subtotal) || other.subtotal == subtotal)&&(identical(other.deliveryFee, deliveryFee) || other.deliveryFee == deliveryFee)&&(identical(other.discount, discount) || other.discount == discount)&&(identical(other.total, total) || other.total == total)&&(identical(other.status, status) || other.status == status)&&(identical(other.address, address) || other.address == address)&&(identical(other.addressLocation, addressLocation) || other.addressLocation == addressLocation)&&(identical(other.customerNote, customerNote) || other.customerNote == customerNote)&&(identical(other.promoCode, promoCode) || other.promoCode == promoCode)&&(identical(other.branchAddress, branchAddress) || other.branchAddress == branchAddress)&&(identical(other.placedAt, placedAt) || other.placedAt == placedAt)&&(identical(other.statusSince, statusSince) || other.statusSince == statusSince)&&(identical(other.dueAt, dueAt) || other.dueAt == dueAt)&&(identical(other.packerId, packerId) || other.packerId == packerId)&&(identical(other.packerName, packerName) || other.packerName == packerName)&&(identical(other.packerAssignedAt, packerAssignedAt) || other.packerAssignedAt == packerAssignedAt)&&(identical(other.driverId, driverId) || other.driverId == driverId)&&(identical(other.driverName, driverName) || other.driverName == driverName)&&(identical(other.driverAssignedAt, driverAssignedAt) || other.driverAssignedAt == driverAssignedAt)&&const DeepCollectionEquality().equals(other.packedLineIds, _packedLineIds)&&(identical(other.packingStartedAt, packingStartedAt) || other.packingStartedAt == packingStartedAt)&&(identical(other.readyAt, readyAt) || other.readyAt == readyAt)&&(identical(other.readyBy, readyBy) || other.readyBy == readyBy)&&(identical(other.pickupVerification, pickupVerification) || other.pickupVerification == pickupVerification)&&(identical(other.pickupCompletedBy, pickupCompletedBy) || other.pickupCompletedBy == pickupCompletedBy)&&(identical(other.pickupCompletedByName, pickupCompletedByName) || other.pickupCompletedByName == pickupCompletedByName)&&(identical(other.collectionVerification, collectionVerification) || other.collectionVerification == collectionVerification)&&(identical(other.collectionVerifiedBy, collectionVerifiedBy) || other.collectionVerifiedBy == collectionVerifiedBy)&&(identical(other.collectionVerifiedAt, collectionVerifiedAt) || other.collectionVerifiedAt == collectionVerifiedAt)&&(identical(other.outForDeliveryAt, outForDeliveryAt) || other.outForDeliveryAt == outForDeliveryAt)&&(identical(other.deliveredBy, deliveredBy) || other.deliveredBy == deliveredBy)&&(identical(other.deliveredByName, deliveredByName) || other.deliveredByName == deliveredByName)&&(identical(other.proofPhotoUrl, proofPhotoUrl) || other.proofPhotoUrl == proofPhotoUrl)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&const DeepCollectionEquality().equals(other.shortages, _shortages));
 }
 
 
 @override
 int get hashCode {
-    return Object.hashAll([runtimeType,id,number,customerId,customerName,customerPhone,branchId,branchName,isDelivery,const DeepCollectionEquality().hash(_items),subtotal,deliveryFee,discount,total,status,address,addressLocation,customerNote,promoCode,branchAddress,placedAt,statusSince,dueAt,packerId,packerName,packerAssignedAt,driverId,driverName,driverAssignedAt,const DeepCollectionEquality().hash(_packedLineIds),packingStartedAt,readyAt,readyBy,pickupVerification,pickupCompletedBy,pickupCompletedByName,collectionVerification,collectionVerifiedBy,collectionVerifiedAt,outForDeliveryAt,deliveredBy,deliveredByName,proofPhotoUrl,completedAt]);
+    return Object.hashAll([runtimeType,id,number,customerId,customerName,customerPhone,branchId,branchName,isDelivery,const DeepCollectionEquality().hash(_items),subtotal,deliveryFee,discount,total,status,address,addressLocation,customerNote,promoCode,branchAddress,placedAt,statusSince,dueAt,packerId,packerName,packerAssignedAt,driverId,driverName,driverAssignedAt,const DeepCollectionEquality().hash(_packedLineIds),packingStartedAt,readyAt,readyBy,pickupVerification,pickupCompletedBy,pickupCompletedByName,collectionVerification,collectionVerifiedBy,collectionVerifiedAt,outForDeliveryAt,deliveredBy,deliveredByName,proofPhotoUrl,completedAt,const DeepCollectionEquality().hash(_shortages)]);
 }
 
 @override
 String toString() {
-    return 'Order(id: $id, number: $number, customerId: $customerId, customerName: $customerName, customerPhone: $customerPhone, branchId: $branchId, branchName: $branchName, isDelivery: $isDelivery, items: $items, subtotal: $subtotal, deliveryFee: $deliveryFee, discount: $discount, total: $total, status: $status, address: $address, addressLocation: $addressLocation, customerNote: $customerNote, promoCode: $promoCode, branchAddress: $branchAddress, placedAt: $placedAt, statusSince: $statusSince, dueAt: $dueAt, packerId: $packerId, packerName: $packerName, packerAssignedAt: $packerAssignedAt, driverId: $driverId, driverName: $driverName, driverAssignedAt: $driverAssignedAt, packedLineIds: $packedLineIds, packingStartedAt: $packingStartedAt, readyAt: $readyAt, readyBy: $readyBy, pickupVerification: $pickupVerification, pickupCompletedBy: $pickupCompletedBy, pickupCompletedByName: $pickupCompletedByName, collectionVerification: $collectionVerification, collectionVerifiedBy: $collectionVerifiedBy, collectionVerifiedAt: $collectionVerifiedAt, outForDeliveryAt: $outForDeliveryAt, deliveredBy: $deliveredBy, deliveredByName: $deliveredByName, proofPhotoUrl: $proofPhotoUrl, completedAt: $completedAt)';
+    return 'Order(id: $id, number: $number, customerId: $customerId, customerName: $customerName, customerPhone: $customerPhone, branchId: $branchId, branchName: $branchName, isDelivery: $isDelivery, items: $items, subtotal: $subtotal, deliveryFee: $deliveryFee, discount: $discount, total: $total, status: $status, address: $address, addressLocation: $addressLocation, customerNote: $customerNote, promoCode: $promoCode, branchAddress: $branchAddress, placedAt: $placedAt, statusSince: $statusSince, dueAt: $dueAt, packerId: $packerId, packerName: $packerName, packerAssignedAt: $packerAssignedAt, driverId: $driverId, driverName: $driverName, driverAssignedAt: $driverAssignedAt, packedLineIds: $packedLineIds, packingStartedAt: $packingStartedAt, readyAt: $readyAt, readyBy: $readyBy, pickupVerification: $pickupVerification, pickupCompletedBy: $pickupCompletedBy, pickupCompletedByName: $pickupCompletedByName, collectionVerification: $collectionVerification, collectionVerifiedBy: $collectionVerifiedBy, collectionVerifiedAt: $collectionVerifiedAt, outForDeliveryAt: $outForDeliveryAt, deliveredBy: $deliveredBy, deliveredByName: $deliveredByName, proofPhotoUrl: $proofPhotoUrl, completedAt: $completedAt, shortages: $shortages)';
 }
 
 
@@ -960,7 +1276,7 @@ abstract mixin class _$OrderCopyWith<$Res> implements $OrderCopyWith<$Res> {
   factory _$OrderCopyWith(_Order value, $Res Function(_Order) _then) = __$OrderCopyWithImpl;
 @override @useResult
 $Res call({
- String id, int number, String customerId, String customerName, String customerPhone, String branchId, String branchName, bool isDelivery, List<OrderItem> items, double subtotal, double deliveryFee, double discount, double total, OrderStatus status, String? address, LatLng? addressLocation, String? customerNote, String? promoCode, String? branchAddress, DateTime? placedAt, DateTime? statusSince, DateTime? dueAt, String? packerId, String? packerName, DateTime? packerAssignedAt, String? driverId, String? driverName, DateTime? driverAssignedAt, Set<String> packedLineIds, DateTime? packingStartedAt, DateTime? readyAt, String? readyBy, VerificationMethod? pickupVerification, String? pickupCompletedBy, String? pickupCompletedByName, VerificationMethod? collectionVerification, String? collectionVerifiedBy, DateTime? collectionVerifiedAt, DateTime? outForDeliveryAt, String? deliveredBy, String? deliveredByName, String? proofPhotoUrl, DateTime? completedAt
+ String id, int number, String customerId, String customerName, String customerPhone, String branchId, String branchName, bool isDelivery, List<OrderItem> items, double subtotal, double deliveryFee, double discount, double total, OrderStatus status, String? address, LatLng? addressLocation, String? customerNote, String? promoCode, String? branchAddress, DateTime? placedAt, DateTime? statusSince, DateTime? dueAt, String? packerId, String? packerName, DateTime? packerAssignedAt, String? driverId, String? driverName, DateTime? driverAssignedAt, Set<String> packedLineIds, DateTime? packingStartedAt, DateTime? readyAt, String? readyBy, VerificationMethod? pickupVerification, String? pickupCompletedBy, String? pickupCompletedByName, VerificationMethod? collectionVerification, String? collectionVerifiedBy, DateTime? collectionVerifiedAt, DateTime? outForDeliveryAt, String? deliveredBy, String? deliveredByName, String? proofPhotoUrl, DateTime? completedAt, Map<String, LineShortage> shortages
 });
 
 
@@ -977,7 +1293,7 @@ class __$OrderCopyWithImpl<$Res>
 
 /// Create a copy of Order
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? number = null,Object? customerId = null,Object? customerName = null,Object? customerPhone = null,Object? branchId = null,Object? branchName = null,Object? isDelivery = null,Object? items = null,Object? subtotal = null,Object? deliveryFee = null,Object? discount = null,Object? total = null,Object? status = null,Object? address = freezed,Object? addressLocation = freezed,Object? customerNote = freezed,Object? promoCode = freezed,Object? branchAddress = freezed,Object? placedAt = freezed,Object? statusSince = freezed,Object? dueAt = freezed,Object? packerId = freezed,Object? packerName = freezed,Object? packerAssignedAt = freezed,Object? driverId = freezed,Object? driverName = freezed,Object? driverAssignedAt = freezed,Object? packedLineIds = null,Object? packingStartedAt = freezed,Object? readyAt = freezed,Object? readyBy = freezed,Object? pickupVerification = freezed,Object? pickupCompletedBy = freezed,Object? pickupCompletedByName = freezed,Object? collectionVerification = freezed,Object? collectionVerifiedBy = freezed,Object? collectionVerifiedAt = freezed,Object? outForDeliveryAt = freezed,Object? deliveredBy = freezed,Object? deliveredByName = freezed,Object? proofPhotoUrl = freezed,Object? completedAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? number = null,Object? customerId = null,Object? customerName = null,Object? customerPhone = null,Object? branchId = null,Object? branchName = null,Object? isDelivery = null,Object? items = null,Object? subtotal = null,Object? deliveryFee = null,Object? discount = null,Object? total = null,Object? status = null,Object? address = freezed,Object? addressLocation = freezed,Object? customerNote = freezed,Object? promoCode = freezed,Object? branchAddress = freezed,Object? placedAt = freezed,Object? statusSince = freezed,Object? dueAt = freezed,Object? packerId = freezed,Object? packerName = freezed,Object? packerAssignedAt = freezed,Object? driverId = freezed,Object? driverName = freezed,Object? driverAssignedAt = freezed,Object? packedLineIds = null,Object? packingStartedAt = freezed,Object? readyAt = freezed,Object? readyBy = freezed,Object? pickupVerification = freezed,Object? pickupCompletedBy = freezed,Object? pickupCompletedByName = freezed,Object? collectionVerification = freezed,Object? collectionVerifiedBy = freezed,Object? collectionVerifiedAt = freezed,Object? outForDeliveryAt = freezed,Object? deliveredBy = freezed,Object? deliveredByName = freezed,Object? proofPhotoUrl = freezed,Object? completedAt = freezed,Object? shortages = null,}) {
   return _then(_Order(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,number: null == number ? _self.number : number // ignore: cast_nullable_to_non_nullable
@@ -1022,7 +1338,8 @@ as DateTime?,deliveredBy: freezed == deliveredBy ? _self.deliveredBy : delivered
 as String?,deliveredByName: freezed == deliveredByName ? _self.deliveredByName : deliveredByName // ignore: cast_nullable_to_non_nullable
 as String?,proofPhotoUrl: freezed == proofPhotoUrl ? _self.proofPhotoUrl : proofPhotoUrl // ignore: cast_nullable_to_non_nullable
 as String?,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,shortages: null == shortages ? _self._shortages : shortages // ignore: cast_nullable_to_non_nullable
+as Map<String, LineShortage>,
   ));
 }
 

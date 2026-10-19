@@ -204,4 +204,177 @@ void main() {
       expect(order.timeline.last.title, 'Cancelled');
     });
   });
+
+  group('shortages', () {
+    const milkReplacement = OrderItem(
+      lineId: 'L1',
+      productId: 'p-oat',
+      name: 'Oat milk',
+      brand: 'Oatside',
+      packSize: '1L',
+      quantity: 2,
+      unitPrice: 9,
+      category: 'Dairy & Eggs',
+    );
+
+    Order withShortages(Map<String, LineShortage> shortages) {
+      return base().copyWith(shortages: shortages);
+    }
+
+    test('an order without shortages is unchanged', () {
+      final order = base();
+
+      expect(order.effectiveItems, lines);
+      expect(order.adjustedTotal, order.total);
+      expect(order.adjustment, 0);
+      expect(order.hasOpenShortage, isFalse);
+      expect(order.lineCount, 2);
+    });
+
+    test('a proposal changes nothing until the customer decides', () {
+      final order = withShortages({
+        'L1': LineShortage(
+          status: ShortageStatus.proposed,
+          replacement: milkReplacement,
+          flaggedAt: at(5),
+        ),
+      });
+
+      expect(order.openShortageCount, 1);
+      expect(order.hasOpenShortage, isTrue);
+      expect(order.effectiveItems, lines);
+      expect(order.adjustedTotal, 26);
+      // It also stops the order counting as fully packed.
+      expect(
+        order.copyWith(packedLineIds: {'L1', 'L2'}).isFullyPacked,
+        isFalse,
+      );
+    });
+
+    test('an accepted replacement stands in for the line', () {
+      final order = withShortages({
+        'L1': LineShortage(
+          status: ShortageStatus.accepted,
+          replacement: milkReplacement,
+          flaggedAt: at(5),
+          decidedAt: at(8),
+        ),
+      });
+
+      expect(order.effectiveItems.first, milkReplacement);
+      // 2 x 9 + 1 x 7 + 3 delivery = 28 instead of 26.
+      expect(order.adjustedSubtotal, 25);
+      expect(order.adjustedTotal, 28);
+      expect(order.adjustment, 2);
+      expect(order.hasOpenShortage, isFalse);
+    });
+
+    test('a removed line leaves the order and the total is refunded', () {
+      final order = withShortages({
+        'L1': LineShortage(
+          status: ShortageStatus.removed,
+          flaggedAt: at(5),
+          decidedAt: at(8),
+        ),
+      });
+
+      expect(order.effectiveItems.map((item) => item.lineId), ['L2']);
+      expect(order.adjustedSubtotal, 7);
+      expect(order.adjustedTotal, 10);
+      expect(order.adjustment, -16);
+      expect(order.removedLineIds, {'L1'});
+      expect(order.lineCount, 1);
+      expect(order.itemCount, 1);
+    });
+
+    test('a removed line is not packed, and the rest decide if packed', () {
+      final order = withShortages({
+        'L1': const LineShortage(status: ShortageStatus.removed),
+      }).copyWith(packedLineIds: {'L1', 'L2'});
+
+      expect(order.isPacked('L1'), isFalse);
+      expect(order.isPacked('L2'), isTrue);
+      expect(order.packedLineCount, 1);
+      expect(order.isFullyPacked, isTrue);
+      expect(order.packingProgress, 1);
+    });
+
+    test('the discount never exceeds the new subtotal', () {
+      final order = base()
+          .copyWith(discount: 10, total: 16)
+          .copyWith(
+            shortages: {
+              'L1': const LineShortage(status: ShortageStatus.removed),
+            },
+          );
+
+      // Subtotal falls to 7, so only 7 of the 10 discount applies.
+      expect(order.adjustedTotal, 3);
+    });
+
+    test('everything removed leaves just the delivery fee', () {
+      final order = withShortages({
+        'L1': const LineShortage(status: ShortageStatus.removed),
+        'L2': const LineShortage(status: ShortageStatus.removed),
+      });
+
+      expect(order.adjustedSubtotal, 0);
+      expect(order.adjustedTotal, 3);
+      expect(order.lineCount, 0);
+    });
+
+    test('round-trips through Firestore with the replacement', () {
+      final order = withShortages({
+        'L1': LineShortage(
+          status: ShortageStatus.proposed,
+          replacement: milkReplacement,
+          flaggedAt: at(5),
+        ),
+        'L2': LineShortage(
+          status: ShortageStatus.removed,
+          flaggedAt: at(6),
+          decidedAt: at(9),
+        ),
+      });
+      final map = order.toFirestore();
+      map[OrderFields.placedAt] = Timestamp.fromDate(placed);
+      map[OrderFields.statusSince] = Timestamp.fromDate(placed);
+
+      expect(Order.fromFirestore('o1', map), order);
+      expect(
+        (map[OrderFields.shortages]! as Map).keys,
+        containsAll(['L1', 'L2']),
+      );
+    });
+
+    test('an order without shortages does not write the field', () {
+      expect(base().toFirestore().containsKey(OrderFields.shortages), isFalse);
+    });
+
+    test('an unknown status reads as proposed, not removed', () {
+      final shortage = LineShortage.fromMap({ShortageFields.status: 'weird'});
+
+      expect(shortage.status, ShortageStatus.proposed);
+    });
+
+    test("the timeline notes the shortage and the customer's decision", () {
+      final order = withShortages({
+        'L1': LineShortage(
+          status: ShortageStatus.accepted,
+          replacement: milkReplacement,
+          flaggedAt: at(5),
+          decidedAt: at(8),
+        ),
+      }).copyWith(packerName: 'Daniel Lee');
+
+      final titles = [for (final event in order.timeline) event.title];
+      expect(titles, [
+        'Order placed',
+        'Milk unavailable',
+        'Replacement for Milk accepted',
+      ]);
+      expect(order.timeline[1].by, 'Daniel Lee');
+      expect(order.timeline[2].by, isNull);
+    });
+  });
 }

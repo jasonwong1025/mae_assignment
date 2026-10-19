@@ -286,6 +286,132 @@ void main() {
     });
   });
 
+  group('shortage rules', () {
+    const proposed = LineShortage(
+      status: ShortageStatus.proposed,
+      replacement: OrderItem(
+        lineId: 'L3',
+        productId: 'p9',
+        name: 'Other',
+        brand: 'Brand',
+        packSize: '1L',
+        quantity: 1,
+        unitPrice: 5,
+      ),
+    );
+    const removed = LineShortage(status: ShortageStatus.removed);
+
+    test('an unticked line of a packing order can be reported', () {
+      expect(
+        WorkerOrderPolicy.checkFlagUnavailable(
+          _daniel,
+          _order('ord-2302'),
+          'L3',
+        ),
+        isNull,
+      );
+    });
+
+    test('only the assigned packer, and only while packing', () {
+      expect(
+        WorkerOrderPolicy.checkFlagUnavailable(
+          _hakim,
+          _order('ord-2302'),
+          'L3',
+        ),
+        isNotNull,
+      );
+      expect(
+        WorkerOrderPolicy.checkFlagUnavailable(
+          _daniel,
+          _order('ord-2301'),
+          'L1',
+        ),
+        'Start packing before reporting an item unavailable.',
+      );
+      expect(
+        WorkerOrderPolicy.checkFlagUnavailable(
+          _daniel,
+          _order('ord-2305'),
+          'L1',
+        ),
+        'This order is no longer being packed.',
+      );
+    });
+
+    test('a ticked, unknown or already reported line is refused', () {
+      final order = _order('ord-2302');
+      expect(
+        WorkerOrderPolicy.checkFlagUnavailable(_daniel, order, 'L1'),
+        'Untick this item before reporting it unavailable.',
+      );
+      expect(
+        WorkerOrderPolicy.checkFlagUnavailable(_daniel, order, 'L9'),
+        'This item is not part of the order.',
+      );
+      expect(
+        WorkerOrderPolicy.checkFlagUnavailable(
+          _daniel,
+          order.copyWith(shortages: {'L3': proposed}),
+          'L3',
+        ),
+        'This item has already been reported unavailable.',
+      );
+    });
+
+    test('a removed or waiting line cannot be ticked', () {
+      final order = _order('ord-2302');
+      expect(
+        WorkerOrderPolicy.checkEditChecklist(
+          _daniel,
+          order.copyWith(shortages: {'L3': removed}),
+          'L3',
+        ),
+        'This item was removed from the order.',
+      );
+      expect(
+        WorkerOrderPolicy.checkEditChecklist(
+          _daniel,
+          order.copyWith(shortages: {'L3': proposed}),
+          'L3',
+        ),
+        'Waiting for the customer to reply about this item.',
+      );
+    });
+
+    test('ready waits for the customer, but not for removed lines', () {
+      final order = _order(
+        'ord-2302',
+      ).copyWith(packedLineIds: {'L1', 'L2', 'L4', 'L5'});
+      expect(
+        WorkerOrderPolicy.checkMarkReady(
+          _daniel,
+          order.copyWith(shortages: {'L3': proposed}),
+        ),
+        'Waiting for the customer to reply about 1 unavailable item.',
+      );
+      expect(
+        WorkerOrderPolicy.checkMarkReady(
+          _daniel,
+          order.copyWith(shortages: {'L3': removed}),
+        ),
+        isNull,
+      );
+    });
+
+    test('an order with every line removed cannot be marked ready', () {
+      final order = _order('ord-2302');
+      final all = order.copyWith(
+        packedLineIds: <String>{},
+        shortages: {for (final item in order.items) item.lineId: removed},
+      );
+      expect(
+        WorkerOrderPolicy.checkMarkReady(_daniel, all),
+        'Every item was removed. Ask HQ to cancel this order.',
+      );
+    });
+  });
+
   group('pickup rules', () {
     test('any packer in the branch can hand over a ready pickup', () {
       final packedByHakim = _order('ord-2306');

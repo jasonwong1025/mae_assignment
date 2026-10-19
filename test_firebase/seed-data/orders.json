@@ -1429,6 +1429,26 @@
         "L2",
         "L3"
       ],
+      "shortages": {
+        "L4": {
+          "status": "proposed",
+          "replacement": {
+            "lineId": "L4",
+            "productId": "p-apple",
+            "name": "Granny Smith apple",
+            "brand": "Orchard",
+            "packSize": "4 pack",
+            "quantity": 1,
+            "unitPrice": 6.9,
+            "categoryId": "fruits-vegetables",
+            "category": "Fruits & Vegetables"
+          },
+          "flaggedAt": {
+            "$minutes": -3
+          }
+        }
+      },
+      "openShortages": 1,
       "address": "45, Jalan SS17/2, 47500 Subang Jaya",
       "branchAddress": "18, Jalan SS15/4D, 47500 Subang Jaya",
       "packerId": "packer-daniel",

@@ -194,7 +194,40 @@ class WorkerOrdersRepository {
         statusSince: now,
         readyAt: now,
         readyBy: worker.id,
+        // Removed lines are never ticked, but the checklist must still
+        // account for every line (firestore.rules compares its size with
+        // the number of lines), so they are added here.
+        packedLineIds: {...order.packedLineIds, ...order.removedLineIds},
       );
+    });
+  }
+
+  /// Reports one line unavailable. With a [replacement] (an item from the
+  /// branch's stock) the customer is asked; without one the line is removed
+  /// from the order at once.
+  Future<void> flagUnavailable(
+    WorkerProfile worker,
+    String orderId,
+    String lineId, {
+    OrderItem? replacement,
+  }) {
+    return _guarded(() async {
+      final order = await _service.getOrder(orderId);
+      if (order == null) {
+        throw const WorkerOrderException('This order no longer exists.');
+      }
+      _allow(WorkerOrderPolicy.checkFlagUnavailable(worker, order, lineId));
+      final saved = await _service.flagShortage(
+        orderId,
+        lineId,
+        replacement: replacement,
+      );
+      if (!saved) {
+        throw const WorkerOrderException(
+          'This item could not be reported. The order may have changed, '
+          'please try again.',
+        );
+      }
     });
   }
 

@@ -267,7 +267,8 @@ class _HandoverContent extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    for (final (index, item) in order.items.indexed) ...[
+                    for (final (index, item)
+                        in order.effectiveItems.indexed) ...[
                       if (index > 0) const Divider(height: 1),
                       _ItemRow(
                         item: item,

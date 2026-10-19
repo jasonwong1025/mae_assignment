@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
+import 'package:mae_assignment/features/store_worker/packing/data/repositories/replacement_repository.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_item_tile.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/view_models/packing_order_view_model.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/verification_method.dart';
 
 import '../../helpers/worker_profiles.dart';
@@ -19,8 +22,14 @@ Future<(ProviderContainer, WorkerOrdersRepository)> _pumpAs(
   WidgetTester tester,
   String workerName, {
   String location = AppRoutes.workerPacking,
+  List<Override> overrides = const [],
 }) {
-  return pumpWorkerApp(tester, workerName, location: location);
+  return pumpWorkerApp(
+    tester,
+    workerName,
+    location: location,
+    overrides: overrides,
+  );
 }
 
 /// Scrolls to the product called [name] and taps it.
@@ -49,7 +58,104 @@ Future<void> _expectCount(WidgetTester tester, String count) async {
   expect(find.text(count), findsOneWidget);
 }
 
+/// Offers one fixed replacement, so the sheet needs no catalogue.
+class _FakeReplacements implements ReplacementRepository {
+  @override
+  Future<List<OrderItem>> optionsFor(Order order, OrderItem unavailable) async {
+    return [
+      OrderItem(
+        lineId: unavailable.lineId,
+        productId: 'p-other',
+        name: 'Other milk',
+        brand: 'Other brand',
+        packSize: '1L',
+        quantity: unavailable.quantity,
+        unitPrice: unavailable.unitPrice + 1,
+      ),
+    ];
+  }
+}
+
 void main() {
+  group('unavailable items', () {
+    testWidgets('no replacement removes the item', (tester) async {
+      await _pumpAs(
+        tester,
+        'Daniel Lee',
+        location: '/worker/packing/ord-2302',
+        overrides: [
+          replacementRepositoryProvider.overrideWithValue(_FakeReplacements()),
+        ],
+      );
+      await tester.tap(find.text('Item unavailable?').first);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('is unavailable'), findsOneWidget);
+      expect(find.text('Other milk'), findsOneWidget);
+
+      await tester.tap(find.text('No replacement, remove item'));
+      await tester.pumpAndSettle();
+
+      await scrollIntoView(tester, find.text('REMOVED (1)'));
+      expect(find.text('REMOVED (1)'), findsOneWidget);
+      expect(find.text('Removed from the order'), findsOneWidget);
+      // One line fewer to pack.
+      await _expectCount(tester, '2/4');
+    });
+
+    testWidgets('a replacement waits for the customer', (tester) async {
+      await _pumpAs(
+        tester,
+        'Daniel Lee',
+        location: '/worker/packing/ord-2302',
+        overrides: [
+          replacementRepositoryProvider.overrideWithValue(_FakeReplacements()),
+        ],
+      );
+      await tester.tap(find.text('Item unavailable?').first);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Other milk'));
+      await tester.pumpAndSettle();
+
+      await scrollIntoView(tester, find.text('WAITING FOR CUSTOMER (1)'));
+      expect(find.text('WAITING FOR CUSTOMER (1)'), findsOneWidget);
+      expect(find.textContaining('Offered: Other milk'), findsOneWidget);
+    });
+
+    testWidgets('ready stays off while a reply is open', (tester) async {
+      final (_, repository) = await _pumpAs(
+        tester,
+        'Daniel Lee',
+        location: '/worker/packing/ord-2302',
+      );
+      final daniel = testWorker('Daniel Lee');
+      for (final line in ['L4', 'L5']) {
+        await repository.setItemPacked(daniel, 'ord-2302', line, packed: true);
+      }
+      await repository.flagUnavailable(
+        daniel,
+        'ord-2302',
+        'L3',
+        replacement: const OrderItem(
+          lineId: 'L3',
+          productId: 'p-other',
+          name: 'Other milk',
+          brand: 'Other brand',
+          packSize: '1L',
+          quantity: 1,
+          unitPrice: 6,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Review & mark ready'), findsNothing);
+      expect(
+        buttonWithText(tester, 'Waiting for the customer').onPressed,
+        isNull,
+      );
+    });
+  });
+
   group('My Tasks', () {
     testWidgets('lists only my orders, with the next one first', (
       tester,

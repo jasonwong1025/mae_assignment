@@ -94,10 +94,10 @@ class _PackingReviewSheet extends StatelessWidget {
                   Flexible(
                     child: ListView.separated(
                       shrinkWrap: true,
-                      itemCount: order.items.length,
+                      itemCount: order.effectiveItems.length,
                       separatorBuilder: (context, index) => const Divider(),
                       itemBuilder: (context, index) {
-                        final item = order.items[index];
+                        final item = order.effectiveItems[index];
                         return Padding(
                           padding: const EdgeInsets.symmetric(
                             vertical: AppSpacing.s,

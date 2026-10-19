@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/worker_order_policy.dart';
+import 'package:mae_assignment/features/store_worker/packing/data/repositories/replacement_repository.dart';
 import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/shared/models/order.dart';
@@ -54,6 +55,28 @@ class PackingOrderViewModel extends StreamNotifier<Order?> {
   Future<String?> setItemPacked(String lineId, {required bool packed}) {
     return _run((repository, worker) {
       return repository.setItemPacked(worker, orderId, lineId, packed: packed);
+    });
+  }
+
+  /// Products the packer can offer instead of line [lineId]. Throws an
+  /// `AppException` with a message to show if they cannot be loaded.
+  Future<List<OrderItem>> replacementOptions(String lineId) {
+    final order = state.value;
+    final item = order?.items.where((i) => i.lineId == lineId).firstOrNull;
+    if (order == null || item == null) return Future.value(const []);
+    return ref.read(replacementRepositoryProvider).optionsFor(order, item);
+  }
+
+  /// Reports a line unavailable, offering [replacement] or, if null,
+  /// removing the line from the order.
+  Future<String?> flagUnavailable(String lineId, {OrderItem? replacement}) {
+    return _run((repository, worker) {
+      return repository.flagUnavailable(
+        worker,
+        orderId,
+        lineId,
+        replacement: replacement,
+      );
     });
   }
 

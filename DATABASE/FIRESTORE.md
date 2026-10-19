@@ -195,6 +195,7 @@ write only its own group (`OrderFields.checkoutKeys`, `assignmentKeys`,
 | Checkout | Customer app | Once, when the order is created. Nobody changes it afterwards. |
 | Assignment | Store Admin | Assigning a packer or driver, setting the due time. |
 | Fulfilment | Store Worker | Packing, handover, delivery. |
+| Shortage | Store Worker, then Customer | A packer reports an unavailable item; the customer answers. |
 
 | Field | Type | Notes |
 | --- | --- | --- |
@@ -226,7 +227,7 @@ Fulfilment fields (Store Worker; all optional):
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `packedLineIds` | array of string | Line ids ticked off while packing. |
+| `packedLineIds` | array of string | Line ids ticked off while packing. When the order is marked ready it also holds the ids of removed lines, so it has one id per line (the rules compare its size with `items`). |
 | `packingStartedAt`, `readyAt` | timestamp | |
 | `readyBy` | string | Worker id of the packer who marked it ready. |
 | `pickupVerification` | string | `VerificationMethod` name: `qr` or `manual`. |
@@ -237,9 +238,42 @@ Fulfilment fields (Store Worker; all optional):
 | `proofPhotoUrl` | string | Download URL of the delivery photo, uploaded to Storage (`orders/{orderId}/proof.jpg`) by `DeliveryProofService` just before the order is completed. |
 | `completedAt` | timestamp | Pickup or delivery done. |
 
+Shortage fields (see "Shortages" below):
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `shortages` | map of lineId to map | One entry per unavailable line: `status` (`proposed`, `accepted`, `removed`), `replacement` (an `items`-shaped map with the same `lineId`, absent when none), `flaggedAt`, `decidedAt` (server times). |
+| `shortageLineId` | string | The line this write is about. Only there so the rules know which `shortages` entry to check. Readers ignore it. |
+| `openShortages` | int | Replacements waiting for the customer. Only there so the rules can see a count (they cannot count map entries); the app works the count out from `shortages`. |
+
 Each `items` entry: `lineId` (unique in the order), `productId`, `name`,
 `brand`, `packSize`, `quantity`, `unitPrice` (price at checkout), and
 optional `categoryId`, `category` (name), `description` and `imageUrl`.
+
+### Shortages
+
+A packer who cannot find an item taps "Item unavailable?" on the packing
+screen and either offers a replacement from the branch's stock or removes the
+item.
+
+- With a replacement the entry is `proposed`. The order cannot be marked ready
+  while any entry is `proposed`. The customer sees the offer on the tracking
+  page (and "Needs your reply" in the Orders list) and accepts it (`accepted`)
+  or removes the item (`removed`). Nothing sends a push notification.
+- With no replacement the entry is `removed` at once.
+- The stored `subtotal`, `total` and `items` never change. `Order.effectiveItems`
+  and `Order.adjustedTotal` work out what the customer pays after accepted
+  replacements and removed items, so a refund or an extra amount is a
+  difference of two numbers, never a stored value that could disagree with the
+  items. Sales and the Dashboard use the adjusted values. Nothing moves money:
+  there is no payment backend, so a refund is only shown.
+- If the customer never answers, the order waits. Store Admin sees "Awaiting
+  customer" in the order details and can cancel it (the only status change the
+  admin can make).
+
+Each write changes exactly one `shortages` entry, using a dotted field path
+(`OrderService.flagShortage` / `respondToShortage`), together with
+`shortageLineId` and, when it opens or closes a proposal, `openShortages`.
 
 The admin timeline ("Packing started", "Driver Kumar assigned", ...) is not
 stored: `Order.timeline` works it out from the timestamps above. The bag
@@ -265,9 +299,9 @@ keeps a valid sign-in token for a while.
 
 | Who | Read | Write |
 | --- | --- | --- |
-| Customer | Their own orders | Creates their own order (below); cancels it while `pending`, changing only `status` and `statusSince`. |
-| Admin | Every order | Assignment fields, `status` and `statusSince`. Nothing else. |
-| Packing Staff | Orders of their own branch (`branchId` equals their profile's) | Only on an order assigned to them (`packerId` is their uid) at their branch: `pending` to `packing` (sets `packingStartedAt`); ticking `packedLineIds` while `packing`; `packing` to `ready` once every line is ticked (sets `readyAt`, `readyBy` to their uid). Handing over a `ready` pickup order at their branch, whoever packed it: `ready` to `completed` (sets `pickupVerification`, `pickupCompletedBy` to their uid, `completedAt`). |
+| Customer | Their own orders | Creates their own order (below); cancels it while `pending`, changing only `status` and `statusSince`. While `packing`, answers a `proposed` shortage: `accepted` or `removed`, with `decidedAt` the server time, `openShortages` down by one, and the replacement and `flaggedAt` unchanged. |
+| Admin | Every order | Assignment fields. `status` and `statusSince` together, only to `cancelled` and only from an order that is not `completed` or `cancelled`. Nothing else. |
+| Packing Staff | Orders of their own branch (`branchId` equals their profile's) | Only on an order assigned to them (`packerId` is their uid) at their branch: `pending` to `packing` (sets `packingStartedAt`); ticking `packedLineIds` while `packing`; `packing` to `ready` once every line is ticked or removed and `openShortages` is 0 (sets `readyAt`, `readyBy` to their uid); reporting one unticked line unavailable while `packing` (a new `shortages` entry: `proposed` with a well-formed `replacement` and `openShortages` up by one, or `removed` with none). Handing over a `ready` pickup order at their branch, whoever packed it: `ready` to `completed` (sets `pickupVerification`, `pickupCompletedBy` to their uid, `completedAt`). |
 | Delivery Driver | Only deliveries assigned to them (`driverId` is their uid) | Only on those: while `ready`, record the bag check (`collectionVerifiedBy` is their uid); `ready` to `outForDelivery` once they have checked it; `outForDelivery` to `completed` with `deliveredBy` their uid and a `proofPhotoUrl`. |
 
 Every write fits one of those actions exactly (the set of changed fields is
@@ -282,7 +316,8 @@ A new order must be `pending`, belong to the customer, hold only checkout fields
 plus `status` and `statusSince`, have `placedAt` and `statusSince` equal to
 `request.time`, 1 to 100 lines, non-negative money, a discount no larger than
 the subtotal, and `total` equal to `subtotal + deliveryFee - discount` (within
-one cent). The rules cannot check prices against the catalogue or recompute the
+one cent). The rules cannot check prices against the catalogue (a shortage's
+replacement price is supplied by the packer's app too) or recompute the
 subtotal from the lines (rules cannot loop), so the amounts are still supplied
 by the customer's app. Making them trustworthy needs server code (a Cloud
 Function that creates the order), which is planned for after the minimum
