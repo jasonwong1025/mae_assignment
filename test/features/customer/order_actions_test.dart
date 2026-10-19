@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/customer/cart/data/models/cart.dart';
@@ -635,6 +636,71 @@ void main() {
 
       expect(find.text('Your reply is needed'), findsNothing);
       expect(find.text('Total'), findsOneWidget);
+    });
+  });
+
+  group('delivery ETA', () {
+    const shop = LatLng(3, 101.5);
+    // About 5 km north of the shop.
+    const home = LatLng(3.045, 101.5);
+
+    Order onTheRoad({
+      LatLng? driverPosition = shop,
+      Duration age = Duration.zero,
+    }) {
+      return _order(status: OrderStatus.outForDelivery).copyWith(
+        addressLocation: home,
+        driverName: 'Amir',
+        driverPosition: driverPosition,
+        driverPositionAt: driverPosition == null
+            ? null
+            : DateTime.now().subtract(age),
+      );
+    }
+
+    testWidgets('shows how far away the driver is and when they arrive', (
+      tester,
+    ) async {
+      await pump(tester, onTheRoad());
+
+      expect(find.text('About 16m away'), findsOneWidget);
+      expect(find.textContaining('Amir is about 6.5 km away'), findsOneWidget);
+      expect(find.textContaining('Arriving around'), findsOneWidget);
+      expect(find.textContaining('out of signal'), findsNothing);
+    });
+
+    testWidgets('says so when the driver has not shared a position yet', (
+      tester,
+    ) async {
+      await pump(tester, onTheRoad(driverPosition: null));
+
+      expect(find.text('On the way'), findsOneWidget);
+      expect(
+        find.textContaining('arrival time appears once their location'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('warns when the last position is old', (tester) async {
+      await pump(tester, onTheRoad(age: const Duration(minutes: 6)));
+
+      expect(find.textContaining('Last seen 6m ago'), findsOneWidget);
+    });
+
+    testWidgets('is not shown before the order is on the road', (tester) async {
+      await pump(tester, _order(status: OrderStatus.ready));
+
+      expect(find.textContaining('away'), findsNothing);
+      expect(find.text('On the way'), findsNothing);
+    });
+
+    testWidgets('is not shown for a pickup order', (tester) async {
+      await pump(
+        tester,
+        _order(status: OrderStatus.outForDelivery, isDelivery: false),
+      );
+
+      expect(find.text('On the way'), findsNothing);
     });
   });
 }

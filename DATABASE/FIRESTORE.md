@@ -237,6 +237,7 @@ Fulfilment fields (Store Worker; all optional):
 | `deliveredBy`, `deliveredByName` | string | |
 | `proofPhotoUrl` | string | Download URL of the delivery photo, uploaded to Storage (`orders/{orderId}/proof.jpg`) by `DeliveryProofService` just before the order is completed. |
 | `completedAt` | timestamp | Pickup or delivery done. |
+| `driverPosition`, `driverPositionAt` | geopoint, timestamp | Where the driver last was while the order is `outForDelivery`, and the server time of that fix. Written by the order's driver (`OrderService.updateDriverPosition`), so the customer, who may read only their own orders, can follow the delivery. The estimated arrival is not stored: `Order.etaAt` works it out. |
 
 Shortage fields (see "Shortages" below):
 
@@ -249,6 +250,22 @@ Shortage fields (see "Shortages" below):
 Each `items` entry: `lineId` (unique in the order), `productId`, `name`,
 `brand`, `packSize`, `quantity`, `unitPrice` (price at checkout), and
 optional `categoryId`, `category` (name), `description` and `imageUrl`.
+
+### Live delivery ETA
+
+While a delivery is `outForDelivery`, the driver's delivery screen shares the
+phone's GPS position (the `geolocator` package). A fix is saved when the
+driver has moved 30 m or more and 10 s have passed, or after 30 s even if they
+have not moved (`PositionThrottle`), in one batch that updates the order
+(`driverPosition`, `driverPositionAt`) and `driverLocations/{driverId}` (the
+admin's Dispatch map). Sharing stops when the screen is left or the delivery
+is completed.
+
+The customer's tracking page and the admin's order panel show "About 12m away,
+arriving around 3:42pm" from `DeliveryEta`. It is an estimate: straight-line
+distance times 1.3 for roads, at 25 km/h. No routing service is used (they are
+third-party and rate-limited), so it is rough and wording says "about". A
+position older than 2 minutes is flagged as possibly out of signal.
 
 ### Shortages
 
@@ -302,7 +319,7 @@ keeps a valid sign-in token for a while.
 | Customer | Their own orders | Creates their own order (below); cancels it while `pending`, changing only `status` and `statusSince`. While `packing`, answers a `proposed` shortage: `accepted` or `removed`, with `decidedAt` the server time, `openShortages` down by one, and the replacement and `flaggedAt` unchanged. |
 | Admin | Every order | Assignment fields. `status` and `statusSince` together, only to `cancelled` and only from an order that is not `completed` or `cancelled`. Nothing else. |
 | Packing Staff | Orders of their own branch (`branchId` equals their profile's) | Only on an order assigned to them (`packerId` is their uid) at their branch: `pending` to `packing` (sets `packingStartedAt`); ticking `packedLineIds` while `packing`; `packing` to `ready` once every line is ticked or removed and `openShortages` is 0 (sets `readyAt`, `readyBy` to their uid); reporting one unticked line unavailable while `packing` (a new `shortages` entry: `proposed` with a well-formed `replacement` and `openShortages` up by one, or `removed` with none). Handing over a `ready` pickup order at their branch, whoever packed it: `ready` to `completed` (sets `pickupVerification`, `pickupCompletedBy` to their uid, `completedAt`). |
-| Delivery Driver | Only deliveries assigned to them (`driverId` is their uid) | Only on those: while `ready`, record the bag check (`collectionVerifiedBy` is their uid); `ready` to `outForDelivery` once they have checked it; `outForDelivery` to `completed` with `deliveredBy` their uid and a `proofPhotoUrl`. |
+| Delivery Driver | Only deliveries assigned to them (`driverId` is their uid) | Only on those: while `outForDelivery`, report `driverPosition` and `driverPositionAt` (the server time) and nothing else; while `ready`, record the bag check (`collectionVerifiedBy` is their uid); `ready` to `outForDelivery` once they have checked it; `outForDelivery` to `completed` with `deliveredBy` their uid and a `proofPhotoUrl`. |
 
 Every write fits one of those actions exactly (the set of changed fields is
 checked), so nobody can change checkout fields, skip a status, cancel from the
@@ -355,8 +372,10 @@ above and `createdAt == request.time`; no update, no delete.
 
 Where a delivery driver is now, for the Dispatch map. The document id is the
 driver's uid. Service: `DriverLocationService`. A driver without a document is
-shown as offline. Nothing writes these from the worker app yet (it needs a GPS
-plugin), so for now they are seeded.
+shown as offline. The driver's delivery screen writes its own document, with
+the server time, together with the order's `driverPosition` while a delivery is
+on the road (see "Live delivery ETA"). The seed also has positions for the
+drivers.
 
 | Field | Type | Notes |
 | --- | --- | --- |

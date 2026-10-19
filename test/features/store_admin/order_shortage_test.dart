@@ -200,4 +200,31 @@ void main() {
       );
     });
   });
+
+  group('delivery ETA in the order panel', () {
+    testWidgets('shows the driver position estimate for an order on the road', (
+      tester,
+    ) async {
+      await _pumpOrders(tester);
+
+      // #2290 is out for delivery; the seed has its driver's last position.
+      await tester.tap(find.text('#2290'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('DELIVERY'), findsOneWidget);
+      expect(find.textContaining('away'), findsWidgets);
+      expect(find.textContaining('Arriving around'), findsOneWidget);
+    });
+
+    testWidgets('is not shown for an order that is not on the road', (
+      tester,
+    ) async {
+      await _pumpOrders(tester);
+
+      await tester.tap(find.text('#2291'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('DELIVERY'), findsNothing);
+    });
+  });
 }

@@ -79,6 +79,8 @@
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>Grocerly shares your position with the customer while you deliver their order.</string>
 		<key>NSCameraUsageDescription</key>
 		<string>Grocerly uses the camera to take a proof of delivery photo.</string>
 		<key>NSPhotoLibraryUsageDescription</key>

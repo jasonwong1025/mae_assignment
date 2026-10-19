@@ -7,6 +7,7 @@ import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dar
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/ui/confirm_sheet.dart';
+import 'package:mae_assignment/shared/ui/delivery_eta_card.dart';
 import 'package:mae_assignment/shared/ui/order_status_label.dart';
 
 /// Everything about one order: customer, delivery, items, payment and
@@ -91,10 +92,12 @@ class _OrderDetails extends ConsumerWidget {
           children: [
             OrderStatusLabel(status: order.status),
             const SizedBox(width: 8),
-            Text(
-              'for '
-              '${Formatters.minutes(order.minutesInStatus(DateTime.now()))}',
-              style: textTheme.bodySmall,
+            Flexible(
+              child: Text(
+                'for '
+                '${Formatters.minutes(order.minutesInStatus(DateTime.now()))}',
+                style: textTheme.bodySmall,
+              ),
             ),
           ],
         ),
@@ -122,6 +125,11 @@ class _OrderDetails extends ConsumerWidget {
             icon: Icons.sticky_note_2_outlined,
             text: 'Note: ${order.customerNote}',
           ),
+
+        if (DeliveryEtaCard.isShownFor(order)) ...[
+          const _SectionTitle('Delivery'),
+          DeliveryEtaCard(order: order),
+        ],
 
         if (order.hasOpenShortage) ...[
           const _SectionTitle('Awaiting customer'),

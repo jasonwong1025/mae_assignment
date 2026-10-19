@@ -12,6 +12,7 @@ import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/ex
 import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/proof_of_delivery_sheet.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/verify_order_sheet.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/view_models/delivery_detail_view_model.dart';
+import 'package:mae_assignment/features/store_worker/delivery/presentation/view_models/driver_tracking_view_model.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_notice.dart';
 import 'package:mae_assignment/shared/models/order.dart';
@@ -174,8 +175,14 @@ class _DeliveryDetailViewState extends ConsumerState<DeliveryDetailView> {
                     ),
                   );
                 }
+                // Shares the position only while the order is on the road;
+                // leaving the screen or finishing the delivery stops it.
+                final tracking = order.status == OrderStatus.outForDelivery
+                    ? ref.watch(driverTrackingViewModelProvider(order.id))
+                    : null;
                 return _DeliveryContent(
                   order: order,
+                  tracking: tracking,
                   workerId: worker.id,
                   isBusy: _isBusy,
                   onCall: () => _call(order.customerPhone),
@@ -202,6 +209,7 @@ class _DeliveryDetailViewState extends ConsumerState<DeliveryDetailView> {
 class _DeliveryContent extends StatelessWidget {
   const _DeliveryContent({
     required this.order,
+    required this.tracking,
     required this.workerId,
     required this.isBusy,
     required this.onCall,
@@ -214,6 +222,9 @@ class _DeliveryContent extends StatelessWidget {
   });
 
   final Order order;
+
+  /// Location sharing, while the order is out for delivery; otherwise null.
+  final DriverTrackingState? tracking;
   final String workerId;
   final bool isBusy;
   final VoidCallback onCall;
@@ -256,6 +267,10 @@ class _DeliveryContent extends StatelessWidget {
                 const SizedBox(height: AppSpacing.l),
                 _StatusNotice(order: order, workerId: workerId),
               ],
+              if (tracking != null) ...[
+                const SizedBox(height: AppSpacing.l),
+                _SharingNotice(order: order, tracking: tracking!),
+              ],
               const SizedBox(height: AppSpacing.l),
               _CustomerCard(
                 order: order,
@@ -282,6 +297,37 @@ class _DeliveryContent extends StatelessWidget {
           onBack: onBack,
         ),
       ],
+    );
+  }
+}
+
+/// Tells the driver the customer can see them, with the estimate the
+/// customer sees, or what is stopping the sharing.
+class _SharingNotice extends StatelessWidget {
+  const _SharingNotice({required this.order, required this.tracking});
+
+  final Order order;
+  final DriverTrackingState tracking;
+
+  @override
+  Widget build(BuildContext context) {
+    final error = tracking.error;
+    if (error != null) {
+      return WorkerNotice(
+        icon: Icons.location_off_outlined,
+        color: AppColors.error,
+        text: error,
+      );
+    }
+    final eta = order.etaAt(DateTime.now());
+    return WorkerNotice(
+      icon: Icons.my_location_rounded,
+      color: AppColors.info,
+      text: eta == null
+          ? 'Sharing your location with the customer.'
+          : 'Sharing your location. About '
+                '${Formatters.minutes(eta.remaining.inMinutes)} to the '
+                'customer, arriving around ${Formatters.time(eta.arrivalAt)}.',
     );
   }
 }

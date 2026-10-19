@@ -458,6 +458,16 @@ service cloud.firestore {
         && request.resource.data.proofPhotoUrl.size() > 0
         && workflowTimesAreServerTimes();
 
+      // While the order is out for delivery its driver reports where they
+      // are, so the customer (who owns the order) can see the delivery
+      // coming and an arrival time. Only the position and its server time
+      // change.
+      allow update: if driverOwns()
+        && resource.data.status == 'outForDelivery'
+        && changedKeys().hasOnly(['driverPosition', 'driverPositionAt'])
+        && changedKeys().hasAll(['driverPosition', 'driverPositionAt'])
+        && request.resource.data.driverPosition is latlng
+        && request.resource.data.driverPositionAt == request.time;
       // A customer may cancel their own order, but only while it is still
       // pending (nobody has started packing it), and nothing else about the
       // order may change.

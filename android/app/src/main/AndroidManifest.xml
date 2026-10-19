@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Needed in release builds to load map tiles and Firebase. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- A delivery driver shares their position with the customer while on the road. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <application
         android:label="Grocerly"
         android:name="${applicationName}"

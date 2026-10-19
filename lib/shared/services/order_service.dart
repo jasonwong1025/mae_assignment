@@ -3,6 +3,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:mae_assignment/core/firebase/field_readers.dart';
 import 'package:mae_assignment/core/firebase/firestore_config.dart';
 import 'package:mae_assignment/core/firebase/firestore_models.dart';
@@ -201,6 +202,30 @@ class OrderService {
           return true;
         })
         .timeout(FirestoreConfig.readTimeout);
+  }
+
+  /// The driver reports where they are on the way to [orderId].
+  ///
+  /// One batch writes both places that show it: the order (so its customer,
+  /// who may read only their own orders, can follow the delivery) and the
+  /// driver's `driverLocations` document (the admin's Dispatch map). Both
+  /// carry the server time. `firestore.rules` accepts the order write only
+  /// from the assigned driver while the order is out for delivery.
+  Future<void> updateDriverPosition(
+    String orderId,
+    String driverId,
+    LatLng position,
+  ) {
+    final batch = _firestore.batch()
+      ..update(_refs.order(orderId), {
+        OrderFields.driverPosition: toGeoPoint(position),
+        OrderFields.driverPositionAt: FieldValue.serverTimestamp(),
+      })
+      ..set(_refs.driverLocation(driverId), {
+        DriverLocationFields.position: toGeoPoint(position),
+        DriverLocationFields.updatedAt: FieldValue.serverTimestamp(),
+      });
+    return batch.commit().timeout(FirestoreConfig.readTimeout);
   }
 
   /// One order by id, or null if it does not exist.

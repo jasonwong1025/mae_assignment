@@ -1,3 +1,4 @@
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -5,10 +6,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/app/app.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
+import 'package:mae_assignment/features/store_worker/delivery/data/repositories/driver_tracking_repository.dart';
+import 'package:mae_assignment/features/store_worker/delivery/presentation/view_models/driver_tracking_view_model.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/shared/services/order_service.dart';
 
 import 'fake_auth_repository.dart';
+import 'fake_location_service.dart';
 import 'worker_profiles.dart';
 import 'worker_test_store.dart';
 
@@ -18,20 +23,32 @@ import 'worker_test_store.dart';
 /// delay), returned so tests can make changes "from another device".
 ///
 /// [repository] replaces the default store (e.g. one with different
-/// sample orders); [overrides] adds more provider overrides (e.g. a fake
-/// launcher).
+/// sample orders); [store] uses a store the test made, so it can change or
+/// read the database; [gps] is the phone's fake GPS; [overrides] adds more
+/// provider overrides (e.g. a fake launcher).
 Future<(ProviderContainer, WorkerOrdersRepository)> pumpWorkerApp(
   WidgetTester tester,
   String workerName, {
   required String location,
   WorkerOrdersRepository? repository,
+  WorkerTestStore? store,
+  FakeLocationService? gps,
   List<Override> overrides = const [],
 }) async {
   tester.view.physicalSize = const Size(390, 844);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
-  final orders = repository ?? (await WorkerTestStore.create()).repository;
+  final usedStore =
+      store ?? (repository == null ? await WorkerTestStore.create() : null);
+  final orders = repository ?? usedStore!.repository;
+  // Shares the driver's position into the same in-memory database the
+  // orders live in.
+  final phoneGps = gps ?? FakeLocationService();
+  final tracking = DriverTrackingRepository(
+    phoneGps,
+    usedStore?.service ?? OrderService(FakeFirebaseFirestore()),
+  );
 
   final container = ProviderContainer(
     overrides: [
@@ -39,6 +56,9 @@ Future<(ProviderContainer, WorkerOrdersRepository)> pumpWorkerApp(
         FakeAuthRepository()..signedIn = true,
       ),
       workerOrdersRepositoryProvider.overrideWithValue(orders),
+      // No real GPS in tests; a test that cares passes its own.
+      driverTrackingRepositoryProvider.overrideWithValue(tracking),
+      trackingTimerProvider.overrideWithValue((every, tick) => null),
       ...overrides,
     ],
   );

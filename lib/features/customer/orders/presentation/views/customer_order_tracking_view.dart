@@ -10,6 +10,7 @@ import 'package:mae_assignment/features/customer/orders/presentation/ui/shortage
 import 'package:mae_assignment/features/customer/orders/presentation/view_models/customer_orders_view_model.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
+import 'package:mae_assignment/shared/ui/delivery_eta_card.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
 import 'package:mae_assignment/shared/ui/location_map.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -80,6 +81,10 @@ class _OrderBody extends StatelessWidget {
           const SizedBox(height: AppSpacing.l),
           _StatusTimeline(order: order),
           const SizedBox(height: AppSpacing.l),
+          if (DeliveryEtaCard.isShownFor(order)) ...[
+            DeliveryEtaCard(order: order, showMap: true),
+            const SizedBox(height: AppSpacing.l),
+          ],
           if (ShortageReplies.isNeeded(order)) ...[
             ShortageReplies(order: order),
             const SizedBox(height: AppSpacing.l),

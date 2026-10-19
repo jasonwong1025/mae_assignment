@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:mae_assignment/core/firebase/field_readers.dart';
 import 'package:mae_assignment/core/firebase/firestore_paths.dart';
+import 'package:mae_assignment/shared/models/delivery_eta.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/models/verification_method.dart';
 
@@ -256,6 +257,11 @@ abstract class Order with _$Order {
     /// When the order was completed, by pickup or by delivery.
     DateTime? completedAt,
 
+    /// Where the driver last reported being while the order is out for
+    /// delivery, and when (server time). Null until the first fix.
+    LatLng? driverPosition,
+    DateTime? driverPositionAt,
+
     /// Items a packer found unavailable, by line id. See [LineShortage].
     @Default(<String, LineShortage>{}) Map<String, LineShortage> shortages,
   }) = _Order;
@@ -324,6 +330,8 @@ abstract class Order with _$Order {
       deliveredByName: data.stringOrNull(OrderFields.deliveredByName),
       proofPhotoUrl: data.stringOrNull(OrderFields.proofPhotoUrl),
       completedAt: data.dateTime(OrderFields.completedAt),
+      driverPosition: data.latLng(OrderFields.driverPosition),
+      driverPositionAt: data.dateTime(OrderFields.driverPositionAt),
       shortages: {
         for (final entry in data.mapOfMaps(OrderFields.shortages).entries)
           entry.key: LineShortage.fromMap(entry.value),
@@ -447,6 +455,30 @@ abstract class Order with _$Order {
   /// How much [adjustedTotal] differs from what was paid: negative is a
   /// refund, positive is extra to pay for a dearer replacement.
   double get adjustment => adjustedTotal - total;
+
+  // Delivery tracking.
+
+  /// The driver's estimated arrival while the order is out for delivery, or
+  /// null when it cannot be worked out (not on the road, no delivery pin, or
+  /// the driver has not reported a position yet).
+  DeliveryEta? etaAt(DateTime now) {
+    final from = driverPosition;
+    final to = addressLocation;
+    final reportedAt = driverPositionAt;
+    if (status != OrderStatus.outForDelivery ||
+        !isDelivery ||
+        from == null ||
+        to == null ||
+        reportedAt == null) {
+      return null;
+    }
+    return DeliveryEta.estimate(
+      from: from,
+      to: to,
+      reportedAt: reportedAt,
+      now: now,
+    );
+  }
 
   /// True if the order has a line with this id.
   bool hasLine(String lineId) => items.any((item) => item.lineId == lineId);
@@ -583,6 +615,7 @@ abstract class Order with _$Order {
       OrderFields.collectionVerifiedAt: stamp(collectionVerifiedAt),
       OrderFields.outForDeliveryAt: stamp(outForDeliveryAt),
       OrderFields.completedAt: stamp(completedAt),
+      OrderFields.driverPositionAt: stamp(driverPositionAt),
     };
     final texts = <String, String?>{
       OrderFields.address: address,
@@ -620,6 +653,8 @@ abstract class Order with _$Order {
       OrderFields.status: status.name,
       if (addressLocation case final location?)
         OrderFields.addressLocation: toGeoPoint(location),
+      if (driverPosition case final position?)
+        OrderFields.driverPosition: toGeoPoint(position),
       if (packedLineIds.isNotEmpty)
         OrderFields.packedLineIds: packedLineIds.toList()..sort(),
       if (shortages.isNotEmpty)

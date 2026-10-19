@@ -5,6 +5,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  GeoPoint,
   getDocs,
   query,
   serverTimestamp,
@@ -463,6 +464,69 @@ describe("packing", () => {
         status: "pending",
         statusSince: serverTimestamp(),
       })
+    );
+  });
+});
+
+describe("live delivery position", () => {
+  const position = (overrides = {}) => ({
+    driverPosition: new GeoPoint(3.07, 101.59),
+    driverPositionAt: serverTimestamp(),
+    ...overrides,
+  });
+
+  test("the assigned driver reports where they are while on the road", async () => {
+    await assertSucceeds(
+      updateDoc(order(as(DRIVER), "o-road"), position())
+    );
+  });
+
+  test("the customer who owns the order can read the position", async () => {
+    await updateDoc(order(as(DRIVER), "o-road"), position());
+    await assertSucceeds(getDoc(order(as(ALICE), "o-road")));
+    await assertFails(getDoc(order(as(BOB), "o-road")));
+  });
+
+  test("only the assigned driver can report it", async () => {
+    await assertFails(updateDoc(order(as(DRIVER2), "o-road"), position()));
+    await assertFails(updateDoc(order(as(PACKER), "o-road"), position()));
+    await assertFails(updateDoc(order(as(ALICE), "o-road"), position()));
+    await assertFails(updateDoc(order(as(ADMIN), "o-road"), position()));
+  });
+
+  test("only while the order is out for delivery", async () => {
+    await assertFails(
+      updateDoc(order(as(DRIVER), "o-verified"), position())
+    );
+    await assertFails(updateDoc(order(as(DRIVER), "o-done"), position()));
+  });
+
+  test("the time must be the server time, not the phone clock", async () => {
+    await assertFails(
+      updateDoc(
+        order(as(DRIVER), "o-road"),
+        position({ driverPositionAt: new Date(2020, 0, 1) })
+      )
+    );
+  });
+
+  test("the position must be a real location", async () => {
+    await assertFails(
+      updateDoc(
+        order(as(DRIVER), "o-road"),
+        position({ driverPosition: "near the shop" })
+      )
+    );
+  });
+
+  test("both fields go together, with nothing else", async () => {
+    await assertFails(
+      updateDoc(order(as(DRIVER), "o-road"), {
+        driverPosition: new GeoPoint(3.07, 101.59),
+      })
+    );
+    await assertFails(
+      updateDoc(order(as(DRIVER), "o-road"), position({ total: 0.01 }))
     );
   });
 });

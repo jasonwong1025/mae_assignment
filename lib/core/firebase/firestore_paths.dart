@@ -297,6 +297,12 @@ class OrderFields {
   static const String proofPhotoUrl = 'proofPhotoUrl';
   static const String completedAt = 'completedAt';
 
+  /// Where the driver last was while the order is out for delivery (a
+  /// GeoPoint), and the server time of that fix. Written only by the order's
+  /// driver, so the customer who owns the order can follow the delivery.
+  static const String driverPosition = 'driverPosition';
+  static const String driverPositionAt = 'driverPositionAt';
+
   // Shortages: items a packer found unavailable, and what the customer
   // decided. See [ShortageFields] and `Order.shortages`.
 
@@ -376,6 +382,8 @@ class OrderFields {
     deliveredByName,
     proofPhotoUrl,
     completedAt,
+    driverPosition,
+    driverPositionAt,
   ];
 }
 
