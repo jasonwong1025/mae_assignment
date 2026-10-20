@@ -260,6 +260,40 @@ class OrderService {
         );
   }
 
+  /// Live stream of a branch's unfinished orders (pending, packing, ready or
+  /// on the road), however long ago they were placed. Unlike
+  /// [watchBranchOrders] there is no limit, so an old order still waiting
+  /// to be packed is never dropped. Equality and `in` filters only, so no
+  /// composite index is needed.
+  Stream<List<Order>> watchActiveBranchOrders(String branchId) {
+    return _refs.orders
+        .where(OrderFields.branchId, isEqualTo: branchId)
+        .where(OrderFields.status, whereIn: _activeStatuses)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.toModels(fromFirestore: Order.fromFirestore),
+        );
+  }
+
+  /// Live stream of a driver's unfinished orders, however long ago they
+  /// were placed (see [watchActiveBranchOrders]).
+  Stream<List<Order>> watchActiveDriverOrders(String driverId) {
+    return _refs.orders
+        .where(OrderFields.driverId, isEqualTo: driverId)
+        .where(OrderFields.status, whereIn: _activeStatuses)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.toModels(fromFirestore: Order.fromFirestore),
+        );
+  }
+
+  static final List<String> _activeStatuses = [
+    OrderStatus.pending.name,
+    OrderStatus.packing.name,
+    OrderStatus.ready.name,
+    OrderStatus.outForDelivery.name,
+  ];
+
   /// Live stream of every delivery that is ready or on the road, for all
   /// branches, so Dispatch knows which drivers are busy.
   Stream<List<Order>> watchActiveDeliveries() {

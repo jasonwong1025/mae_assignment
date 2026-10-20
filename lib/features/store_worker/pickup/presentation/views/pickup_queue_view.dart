@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/order_due_time.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/ui/pickup_order_card.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/view_models/pickup_queue_view_model.dart';
 import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_scaffold.dart';
@@ -145,7 +146,7 @@ class _PickupQueueViewState extends ConsumerState<PickupQueueView> {
                       // Who packed it is on the order screen; at the counter
                       // only the order, name and time matter.
                       timeLabel: 'Pickup by',
-                      time: order.dueAt,
+                      time: order.promisedAt,
                       highlightTime: true,
                       onTap: () => _openOrder(order),
                     ),
@@ -172,7 +173,7 @@ class _PickupQueueViewState extends ConsumerState<PickupQueueView> {
                       detail: 'Driver: ${order.driverName ?? 'not assigned'}',
                       detailIcon: Icons.local_shipping_outlined,
                       timeLabel: 'Deliver by',
-                      time: order.dueAt,
+                      time: order.promisedAt,
                       highlightTime: true,
                       // Opens read-only, to find the bag for the driver.
                       onTap: () => _openOrder(order),

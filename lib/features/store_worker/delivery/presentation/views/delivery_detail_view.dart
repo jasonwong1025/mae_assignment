@@ -6,6 +6,7 @@ import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/store_worker/delivery/data/services/launcher_service.dart';
+import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/delivery_map_preview.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/delivery_order_card.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/delivery_stepper.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/expandable_photo.dart';
@@ -271,6 +272,9 @@ class _DeliveryContent extends StatelessWidget {
                 const SizedBox(height: AppSpacing.l),
                 _SharingNotice(order: order, tracking: tracking!),
               ],
+              const SizedBox(height: AppSpacing.l),
+              // Where the store and customer are, and how far apart.
+              DeliveryMapPreview(order: order),
               const SizedBox(height: AppSpacing.l),
               _CustomerCard(
                 order: order,

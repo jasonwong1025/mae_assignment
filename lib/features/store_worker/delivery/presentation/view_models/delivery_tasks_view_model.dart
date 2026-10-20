@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/order_due_time.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/shared/models/order.dart';
@@ -76,8 +77,8 @@ abstract class DeliveryGroups with _$DeliveryGroups {
   }
 
   static int _compareDue(Order a, Order b) {
-    final dueA = a.dueAt;
-    final dueB = b.dueAt;
+    final dueA = a.promisedAt;
+    final dueB = b.promisedAt;
     if (dueA == null && dueB == null) return 0;
     if (dueA == null) return 1;
     if (dueB == null) return -1;
