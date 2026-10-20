@@ -10,9 +10,11 @@ import 'package:mae_assignment/features/store_worker/delivery/data/repositories/
 import 'package:mae_assignment/features/store_worker/delivery/presentation/view_models/driver_tracking_view_model.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/repositories/worker_orders_repository.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/shared/services/branch_service.dart';
 import 'package:mae_assignment/shared/services/order_service.dart';
 
 import 'fake_auth_repository.dart';
+import 'fake_branch_service.dart';
 import 'fake_location_service.dart';
 import 'worker_profiles.dart';
 import 'worker_test_store.dart';
@@ -56,6 +58,8 @@ Future<(ProviderContainer, WorkerOrdersRepository)> pumpWorkerApp(
         FakeAuthRepository()..signedIn = true,
       ),
       workerOrdersRepositoryProvider.overrideWithValue(orders),
+      // The delivery screen's map looks up the branch's position.
+      branchServiceProvider.overrideWithValue(FakeBranchService()),
       // No real GPS in tests; a test that cares passes its own.
       driverTrackingRepositoryProvider.overrideWithValue(tracking),
       trackingTimerProvider.overrideWithValue((every, tick) => null),

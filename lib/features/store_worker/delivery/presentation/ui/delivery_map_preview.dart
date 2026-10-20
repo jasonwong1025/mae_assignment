@@ -10,8 +10,11 @@ import 'package:mae_assignment/shared/repositories/branch_repository.dart';
 
 /// Where a branch is on the map, or null if unknown. Branches rarely move,
 /// so this is read once per branch.
+///
+/// Not retried when the read fails: the map is a nicety, and a driver without
+/// a connection should not trigger a loop of repeated reads.
 final _branchLocationProvider = FutureProvider.autoDispose
-    .family<LatLng?, String>((ref, branchId) async {
+    .family<LatLng?, String>(retry: (_, _) => null, (ref, branchId) async {
       final branches = await ref.watch(branchRepositoryProvider).getBranches();
       for (final branch in branches) {
         // A branch saved without a position reads as (0, 0).
