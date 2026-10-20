@@ -216,9 +216,65 @@ async function seedTestCustomer() {
     .doc("current")
     .delete();
 
+  await seedShortageOrder();
   console.log(
     `Test customer ready: ${E2E_CUSTOMER.email} / ${E2E_CUSTOMER.password}`
   );
+}
+
+/**
+ * An order of the E2E customer that Daniel Lee is packing, for the shortage
+ * journey: the packer reports the tomatoes unavailable and offers a
+ * replacement, the customer accepts it, and the packer carries on.
+ */
+async function seedShortageOrder() {
+  const minutesAgo = (minutes) =>
+    Timestamp.fromMillis(Date.now() - minutes * 60000);
+  await db.collection("orders").doc("ord-e2e-shortage").set({
+    number: 2399,
+    customerId: E2E_CUSTOMER.uid,
+    customerName: E2E_CUSTOMER.name,
+    customerPhone: E2E_CUSTOMER.phone,
+    branchId: "ss15",
+    branchName: "SS15 Subang",
+    branchAddress: "18, Jalan SS15/4D, 47500 Subang Jaya",
+    isDelivery: false,
+    items: [
+      {
+        lineId: "L1",
+        productId: "p-tomato",
+        name: "Roma tomato",
+        brand: "Cameron Fresh",
+        packSize: "1kg",
+        quantity: 2,
+        unitPrice: 6.8,
+        categoryId: "produce",
+        category: "Fresh produce",
+      },
+      {
+        lineId: "L2",
+        productId: "p-eggs",
+        name: "Grade A eggs",
+        brand: "Farm Gold",
+        packSize: "10 pack",
+        quantity: 1,
+        unitPrice: 11.0,
+        categoryId: "dairy",
+        category: "Dairy & eggs",
+      },
+    ],
+    subtotal: 24.6,
+    deliveryFee: 0,
+    discount: 0,
+    total: 24.6,
+    status: "packing",
+    packerId: "packer-daniel",
+    packerName: "Daniel Lee",
+    packerAssignedAt: minutesAgo(8),
+    packingStartedAt: minutesAgo(5),
+    placedAt: minutesAgo(10),
+    statusSince: minutesAgo(5),
+  });
 }
 
 // ---------------------------------------------------------------------------

@@ -138,12 +138,15 @@ void main() {
     WidgetTester tester,
     Order order, {
     List<CatalogueProduct>? catalogue,
+    Stream<Order?>? updates,
   }) async {
     tester.view.physicalSize = const Size(390, 1800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    when(() => orders.watchOrder('o1')).thenAnswer((_) => Stream.value(order));
+    when(
+      () => orders.watchOrder('o1'),
+    ).thenAnswer((_) => updates ?? Stream.value(order));
 
     final auth = FakeAuthRepository()
       ..signedIn = true
@@ -561,6 +564,35 @@ void main() {
       verify(
         () => orders.respondToShortage('o1', 'l2', accept: true),
       ).called(1);
+      expect(find.text('Replacement accepted.'), findsOneWidget);
+    });
+
+    testWidgets('the message still shows when the live update removes the '
+        'card', (tester) async {
+      final updates = StreamController<Order?>();
+      addTearDown(updates.close);
+      final waiting = packingWith(proposed);
+      final answered = packingWith(
+        proposed.copyWith(status: ShortageStatus.accepted),
+      );
+      when(() => orders.respondToShortage('o1', 'l2', accept: true)).thenAnswer(
+        (_) async {
+          // The order changes under the screen before the call returns.
+          updates.add(answered);
+          await Future<void>.delayed(const Duration(milliseconds: 10));
+        },
+      );
+      Stream<Order?> live() async* {
+        yield waiting;
+        yield* updates.stream;
+      }
+
+      await pump(tester, waiting, updates: live());
+
+      await tester.tap(find.text('Accept replacement'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Your reply is needed'), findsNothing);
       expect(find.text('Replacement accepted.'), findsOneWidget);
     });
 

@@ -28,11 +28,13 @@ class ShortageReplies extends ConsumerWidget {
     OrderItem item, {
     required bool accept,
   }) async {
+    // Taken before the answer is saved: the order updates live, which removes
+    // this card, and the message must still be shown after that.
+    final messenger = ScaffoldMessenger.of(context);
     final error = await ref
         .read(orderActionsViewModelProvider.notifier)
         .respondToShortage(order, item.lineId, accept: accept);
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context)
+    messenger
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(

@@ -75,7 +75,12 @@ void main() {
     );
     await $(find.textContaining('Packing ')).first.tap();
     await $.pumpAndSettle();
-    await waitForWidget($, $('#2287'), timeout: loadTimeout);
+    // The Packing tab lists several orders, so scroll to #2287.
+    await $('#2287').scrollTo(
+      view: $(
+        Scrollable,
+      ).which<Scrollable>((s) => s.axisDirection == AxisDirection.down).first,
+    );
     await waitForWidget($, $('Hakim'));
   });
 }
