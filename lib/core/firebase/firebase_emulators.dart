@@ -101,11 +101,19 @@ class FirebaseEmulators {
 
     // Needs the Storage emulator running only when product photos are used.
     unawaited(
-      FirebaseStorage.instance.useStorageEmulator(emulatorHost, _storagePort),
+      FirebaseStorage.instance.useStorageEmulator(
+        emulatorHost,
+        _storagePort,
+        automaticHostMapping: automaticHostMapping,
+      ),
     );
     FirebaseFunctions.instanceFor(
       region: 'asia-southeast1',
-    ).useFunctionsEmulator(emulatorHost, _functionsPort);
+    ).useFunctionsEmulator(
+      emulatorHost,
+      _functionsPort,
+      automaticHostMapping: automaticHostMapping,
+    );
 
     debugPrint(
       'Firebase emulators: Auth $emulatorHost:$_authPort, '

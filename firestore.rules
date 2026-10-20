@@ -437,7 +437,9 @@ service cloud.firestore {
       allow update: if driverOwns()
         && resource.data.status == 'outForDelivery'
         && changedKeys().hasOnly(['driverPosition', 'driverPositionAt'])
-        && changedKeys().hasAll(['driverPosition', 'driverPositionAt'])
+        // A stationary heartbeat keeps the same position; only its time
+        // changes. Still require a server timestamp on every report.
+        && changedKeys().hasAll(['driverPositionAt'])
         && request.resource.data.driverPosition is latlng
         && request.resource.data.driverPositionAt == request.time;
       // The customer answers a replacement while the order is being packed:

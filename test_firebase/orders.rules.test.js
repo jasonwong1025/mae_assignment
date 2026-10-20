@@ -399,6 +399,15 @@ describe("live delivery position", () => {
     );
   });
 
+  test("a stationary driver can refresh the position timestamp", async () => {
+    await assertSucceeds(
+      updateDoc(order(as(DRIVER), "o-road"), position())
+    );
+    await assertSucceeds(
+      updateDoc(order(as(DRIVER), "o-road"), position())
+    );
+  });
+
   test("the customer who owns the order can read the position", async () => {
     await updateDoc(order(as(DRIVER), "o-road"), position());
     await assertSucceeds(getDoc(order(as(ALICE), "o-road")));

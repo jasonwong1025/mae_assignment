@@ -24,6 +24,8 @@ Android, Web and iOS Firebase app configuration files are present. An iOS
 build and sign-in smoke test still require a Mac with Xcode. The ML Kit
 document scanner is Android-only; on iOS and Web the Grocery tab offers manual
 entry without a scan button. The Windows desktop runner is not configured.
+Driver location sharing uses while-in-use permission while the delivery detail
+screen is open; Android background location is not supported.
 
 ## Demo data and logins
 

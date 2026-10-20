@@ -109,6 +109,8 @@ void main() {
       await $.pump(const Duration(seconds: 2));
       await $('Review & mark ready').tap();
       await waitForWidget($, $('Review order #2399'));
+      await $('Mark as ready').tap();
+      await waitForWidget($, $('Order #2399 is ready'), timeout: loadTimeout);
     },
   );
 }
