@@ -12,6 +12,7 @@ import 'package:mae_assignment/features/customer/grocery/data/grocery_text_parse
 import 'package:mae_assignment/features/customer/grocery/data/models/grocery_item.dart';
 import 'package:mae_assignment/features/customer/grocery/data/models/grocery_row.dart';
 import 'package:mae_assignment/features/customer/grocery/data/repositories/grocery_list_repository.dart';
+import 'package:mae_assignment/features/customer/grocery/data/repositories/recipe_repository.dart';
 
 part 'grocery_list_view_model.freezed.dart';
 
@@ -145,6 +146,12 @@ class GroceryListViewModel extends AsyncNotifier<List<GroceryItem>> {
   /// a [GroceryException] with a message to show.
   Future<List<ParsedLine>?> scan() {
     return ref.read(groceryListRepositoryProvider).scan();
+  }
+
+  /// Ingredients an AI model suggests for [dish], for the customer to review.
+  /// Throws a [RecipeException] with a message to show.
+  Future<List<ParsedLine>> suggestFromRecipe(String dish, int servings) {
+    return ref.read(recipeRepositoryProvider).suggest(dish, servings: servings);
   }
 
   /// Puts every matched item in the cart and takes it off the list. Items

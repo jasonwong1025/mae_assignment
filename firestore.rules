@@ -76,6 +76,40 @@ service cloud.firestore {
         allow read, write: if isOwner();
       }
 
+      // The simulated wallet: the balance and its history. The owner can
+      // read them, but only the Cloud Functions write them (top up, pay for
+      // an order, refunds), so a modified app cannot give itself money.
+      match /wallet/{docId} {
+        allow read: if isOwner();
+        allow write: if false;
+      }
+      match /walletTransactions/{entryId} {
+        allow read: if isOwner();
+        allow write: if false;
+      }
+
+      // The in-app notification inbox. The Functions add entries when an
+      // order changes; the owner reads them, marks them read, and clears them.
+      match /notifications/{notificationId} {
+        allow read, delete: if isOwner();
+        allow create: if false;
+        allow update: if isOwner()
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['read'])
+          && request.resource.data.read is bool;
+      }
+
+      // Phones that may receive push notifications for this account. The
+      // document id is the Firebase Cloud Messaging token.
+      match /devices/{token} {
+        allow read, delete: if isOwner();
+        allow create, update: if isOwner()
+          && request.resource.data.keys().hasOnly(['platform', 'updatedAt'])
+          && request.resource.data.keys().hasAll(['platform', 'updatedAt'])
+          && request.resource.data.platform in ['android', 'ios', 'web']
+          && request.resource.data.updatedAt == request.time;
+      }
+
       // A customer's grocery list: a single document, private to the owner.
       // Each item is a name, a quantity and, once the customer picks one, a
       // product id; the match with the catalogue is worked out in the app.

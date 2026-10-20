@@ -1,3 +1,4 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/core/errors/app_exception.dart';
 import 'package:mae_assignment/features/customer/cart/data/models/cart.dart';
@@ -49,20 +50,29 @@ class OrderRepository {
       throw const OrderException('Please choose a delivery address.');
     }
 
-    return await _run(
-      () => _service.placeOrder(
-        branchId: branch.id,
-        lines: [
-          for (final line in cart.lines)
-            {'productId': line.product.id, 'quantity': line.quantity},
-        ],
-        fulfilment: isDelivery ? 'delivery' : 'pickup',
-        addressId: isDelivery ? address!.id : null,
-        promoCode: cart.promoCode,
-        customerNote: customerNote?.trim(),
-      ),
-      label: 'placeOrder (callable)',
-    );
+    return await _run(() async {
+      try {
+        return await _service.placeOrder(
+          branchId: branch.id,
+          lines: [
+            for (final line in cart.lines)
+              {'productId': line.product.id, 'quantity': line.quantity},
+          ],
+          fulfilment: isDelivery ? 'delivery' : 'pickup',
+          addressId: isDelivery ? address!.id : null,
+          promoCode: cart.promoCode,
+          customerNote: customerNote?.trim(),
+        );
+      } on FirebaseFunctionsException catch (error) {
+        // The Function words its refusals for the customer (store closed,
+        // item unavailable, wallet too low), so show them as they are.
+        if (error.code == 'failed-precondition' ||
+            error.code == 'invalid-argument') {
+          throw OrderException(error.message ?? 'The order was refused.');
+        }
+        rethrow;
+      }
+    }, label: 'placeOrder (callable)');
   }
 
   /// Cancels a pending order. Throws an [OrderException] if packing has

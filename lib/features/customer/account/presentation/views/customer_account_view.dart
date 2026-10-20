@@ -8,18 +8,14 @@ import 'package:mae_assignment/features/authentication/data/repositories/auth_re
 import 'package:mae_assignment/features/customer/account/presentation/views/saved_addresses_view.dart';
 import 'package:mae_assignment/features/customer/shell/customer_routes.dart';
 import 'package:mae_assignment/features/customer/shell/presentation/ui/customer_scaffold.dart';
+import 'package:mae_assignment/features/customer/wallet/presentation/views/wallet_view.dart';
+import 'package:mae_assignment/features/notifications/presentation/view_models/notifications_view_model.dart';
+import 'package:mae_assignment/features/notifications/presentation/views/notifications_view.dart';
 
 /// Customer Account tab (wireframe 4): profile header plus the account
-/// menu. Order history, saved addresses and payment methods arrive in
-/// later slices; Sign out works now.
+/// menu: saved addresses, the wallet, notifications and sign out.
 class CustomerAccountView extends ConsumerWidget {
   const CustomerAccountView({super.key});
-
-  void _comingSoon(BuildContext context, String what) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$what is not connected yet.')));
-  }
 
   Future<void> _signOut(BuildContext context, WidgetRef ref) async {
     await ref.read(authRepositoryProvider).signOut();
@@ -90,14 +86,21 @@ class CustomerAccountView extends ConsumerWidget {
                   ),
                 ),
                 _MenuItem(
-                  icon: Icons.credit_card_outlined,
-                  label: 'Payment methods',
-                  onTap: () => _comingSoon(context, 'Payment methods'),
+                  icon: Icons.account_balance_wallet_outlined,
+                  label: 'Wallet',
+                  onTap: () => Navigator.of(context).push<void>(
+                    MaterialPageRoute(builder: (_) => const WalletView()),
+                  ),
                 ),
                 _MenuItem(
                   icon: Icons.notifications_outlined,
                   label: 'Notifications',
-                  onTap: () => _comingSoon(context, 'Notifications'),
+                  badge: ref.watch(unreadNotificationCountProvider),
+                  onTap: () => Navigator.of(context).push<void>(
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationsView(),
+                    ),
+                  ),
                 ),
                 _MenuItem(
                   icon: Icons.logout_rounded,
@@ -151,20 +154,30 @@ class _MenuItem extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.badge = 0,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
 
+  /// Unread count shown beside the label; 0 hides it.
+  final int badge;
+
   @override
   Widget build(BuildContext context) {
     return ListTile(
       leading: Icon(icon, color: AppColors.textSecondary),
       title: Text(label, style: Theme.of(context).textTheme.bodyLarge),
-      trailing: const Icon(
-        Icons.chevron_right_rounded,
-        color: AppColors.textSecondary,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (badge > 0) Badge(label: Text('$badge')),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: AppColors.textSecondary,
+          ),
+        ],
       ),
       onTap: onTap,
     );

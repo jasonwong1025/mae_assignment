@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
@@ -10,6 +11,7 @@ import 'package:mae_assignment/features/customer/cart/presentation/views/cart_vi
 import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue_product.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/ui/product_thumbnail.dart';
 import 'package:mae_assignment/features/customer/orders/presentation/views/customer_order_tracking_view.dart';
+import 'package:mae_assignment/features/customer/wallet/presentation/view_models/wallet_view_model.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/models/customer_address.dart';
 import 'package:mae_assignment/shared/models/order.dart';
@@ -48,6 +50,7 @@ Future<ProviderContainer> _pump(
   AddressService? addressService,
   Size physicalSize = const Size(390, 1400),
   double devicePixelRatio = 1,
+  List<Override> overrides = const [],
 }) async {
   tester.view.physicalSize = physicalSize;
   tester.view.devicePixelRatio = devicePixelRatio;
@@ -71,6 +74,7 @@ Future<ProviderContainer> _pump(
         addressService ?? FakeAddressService(),
       ),
       branchServiceProvider.overrideWithValue(FakeBranchService()),
+      ...overrides,
     ],
   );
   addTearDown(container.dispose);
@@ -198,6 +202,69 @@ void main() {
     expect(find.textContaining('Discount'), findsOneWidget);
     // 20 + 3 delivery - 5 = 18.00.
     expect(find.textContaining('Place order — RM 18.00'), findsOneWidget);
+  });
+
+  group('paying from the wallet', () {
+    final lines = [
+      CartLine(product: _product('p1', 'Fresh milk', price: 8.9), quantity: 2),
+    ];
+
+    Override balance(double amount) {
+      return walletBalanceProvider.overrideWith((ref) => Stream.value(amount));
+    }
+
+    testWidgets('says the order is paid from the wallet when it covers it', (
+      tester,
+    ) async {
+      await _pump(tester, lines: lines, overrides: [balance(100)]);
+
+      expect(find.text('Paid from your wallet (RM 100.00).'), findsOneWidget);
+      expect(find.text('Top up'), findsNothing);
+      final button = tester.widget<FilledButton>(
+        find.byKey(const Key('place_order_button')),
+      );
+      expect(button.onPressed, isNotNull);
+    });
+
+    testWidgets('blocks the order and offers a top up when it is short', (
+      tester,
+    ) async {
+      await _pump(tester, lines: lines, overrides: [balance(5)]);
+
+      expect(
+        find.text('Wallet RM 5.00: not enough for this order.'),
+        findsOneWidget,
+      );
+      expect(find.text('Top up'), findsOneWidget);
+      final button = tester.widget<FilledButton>(
+        find.byKey(const Key('place_order_button')),
+      );
+      expect(button.onPressed, isNull);
+    });
+
+    testWidgets('a balance exactly equal to the total is enough', (
+      tester,
+    ) async {
+      // 8.90 x 2 = 17.80 + RM 3.00 delivery.
+      await _pump(tester, lines: lines, overrides: [balance(20.8)]);
+
+      final button = tester.widget<FilledButton>(
+        find.byKey(const Key('place_order_button')),
+      );
+      expect(button.onPressed, isNotNull);
+    });
+
+    testWidgets('the order can still be placed when the balance is unknown', (
+      tester,
+    ) async {
+      await _pump(tester, lines: lines);
+
+      expect(find.byKey(const Key('wallet_strip_text')), findsNothing);
+      final button = tester.widget<FilledButton>(
+        find.byKey(const Key('place_order_button')),
+      );
+      expect(button.onPressed, isNotNull);
+    });
   });
 
   group('checkout', () {

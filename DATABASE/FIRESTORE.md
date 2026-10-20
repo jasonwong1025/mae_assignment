@@ -28,6 +28,8 @@ All paths are built in `FirestoreRefs`; services call it and never chain
 | `refs.addresses(uid)` / `refs.address(uid, id)` | `users/{uid}/addresses` / `users/{uid}/addresses/{id}` |
 | `refs.cart(uid)` | `users/{uid}/cart/current` |
 | `refs.groceryList(uid)` | `users/{uid}/groceryList/current` |
+| `refs.wallet(uid)` / `refs.walletTransactions(uid)` | `users/{uid}/wallet/current` / `users/{uid}/walletTransactions` |
+| `refs.notifications(uid)` / `refs.device(uid, token)` | `users/{uid}/notifications` / `users/{uid}/devices/{token}` |
 | `refs.products` / `refs.product(id)` | `products` / `products/{id}` |
 | `refs.categories` | `categories` |
 | `refs.branches` / `refs.branch(id)` | `branches` / `branches/{id}` |
@@ -138,6 +140,61 @@ items and `GroceryMatcher` matches an item to a catalogue product by word
 (plurals, word beginnings and small typos allowed). The customer reviews what
 was read before it joins the list, and what was matched before it goes to the
 cart.
+
+### `users/{uid}/wallet/current` and `users/{uid}/walletTransactions/{id}`
+
+The Grocerly Wallet, which pays for orders. **It is simulated**: a balance and
+a history in Firestore, with no payment provider behind it, and the screens
+say so. Dart: `WalletEntry`. Service: `WalletService`. The owner can read both;
+**nobody can write them from the app** (`allow write: if false`). Only the
+Cloud Functions change them, so a modified app cannot give itself money.
+
+| Field (`wallet/current`) | Type | Notes |
+| --- | --- | --- |
+| `balance` | number | Ringgit. Can go slightly below zero after a replacement that costs more than the item it replaced; checkout then needs a top up. |
+| `updatedAt` | timestamp | Server time. |
+
+| Field (`walletTransactions/{id}`) | Type | Notes |
+| --- | --- | --- |
+| `type` | string | `topUp`, `payment`, `refund` or `adjustment`. |
+| `amount` | number | Signed: positive adds money, negative takes it. |
+| `balanceAfter` | number | The balance once this entry applied. |
+| `description` | string | E.g. "Payment for order #1001". |
+| `orderId` | string | Payments, refunds and adjustments only. |
+| `createdAt` | timestamp | Server time. |
+
+How money moves (all in `functions/src/`):
+
+- `topUpWallet` (callable): RM 1 to RM 500 at a time, at most RM 2000 held.
+- `placeOrder` takes the order total from the wallet in the same transaction
+  that reserves the stock and creates the order, and refuses with a clear
+  message when the balance is too low. The order records `walletPaid`.
+- `settleOrderWallet` (trigger on `orders`): when packing finishes (`ready`) it
+  settles shortages, refunding removed or cheaper items or charging a dearer
+  replacement, then sets `walletSettled`. When an order is cancelled (by the
+  customer or the admin) it refunds `walletPaid` and puts reserved stock back.
+  Both steps are idempotent, so a retried trigger never pays twice.
+
+### `users/{uid}/notifications/{id}` and `users/{uid}/devices/{token}`
+
+Notifications reach people two ways: a **push** through Firebase Cloud
+Messaging, and an entry in the user's **inbox** (the Notifications screen), so
+nothing is lost when a push is missed or turned off.
+
+- `notifyOrderChanges` (trigger on `orders`) writes both when: an order moves
+  to packing, ready, out for delivery, completed or cancelled (to the
+  customer); a replacement needs a reply (customer); a packer or driver is
+  assigned (to that worker). The inbox document id is derived from the order
+  and the event, so a retried trigger never notifies twice. A push that fails
+  does not fail the order update.
+- `notifications/{id}`: `title`, `body`, `orderId`, `read`, `createdAt`. The
+  owner reads, marks read (only `read` can change) and deletes; only the
+  Functions create.
+- `devices/{token}`: the document id is the phone's FCM token; fields
+  `platform` (`android`, `ios`, `web`) and `updatedAt` (server time). The app
+  registers the phone after sign-in and removes it before sign-out, so the
+  next person on a shared phone does not get the previous user's pushes.
+  Phones whose token FCM rejects are removed by the Function.
 
 ## `products/{productId}`
 
@@ -263,6 +320,7 @@ Fulfilment fields (Store Worker; all optional):
 | `deliveredBy`, `deliveredByName` | string | |
 | `proofPhotoUrl` | string | Download URL of the delivery photo, uploaded to Storage (`orders/{orderId}/proof.jpg`) by `DeliveryProofService` just before the order is completed. |
 | `completedAt` | timestamp | Pickup or delivery done. |
+| `walletPaid`, `walletSettled`, `walletRefundedAt`, `stockReserved`, `stockReleased` | number, bool, timestamp, bool, bool | Written only by the Cloud Functions (payment, refunds, stock). The app never writes them and the rules let no client change them. |
 | `driverPosition`, `driverPositionAt` | geopoint, timestamp | Where the driver last was while the order is `outForDelivery`, and the server time of that fix. Written by the order's driver (`OrderService.updateDriverPosition`), so the customer, who may read only their own orders, can follow the delivery. The estimated arrival is not stored: `Order.etaAt` works it out. |
 
 Shortage fields (see "Shortages" below):

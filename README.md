@@ -125,6 +125,33 @@ npm run build --prefix functions
 npm run test:functions --prefix test_firebase
 ```
 
+The Functions tests also cover the wallet (top up, payment, refunds,
+shortage settlement) and the notification triggers.
+
+### Wallet, notifications and recipe suggestions
+
+- **Wallet.** Orders are paid from a simulated Grocerly Wallet (Account >
+  Wallet). New customers start with RM 0 and top up (RM 1 to 500 at a time);
+  no real money moves. Only the Cloud Functions change balances, so the rules
+  deny every client write. See `DATABASE/FIRESTORE.md`.
+- **Notifications.** Account > Notifications is an in-app inbox, filled by a
+  Cloud Function when an order changes. The same events are also sent as push
+  notifications through Firebase Cloud Messaging (the app asks for permission
+  after sign-in). Push needs the deployed Functions and a real device or an
+  emulator with Google Play services; the Firebase emulators cannot send
+  pushes, so the inbox entry is what the automated tests check. iOS push also
+  needs an APNs key uploaded in the Firebase console and a Mac to build.
+- **Recipe to ingredients.** Grocery > "Ingredients from a recipe" asks Gemini
+  (through Firebase AI Logic, so there is no API key in the app) for a
+  shopping list, which the customer reviews before it joins the list. In the
+  Firebase console open *Build > AI Logic*, press *Get started* and choose the
+  Gemini Developer API (no billing plan needed for the Flash models). Enabling
+  App Check there limits who can call it. The model name is
+  `gemini-3.8-flash`; Google retires models on a schedule, so change it
+  without code edits with `--dart-define=GEMINI_MODEL=<name>`. It is not
+  available against the emulators.
+
+
 ### 3. End-to-end tests (Patrol, Android emulator + Firebase emulators)
 
 [Patrol](https://patrol.leancode.co) drives the real app on an Android

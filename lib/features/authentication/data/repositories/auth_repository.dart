@@ -8,6 +8,7 @@ import 'package:mae_assignment/core/firebase/firestore_config.dart';
 import 'package:mae_assignment/features/authentication/data/services/auth_service.dart';
 import 'package:mae_assignment/features/authentication/data/services/google_sign_in_service.dart';
 import 'package:mae_assignment/features/authentication/data/services/user_service.dart';
+import 'package:mae_assignment/features/notifications/data/repositories/notification_repository.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
@@ -15,6 +16,9 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
     ref.watch(authServiceProvider),
     ref.watch(userServiceProvider),
     ref.watch(googleSignInServiceProvider),
+    // Stop pushes for this account on this phone, while still signed in.
+    beforeSignOut: () =>
+        ref.read(notificationRepositoryProvider).unregisterDevice(),
   );
 });
 
@@ -42,12 +46,16 @@ class AuthRepository {
   AuthRepository(
     this._authService,
     this._userService,
-    this._googleSignInService,
-  );
+    this._googleSignInService, {
+    this.beforeSignOut,
+  });
 
   final AuthService _authService;
   final UserService _userService;
   final GoogleSignInService _googleSignInService;
+
+  /// Runs at the start of [signOut], while the user is still signed in.
+  final Future<void> Function()? beforeSignOut;
 
   bool get isSignedIn => _authService.isSignedIn;
 
@@ -211,6 +219,17 @@ class AuthRepository {
   }
 
   Future<void> signOut() async {
+    try {
+      await beforeSignOut?.call();
+    } on Object catch (error, stackTrace) {
+      // Cleanup must never keep someone signed in.
+      developer.log(
+        'Cleanup before sign-out failed.',
+        name: 'grocerly.auth',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
     await _authService.signOut();
     try {
       await _googleSignInService.signOut();

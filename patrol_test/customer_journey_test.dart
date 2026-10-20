@@ -128,5 +128,24 @@ void main() {
     await waitForWidget($, $('DELIVER TO'), timeout: catalogueTimeout);
     await $('Orders').tap();
     await waitForWidget($, $('Your orders'));
+    // --- Wallet and notifications ------------------------------------
+    // The order was paid from the wallet and, once cancelled, refunded; the
+    // Functions also left a notification about the cancellation.
+    await $('Account').tap();
+    await $('Wallet').scrollTo().tap();
+    await waitForWidget($, $('Wallet'));
+    await waitForWidget(
+      $,
+      $(find.textContaining('Refund for cancelled order')).first,
+      timeout: catalogueTimeout,
+    );
+    await $(find.textContaining('Payment for order')).first.scrollTo();
+    await $(find.byTooltip('Back')).tap();
+    await $('Notifications').scrollTo().tap();
+    await waitForWidget(
+      $,
+      $(find.textContaining('was cancelled')).first,
+      timeout: catalogueTimeout,
+    );
   });
 }

@@ -11,6 +11,7 @@ import 'package:mae_assignment/features/customer/catalogue/data/repositories/cat
 import 'package:mae_assignment/features/customer/grocery/data/models/grocery_item.dart';
 import 'package:mae_assignment/features/customer/grocery/data/services/grocery_list_service.dart';
 import 'package:mae_assignment/features/customer/grocery/data/services/list_scan_service.dart';
+import 'package:mae_assignment/features/customer/grocery/data/services/recipe_ai_service.dart';
 import 'package:mae_assignment/features/customer/grocery/presentation/views/grocery_view.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/services/address_service.dart';
@@ -37,6 +38,23 @@ class _FakeScanner implements ListScanService {
     final failure = problem;
     if (failure != null) throw ScanException(failure);
     return text;
+  }
+}
+
+/// Stands in for Gemini.
+class _FakeRecipeAi implements RecipeAiService {
+  String answer = '{"ingredients": []}';
+  RecipeAiException? failure;
+  final dishes = <String>[];
+
+  @override
+  Future<String> ingredientsJson({
+    required String dish,
+    required int servings,
+  }) async {
+    dishes.add('$dish x$servings');
+    if (failure case final error?) throw error;
+    return answer;
   }
 }
 
@@ -82,10 +100,12 @@ void main() {
 
   late FakeFirebaseFirestore firestore;
   late _FakeScanner scanner;
+  late _FakeRecipeAi recipeAi;
 
   setUp(() {
     firestore = FakeFirebaseFirestore();
     scanner = _FakeScanner();
+    recipeAi = _FakeRecipeAi();
   });
 
   Future<ProviderContainer> pump(WidgetTester tester) async {
@@ -112,6 +132,7 @@ void main() {
           GroceryListService(firestore),
         ),
         listScanServiceProvider.overrideWithValue(scanner),
+        recipeAiServiceProvider.overrideWithValue(recipeAi),
       ],
     );
     addTearDown(container.dispose);
@@ -438,6 +459,103 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('could not be scanned'), findsOneWidget);
+    });
+  });
+
+  group('ingredients from a recipe', () {
+    Future<void> ask(WidgetTester tester, String dish) async {
+      await tester.tap(find.byKey(const Key('grocery_recipe_button')));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('recipe_input')), dish);
+      await tester.tap(find.byKey(const Key('recipe_submit')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('suggests ingredients for review, then adds the ticked ones', (
+      tester,
+    ) async {
+      recipeAi.answer =
+          '{"ingredients": [{"name": "roma tomato", "quantity": 3},'
+          ' {"name": "eggs", "quantity": 6}, {"name": "dragon fruit"}]}';
+      await pump(tester);
+
+      await ask(tester, 'shakshuka');
+      expect(recipeAi.dishes, ['shakshuka x2']);
+      expect(find.text('Suggested ingredients'), findsOneWidget);
+      expect(find.textContaining('can be wrong'), findsOneWidget);
+      expect(find.text('Add 3 items'), findsOneWidget);
+
+      // Not wanted: untick the dragon fruit (the third row).
+      await tester.tap(find.byType(Checkbox).last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('scan_review_add_button')));
+      await tester.pumpAndSettle();
+
+      final items = await saved();
+      expect(items.map((i) => '${i.quantity} ${i.name}'), [
+        '3 roma tomato',
+        '6 eggs',
+      ]);
+      // And they are matched to the store's products like any other item.
+      expect(find.textContaining('Roma tomato · Farm'), findsOneWidget);
+    });
+
+    testWidgets('the servings are sent', (tester) async {
+      recipeAi.answer = '{"ingredients": [{"name": "eggs"}]}';
+      await pump(tester);
+      await tester.tap(find.byKey(const Key('grocery_recipe_button')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('More servings'));
+      await tester.tap(find.byTooltip('More servings'));
+      await tester.enterText(find.byKey(const Key('recipe_input')), 'omelette');
+      await tester.tap(find.byKey(const Key('recipe_submit')));
+      await tester.pumpAndSettle();
+
+      expect(recipeAi.dishes, ['omelette x4']);
+    });
+
+    testWidgets('a failure is shown in the sheet, which stays open', (
+      tester,
+    ) async {
+      recipeAi.failure = const RecipeAiException('429 quota');
+      await pump(tester);
+
+      await ask(tester, 'laksa');
+
+      expect(find.byKey(const Key('recipe_error')), findsOneWidget);
+      expect(find.textContaining('busy right now'), findsOneWidget);
+      expect(find.byKey(const Key('recipe_input')), findsOneWidget);
+      expect(await saved(), isEmpty);
+    });
+
+    testWidgets('an empty description is refused before asking the model', (
+      tester,
+    ) async {
+      await pump(tester);
+
+      await ask(tester, '');
+
+      expect(
+        find.text('Describe the dish or paste a recipe first.'),
+        findsOneWidget,
+      );
+      expect(recipeAi.dishes, isEmpty);
+    });
+
+    testWidgets('unticking everything leaves the list alone', (tester) async {
+      recipeAi.answer = '{"ingredients": [{"name": "eggs"}]}';
+      await pump(tester);
+      await ask(tester, 'omelette');
+
+      await tester.tap(find.byType(Checkbox).first);
+      await tester.pumpAndSettle();
+
+      final button = tester.widget<ButtonStyleButton>(
+        find.byKey(const Key('scan_review_add_button')),
+      );
+      expect(button.onPressed, isNull);
+      expect(await saved(), isEmpty);
     });
   });
 

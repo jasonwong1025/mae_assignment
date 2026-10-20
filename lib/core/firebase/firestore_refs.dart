@@ -39,6 +39,22 @@ class FirestoreRefs {
   DocumentReference<Map<String, dynamic>> cart(String uid) =>
       user(uid).collection(FirestoreCollections.cart).doc(CartDocs.current);
 
+  // users/{uid}/wallet/current
+  DocumentReference<Map<String, dynamic>> wallet(String uid) =>
+      user(uid).collection(FirestoreCollections.wallet).doc(WalletDocs.current);
+
+  // users/{uid}/walletTransactions
+  CollectionReference<Map<String, dynamic>> walletTransactions(String uid) =>
+      user(uid).collection(FirestoreCollections.walletTransactions);
+
+  // users/{uid}/notifications
+  CollectionReference<Map<String, dynamic>> notifications(String uid) =>
+      user(uid).collection(FirestoreCollections.notifications);
+
+  // users/{uid}/devices/{token}
+  DocumentReference<Map<String, dynamic>> device(String uid, String token) =>
+      user(uid).collection(FirestoreCollections.devices).doc(token);
+
   // users/{uid}/groceryList/current
   DocumentReference<Map<String, dynamic>> groceryList(String uid) => user(
     uid,

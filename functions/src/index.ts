@@ -1,11 +1,12 @@
 import { randomInt } from "node:crypto";
-import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import { FieldValue, GeoPoint, getFirestore } from "firebase-admin/firestore";
+import { FieldValue, GeoPoint } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { db } from "./firebase";
+import { money, postEntry, walletRef } from "./wallet";
 
-initializeApp();
-const db = getFirestore();
+export { notifyOrderChanges } from "./notifications";
+export { settleOrderWallet, topUpWallet } from "./wallet";
 
 function object(value: unknown): Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -37,10 +38,6 @@ async function requireAdmin(uid: string | undefined): Promise<void> {
   if (profile.get("role") !== "storeAdmin" || profile.get("isActive") === false) {
     throw new HttpsError("permission-denied", "HQ admin access required.");
   }
-}
-
-function money(value: number): number {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 function distanceKm(from: GeoPoint, to: GeoPoint): number {
@@ -93,6 +90,7 @@ export const placeOrder = onCall({ region: "asia-southeast1" }, async (request) 
   const branchRef = db.doc(`branches/${branchId}`);
   const addressRef = addressId ? db.doc(`users/${uid}/addresses/${addressId}`) : null;
   const counterRef = db.doc("counters/orders");
+  const customerWalletRef = walletRef(uid);
   const productRefs = lines.map((line) => db.doc(`products/${line.productId}`));
   const inventoryRefs = lines.map((line) => db.doc(`branches/${branchId}/inventory/${line.productId}`));
   const orderRef = db.collection("orders").doc();
@@ -101,10 +99,10 @@ export const placeOrder = onCall({ region: "asia-southeast1" }, async (request) 
   return db.runTransaction(async (tx) => {
     // Firestore requires every read before the first write. Reading inventory
     // in this transaction also makes concurrent stock reservations conflict.
-    const [user, branch, address, counter, ...catalogue] = await Promise.all([
+    const [user, branch, address, counter, wallet, ...catalogue] = await Promise.all([
       tx.get(userRef), tx.get(branchRef),
       addressRef ? tx.get(addressRef) : Promise.resolve(null),
-      tx.get(counterRef),
+      tx.get(counterRef), tx.get(customerWalletRef),
       ...productRefs.map((ref) => tx.get(ref)),
       ...inventoryRefs.map((ref) => tx.get(ref)),
     ]);
@@ -164,6 +162,19 @@ export const placeOrder = onCall({ region: "asia-southeast1" }, async (request) 
     const discount = promoCode === "FRESH5" ? Math.min(5, subtotal) : 0;
     const number = (counter.exists ? counter.get("value") : 1000) + 1;
     if (!Number.isSafeInteger(number)) throw new HttpsError("internal", "Order number unavailable.");
+    const total = money(subtotal + deliveryFee - discount);
+    const balance = typeof wallet.get("balance") === "number" ? (wallet.get("balance") as number) : 0;
+    if (balance < total) {
+      throw new HttpsError(
+        "failed-precondition",
+        `Your wallet balance (RM ${balance.toFixed(2)}) is lower than the total ` +
+        `(RM ${total.toFixed(2)}). Top up your wallet to place this order.`,
+      );
+    }
+    postEntry(tx, uid, wallet, {
+      type: "payment", amount: -total, orderId: orderRef.id,
+      description: `Payment for order #${number}`,
+    });
     tx.set(counterRef, { value: number });
     lines.forEach((line, index) => tx.update(inventoryRefs[index], {
       stock: FieldValue.increment(-line.quantity),
@@ -173,7 +184,7 @@ export const placeOrder = onCall({ region: "asia-southeast1" }, async (request) 
       customerPhone: user.get("phone") ?? "", branchId,
       branchName: branch.get("name") ?? "", branchAddress: branch.get("address") ?? "",
       isDelivery: fulfilment === "delivery", items, subtotal, deliveryFee,
-      discount, total: money(subtotal + deliveryFee - discount),
+      discount, total, walletPaid: total,
       ...(address?.exists ? { address: address.get("line"), addressLocation: address.get("location") } : {}),
       ...(customerNote ? { customerNote } : {}),
       ...(promoCode ? { promoCode } : {}),

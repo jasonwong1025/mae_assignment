@@ -11,13 +11,18 @@ import 'package:mae_assignment/features/customer/grocery/data/grocery_text_parse
 Future<List<ParsedLine>?> showScanReviewSheet(
   BuildContext context, {
   required List<ParsedLine> lines,
+  String title = 'Check your list',
+  String hint =
+      'Untick anything that is not an item, and fix any word that was '
+      'misread.',
 }) {
   return showModalBottomSheet<List<ParsedLine>>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
-    builder: (sheetContext) => _ScanReviewSheet(lines: lines),
+    builder: (sheetContext) =>
+        _ScanReviewSheet(lines: lines, title: title, hint: hint),
   );
 }
 
@@ -32,9 +37,15 @@ class _Entry {
 }
 
 class _ScanReviewSheet extends StatefulWidget {
-  const _ScanReviewSheet({required this.lines});
+  const _ScanReviewSheet({
+    required this.lines,
+    required this.title,
+    required this.hint,
+  });
 
   final List<ParsedLine> lines;
+  final String title;
+  final String hint;
 
   @override
   State<_ScanReviewSheet> createState() => _ScanReviewSheetState();
@@ -80,13 +91,9 @@ class _ScanReviewSheetState extends State<_ScanReviewSheet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Check your list', style: textTheme.titleLarge),
+              Text(widget.title, style: textTheme.titleLarge),
               const SizedBox(height: AppSpacing.xs),
-              Text(
-                'Untick anything that is not an item, and fix any word that '
-                'was misread.',
-                style: textTheme.bodyMedium,
-              ),
+              Text(widget.hint, style: textTheme.bodyMedium),
               const SizedBox(height: AppSpacing.m),
               Expanded(
                 child: ListView.separated(

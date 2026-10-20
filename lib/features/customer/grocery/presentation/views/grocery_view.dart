@@ -10,6 +10,7 @@ import 'package:mae_assignment/features/customer/catalogue/presentation/view_mod
 import 'package:mae_assignment/features/customer/grocery/data/models/grocery_row.dart';
 import 'package:mae_assignment/features/customer/grocery/data/repositories/grocery_list_repository.dart';
 import 'package:mae_assignment/features/customer/grocery/presentation/ui/choose_product_sheet.dart';
+import 'package:mae_assignment/features/customer/grocery/presentation/ui/recipe_sheet.dart';
 import 'package:mae_assignment/features/customer/grocery/presentation/ui/scan_review_sheet.dart';
 import 'package:mae_assignment/features/customer/grocery/presentation/view_models/grocery_list_view_model.dart';
 import 'package:mae_assignment/features/customer/shell/customer_routes.dart';
@@ -86,6 +87,31 @@ class _GroceryViewState extends ConsumerState<GroceryView> {
     } finally {
       if (mounted) setState(() => _isScanning = false);
     }
+  }
+
+  Future<void> _recipe() async {
+    final lines = await showRecipeSheet(
+      context,
+      suggest: _viewModel.suggestFromRecipe,
+    );
+    if (lines == null || !mounted) return;
+    final chosen = await showScanReviewSheet(
+      context,
+      lines: lines,
+      title: 'Suggested ingredients',
+      hint:
+          'An AI model suggested these and it can be wrong. Untick what you '
+          'do not need, and change any amount.',
+    );
+    if (chosen == null || chosen.isEmpty || !mounted) return;
+    final error = await _viewModel.addAll(chosen);
+    if (!mounted) return;
+    _say(
+      error ??
+          (chosen.length == 1
+              ? '1 item added to your list.'
+              : '${chosen.length} items added to your list.'),
+    );
   }
 
   Future<void> _change(GroceryRow row) async {
@@ -196,6 +222,13 @@ class _GroceryViewState extends ConsumerState<GroceryView> {
                       label: const Text('Scan a written list'),
                     ),
                   ],
+                  const SizedBox(height: AppSpacing.s),
+                  OutlinedButton.icon(
+                    key: const Key('grocery_recipe_button'),
+                    onPressed: _recipe,
+                    icon: const Icon(Icons.auto_awesome_outlined),
+                    label: const Text('Ingredients from a recipe'),
+                  ),
                 ],
               ),
             ),

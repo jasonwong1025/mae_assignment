@@ -216,6 +216,18 @@ async function seedTestCustomer() {
     .doc("current")
     .delete();
 
+  // Orders are paid from the wallet, so start with money in it and a clean
+  // history and inbox (the Functions write both while the journeys run).
+  const customerDoc = db.collection("users").doc(E2E_CUSTOMER.uid);
+  await customerDoc.collection("wallet").doc("current").set({
+    balance: 500,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+  for (const name of ["walletTransactions", "notifications"]) {
+    for (const doc of (await customerDoc.collection(name).get()).docs) {
+      await doc.ref.delete();
+    }
+  }
   await seedShortageOrder();
   console.log(
     `Test customer ready: ${E2E_CUSTOMER.email} / ${E2E_CUSTOMER.password}`

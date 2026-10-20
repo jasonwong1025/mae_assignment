@@ -44,6 +44,22 @@ class FirestoreCollections {
   /// so every change is atomic. Owner-only.
   static const String groceryList = 'groceryList';
 
+  /// users/{uid}/wallet/current — the customer's simulated wallet balance.
+  /// Read-only for the owner; only the Cloud Functions change it.
+  static const String wallet = 'wallet';
+
+  /// users/{uid}/walletTransactions/{id} — the wallet's history (top ups,
+  /// payments, refunds). Read-only for the owner.
+  static const String walletTransactions = 'walletTransactions';
+
+  /// users/{uid}/notifications/{id} — the in-app notification inbox, filled
+  /// by the Cloud Functions when an order changes.
+  static const String notifications = 'notifications';
+
+  /// users/{uid}/devices/{fcmToken} — phones registered for push
+  /// notifications. The document id is the Firebase Cloud Messaging token.
+  static const String devices = 'devices';
+
   /// reviews/{orderId} — a customer's rating of one completed order. The
   /// document id is the order id, so an order can be rated only once.
   static const String reviews = 'reviews';
@@ -96,6 +112,63 @@ class CartLineFields {
 
   static const String productId = 'productId';
   static const String quantity = 'quantity';
+}
+
+/// Document ids in users/{uid}/wallet.
+class WalletDocs {
+  WalletDocs._();
+
+  /// The one wallet a customer has.
+  static const String current = 'current';
+}
+
+/// Field keys in users/{uid}/wallet/current.
+class WalletFields {
+  WalletFields._();
+
+  /// Money available, in ringgit. Can dip below zero after a replacement that
+  /// costs more than the item it replaced; checkout then asks for a top up.
+  static const String balance = 'balance';
+  static const String updatedAt = 'updatedAt';
+}
+
+/// Field keys in users/{uid}/walletTransactions/{id}.
+class WalletEntryFields {
+  WalletEntryFields._();
+
+  /// `topUp`, `payment`, `refund` or `adjustment`.
+  static const String type = 'type';
+
+  /// Signed: positive adds money, negative takes it.
+  static const String amount = 'amount';
+  static const String balanceAfter = 'balanceAfter';
+  static const String description = 'description';
+
+  /// The order a payment, refund or adjustment belongs to. Absent for top ups.
+  static const String orderId = 'orderId';
+  static const String createdAt = 'createdAt';
+}
+
+/// Field keys in users/{uid}/notifications/{id}.
+class NotificationFields {
+  NotificationFields._();
+
+  static const String title = 'title';
+  static const String body = 'body';
+
+  /// The order the notification is about. Absent if none.
+  static const String orderId = 'orderId';
+  static const String read = 'read';
+  static const String createdAt = 'createdAt';
+}
+
+/// Field keys in users/{uid}/devices/{token}.
+class DeviceFields {
+  DeviceFields._();
+
+  /// `android`, `ios` or `web`.
+  static const String platform = 'platform';
+  static const String updatedAt = 'updatedAt';
 }
 
 /// Document ids in users/{uid}/groceryList.

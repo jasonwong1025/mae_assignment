@@ -11,6 +11,8 @@ import 'package:mae_assignment/features/customer/cart/presentation/view_models/c
 import 'package:mae_assignment/features/customer/cart/presentation/view_models/checkout_view_model.dart';
 import 'package:mae_assignment/features/customer/cart/presentation/view_models/selected_address_view_model.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/ui/product_thumbnail.dart';
+import 'package:mae_assignment/features/customer/wallet/presentation/view_models/wallet_view_model.dart';
+import 'package:mae_assignment/features/customer/wallet/presentation/views/wallet_view.dart';
 import 'package:mae_assignment/shared/models/customer_address.dart';
 import 'package:mae_assignment/shared/repositories/address_repository.dart';
 import 'package:mae_assignment/shared/repositories/order_repository.dart';
@@ -121,6 +123,10 @@ class _CartContent extends ConsumerWidget {
     // the flat fallback so the button has a sensible number.
     final fee = quote?.fee ?? cart.deliveryFee;
     final total = cart.totalWith(fee);
+    // Orders are paid from the wallet. If the balance cannot be read the
+    // button stays enabled and the server decides.
+    final balance = ref.watch(walletBalanceProvider).value;
+    final cannotAfford = balance != null && balance < total;
 
     return SafeArea(
       child: Column(
@@ -169,11 +175,12 @@ class _CartContent extends ConsumerWidget {
               ],
             ),
           ),
+          if (balance != null) _WalletStrip(balance: balance, total: total),
           Padding(
             padding: const EdgeInsets.all(AppSpacing.l),
             child: FilledButton(
               key: const Key('place_order_button'),
-              onPressed: isPlacing ? null : onPlaceOrder,
+              onPressed: isPlacing || cannotAfford ? null : onPlaceOrder,
               child: isPlacing
                   ? const SizedBox(
                       height: 20,
@@ -183,6 +190,54 @@ class _CartContent extends ConsumerWidget {
                   : Text('Place order — ${Formatters.money(total)}'),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Which wallet the order is paid from, and a way to top up when the balance
+/// is too low.
+class _WalletStrip extends StatelessWidget {
+  const _WalletStrip({required this.balance, required this.total});
+
+  final double balance;
+  final double total;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final short = balance < total;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+      child: Row(
+        children: [
+          Icon(
+            Icons.account_balance_wallet_outlined,
+            size: 20,
+            color: short ? AppColors.error : AppColors.darkGreen,
+          ),
+          const SizedBox(width: AppSpacing.s),
+          Expanded(
+            child: Text(
+              short
+                  ? 'Wallet ${Formatters.money(balance)}: not enough for '
+                        'this order.'
+                  : 'Paid from your wallet (${Formatters.money(balance)}).',
+              key: const Key('wallet_strip_text'),
+              style: textTheme.bodyMedium?.copyWith(
+                color: short ? AppColors.error : null,
+              ),
+            ),
+          ),
+          if (short)
+            TextButton(
+              key: const Key('wallet_strip_top_up'),
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(builder: (_) => const WalletView()),
+              ),
+              child: const Text('Top up'),
+            ),
         ],
       ),
     );

@@ -1,3 +1,4 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:mae_assignment/features/customer/cart/data/models/cart.dart';
@@ -180,6 +181,59 @@ void main() {
       ),
       throwsA(isA<OrderException>()),
     );
+  });
+
+  group('a Function refusal', () {
+    void refuseWith(String code, String message) {
+      when(
+        () => service.placeOrder(
+          branchId: any(named: 'branchId'),
+          lines: any(named: 'lines'),
+          fulfilment: any(named: 'fulfilment'),
+          addressId: any(named: 'addressId'),
+          promoCode: any(named: 'promoCode'),
+          customerNote: any(named: 'customerNote'),
+        ),
+      ).thenThrow(FirebaseFunctionsException(code: code, message: message));
+    }
+
+    Future<String> messageOfPlacing() async {
+      try {
+        await repository.placeOrder(
+          cart: _cart(),
+          customer: _customer,
+          branch: _branch,
+          address: _address,
+        );
+      } on OrderException catch (error) {
+        return error.message;
+      }
+      return '';
+    }
+
+    test('is shown as the Function worded it, such as a low wallet', () async {
+      refuseWith(
+        'failed-precondition',
+        'Your wallet balance (RM 5.00) is lower than the total (RM 23.60). '
+            'Top up your wallet to place this order.',
+      );
+
+      expect(await messageOfPlacing(), contains('Top up your wallet'));
+    });
+
+    test('invalid input is shown too', () async {
+      refuseWith('invalid-argument', 'Invalid promo code.');
+
+      expect(await messageOfPlacing(), 'Invalid promo code.');
+    });
+
+    test('anything else, such as an outage, stays generic', () async {
+      refuseWith('internal', 'stack trace and secrets');
+
+      final message = await messageOfPlacing();
+      expect(message, isNot(contains('secrets')));
+      expect(message, contains('connection'));
+    });
   });
 
   group('cancelOrder', () {

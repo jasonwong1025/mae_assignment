@@ -4,6 +4,8 @@
     <!-- A delivery driver shares their position with the customer while on the road. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- Android 13+ asks before showing order notifications. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="Grocerly"
         android:name="${applicationName}"
