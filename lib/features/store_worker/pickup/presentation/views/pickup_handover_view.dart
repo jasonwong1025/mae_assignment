@@ -6,6 +6,7 @@ import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/store_worker/delivery/presentation/ui/qr_scanner_page.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/order_due_time.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/bag_label_screen.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/product_details_sheet.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/ui/pickup_order_card.dart';
@@ -378,14 +379,14 @@ class _CustomerHeader extends StatelessWidget {
             text: 'Driver: ${order.driverName ?? 'not assigned'}',
           ),
         ],
-        if (isReady && order.dueAt != null) ...[
+        if (isReady && order.promisedAt != null) ...[
           const SizedBox(height: AppSpacing.xs),
           _IconLine(
             icon: Icons.schedule_rounded,
             text:
                 '${order.isDelivery ? 'Deliver by' : 'Pickup by'} '
-                '${Formatters.time(order.dueAt!)}',
-            color: _dueColor(order.dueAt!),
+                '${Formatters.time(order.promisedAt!)}',
+            color: _dueColor(order.promisedAt!),
             bold: true,
           ),
         ],

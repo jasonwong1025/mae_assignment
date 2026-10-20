@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/core/errors/app_exception.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/order_due_time.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/services/delivery_proof_service.dart';
 import 'package:mae_assignment/features/store_worker/orders/data/worker_order_policy.dart';
 import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
@@ -64,7 +65,7 @@ class WorkerOrdersRepository {
                 (order.status == OrderStatus.pending ||
                     order.status == OrderStatus.packing);
           }).toList()..sort((a, b) {
-            final byDue = _compareDates(a.dueAt, b.dueAt);
+            final byDue = _compareDates(a.promisedAt, b.promisedAt);
             if (byDue != 0) return byDue;
             return _compareDates(a.packerAssignedAt, b.packerAssignedAt);
           });
@@ -388,13 +389,66 @@ class WorkerOrdersRepository {
 
   /// The orders [worker] can possibly see: a packer's branch, or the
   /// deliveries assigned to a driver. [WorkerOrderPolicy] narrows them.
+  ///
+  /// Two queries are merged: every unfinished order (no limit, so an old
+  /// task is never dropped) and the most recent orders (for My history,
+  /// which can stop at a limit).
   Stream<List<Order>> _ordersFor(WorkerProfile worker) {
     if (worker.isPackingStaff) {
       final branchId = worker.branchId;
       if (branchId == null) return Stream.value(const []);
-      return _service.watchBranchOrders(branchId);
+      return _mergeById(
+        _service.watchActiveBranchOrders(branchId),
+        _service.watchBranchOrders(branchId),
+      );
     }
-    return _service.watchDriverOrders(worker.id);
+    return _mergeById(
+      _service.watchActiveDriverOrders(worker.id),
+      _service.watchDriverOrders(worker.id),
+    );
+  }
+
+  /// Combines the latest list from [active] and [recent] into one list
+  /// without duplicates (an order in both appears once, newest copy from
+  /// [active]). Sends nothing until both have sent their first list.
+  static Stream<List<Order>> _mergeById(
+    Stream<List<Order>> active,
+    Stream<List<Order>> recent,
+  ) {
+    late StreamController<List<Order>> controller;
+    StreamSubscription<List<Order>>? activeSub;
+    StreamSubscription<List<Order>>? recentSub;
+    List<Order>? latestActive;
+    List<Order>? latestRecent;
+
+    void emit() {
+      final a = latestActive;
+      final r = latestRecent;
+      if (a == null || r == null) return;
+      final byId = <String, Order>{
+        for (final order in r) order.id: order,
+        for (final order in a) order.id: order,
+      };
+      controller.add(byId.values.toList());
+    }
+
+    controller = StreamController<List<Order>>(
+      onListen: () {
+        activeSub = active.listen((orders) {
+          latestActive = orders;
+          emit();
+        }, onError: controller.addError);
+        recentSub = recent.listen((orders) {
+          latestRecent = orders;
+          emit();
+        }, onError: controller.addError);
+      },
+      onCancel: () async {
+        await activeSub?.cancel();
+        await recentSub?.cancel();
+      },
+    );
+    return controller.stream;
   }
 
   /// A list built by [select], resent only when it changes.
@@ -431,7 +485,7 @@ class WorkerOrdersRepository {
 
   /// Promised time soonest first; then ready the longest.
   static int _byDueThenReady(Order a, Order b) {
-    final byDue = _compareDates(a.dueAt, b.dueAt);
+    final byDue = _compareDates(a.promisedAt, b.promisedAt);
     return byDue != 0 ? byDue : _compareDates(a.readyAt, b.readyAt);
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/order_due_time.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/ui/order_status_label.dart';
@@ -121,11 +122,11 @@ class DeliveryOrderCard extends StatelessWidget {
               ),
               // When it is due, so the driver can plan the run. Not shown
               // once delivered (the delivered time replaces it).
-              if (order.dueAt != null &&
+              if (order.promisedAt != null &&
                   order.status != OrderStatus.completed &&
                   order.status != OrderStatus.cancelled) ...[
                 const SizedBox(height: AppSpacing.xs),
-                _DueTime(dueAt: order.dueAt!),
+                _DueTime(dueAt: order.promisedAt!),
               ],
               if (order.status == OrderStatus.completed &&
                   completedAt != null) ...[

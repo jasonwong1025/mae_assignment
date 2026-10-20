@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/order_due_time.dart';
 import 'package:mae_assignment/features/store_worker/packing/presentation/ui/packing_progress_bar.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
@@ -79,7 +80,7 @@ class PackingTaskCard extends StatelessWidget {
                 style: textTheme.bodyLarge,
                 overflow: TextOverflow.ellipsis,
               ),
-              if (order.dueAt != null) ...[
+              if (order.promisedAt != null) ...[
                 const SizedBox(height: AppSpacing.xs),
                 _DueTime(order: order),
               ],
@@ -151,7 +152,7 @@ class _DueTime extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dueAt = order.dueAt!;
+    final dueAt = order.promisedAt!;
     final minutesLeft = dueAt.difference(DateTime.now()).inMinutes;
     final isLate = minutesLeft < 0;
     final color = isLate

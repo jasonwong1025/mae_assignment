@@ -1,6 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
+import 'package:mae_assignment/features/store_worker/orders/data/order_due_time.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -78,7 +79,7 @@ class LabelPrintService {
   static const _line = pw.BorderSide();
 
   pw.Widget _label(Order order, pw.MemoryImage logo) {
-    final dueAt = order.dueAt;
+    final dueAt = order.promisedAt;
     final kind = order.isDelivery ? 'DELIVERY' : 'PICKUP';
     final postcode = _postcode(order.isDelivery ? order.address : null);
     final recipientAddress = order.isDelivery
