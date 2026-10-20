@@ -151,7 +151,7 @@ Cloud Functions change them, so a modified app cannot give itself money.
 
 | Field (`wallet/current`) | Type | Notes |
 | --- | --- | --- |
-| `balance` | number | Ringgit. Can go slightly below zero after a replacement that costs more than the item it replaced; checkout then needs a top up. |
+| `balance` | number | Ringgit. Never taken below zero by the Functions (see "Insufficient balance" below). |
 | `updatedAt` | timestamp | Server time. |
 
 | Field (`walletTransactions/{id}`) | Type | Notes |
@@ -174,6 +174,15 @@ How money moves (all in `functions/src/`):
   replacement, then sets `walletSettled`. When an order is cancelled (by the
   customer or the admin) it refunds `walletPaid` and puts reserved stock back.
   Both steps are idempotent, so a retried trigger never pays twice.
+- **Insufficient balance.** A refund is always paid. A charge for a dearer
+  replacement never takes the wallet below zero: it is limited to the balance
+  (a balance that is already negative counts as empty), and the rest is
+  waived. The waived amount is stored on the order as `walletWaived`, the
+  charged part as `walletPaid`, and the history entry says so. The store
+  absorbs the waived amount; nothing is left as debt. To make this rare, the
+  customer app compares the wallet with the extra cost before it lets the
+  customer accept a dearer replacement, and offers a top up (removing the
+  item stays possible). Cancelling afterwards refunds only what was paid.
 
 ### `users/{uid}/notifications/{id}` and `users/{uid}/devices/{token}`
 
@@ -320,7 +329,7 @@ Fulfilment fields (Store Worker; all optional):
 | `deliveredBy`, `deliveredByName` | string | |
 | `proofPhotoUrl` | string | Download URL of the delivery photo, uploaded to Storage (`orders/{orderId}/proof.jpg`) by `DeliveryProofService` just before the order is completed. |
 | `completedAt` | timestamp | Pickup or delivery done. |
-| `walletPaid`, `walletSettled`, `walletRefundedAt`, `stockReserved`, `stockReleased` | number, bool, timestamp, bool, bool | Written only by the Cloud Functions (payment, refunds, stock). The app never writes them and the rules let no client change them. |
+| `walletPaid`, `walletSettled`, `walletWaived`, `walletRefundedAt`, `stockReserved`, `stockReleased` | number, bool, number, timestamp, bool, bool | Written only by the Cloud Functions (payment, refunds, stock). The app never writes them and the rules let no client change them. |
 | `driverPosition`, `driverPositionAt` | geopoint, timestamp | Where the driver last was while the order is `outForDelivery`, and the server time of that fix. Written by the order's driver (`OrderService.updateDriverPosition`), so the customer, who may read only their own orders, can follow the delivery. The estimated arrival is not stored: `Order.etaAt` works it out. |
 
 Shortage fields (see "Shortages" below):

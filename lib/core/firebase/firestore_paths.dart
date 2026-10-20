@@ -126,8 +126,8 @@ class WalletDocs {
 class WalletFields {
   WalletFields._();
 
-  /// Money available, in ringgit. Can dip below zero after a replacement that
-  /// costs more than the item it replaced; checkout then asks for a top up.
+  /// Money available, in ringgit. The Functions never take it below zero: a
+  /// charge for a dearer replacement is limited to this balance.
   static const String balance = 'balance';
   static const String updatedAt = 'updatedAt';
 }

@@ -291,6 +291,76 @@ describe("wallet", () => {
     expect(entries.map((entry) => entry.type).sort()).toEqual(["adjustment", "payment"]);
   });
 
+  describe("a dearer replacement when the balance is short", () => {
+    // 2 x 10.90 = 21.80 against 17.80 paid: RM 4.00 more.
+    const dearer = {
+      status: "accepted",
+      replacement: { lineId: "p1", productId: "p2", unitPrice: 10.9, quantity: 2 },
+    };
+
+    async function settleWithBalance(balance) {
+      const placed = await call("placeOrder", pickup, customer.token);
+      const orderRef = db.doc(`orders/${placed.body.result.orderId}`);
+      await orderRef.update({ status: "packing", shortages: { p1: dearer } });
+      // The customer spends the rest of the wallet before packing finishes.
+      await fund(customer, balance);
+      await orderRef.update({ status: "ready" });
+      await until(async () => (await orderRef.get()).get("walletSettled") === true, "settlement");
+      return orderRef;
+    }
+
+    test("charges only what is there and waives the rest, never going below zero", async () => {
+      const orderRef = await settleWithBalance(3);
+      expect(await balanceOf(customer)).toBe(0);
+      const order = await orderRef.get();
+      expect(order.get("walletWaived")).toBe(1);
+      expect(order.get("walletPaid")).toBe(20.8);
+      const adjustment = (await entriesOf(customer)).find((entry) => entry.type === "adjustment");
+      expect(adjustment.amount).toBe(-3);
+      expect(adjustment.description).toContain("RM 1.00 waived");
+    });
+
+    test("an empty wallet is not charged at all", async () => {
+      const orderRef = await settleWithBalance(0);
+      expect(await balanceOf(customer)).toBe(0);
+      const order = await orderRef.get();
+      expect(order.get("walletWaived")).toBe(4);
+      expect(order.get("walletPaid")).toBe(17.8);
+      expect((await entriesOf(customer)).filter((entry) => entry.type === "adjustment")).toHaveLength(0);
+    });
+
+    test("a wallet that is already below zero counts as empty", async () => {
+      const orderRef = await settleWithBalance(-5);
+      expect(await balanceOf(customer)).toBe(-5);
+      expect((await orderRef.get()).get("walletWaived")).toBe(4);
+    });
+
+    test("a balance that exactly covers the difference is charged in full", async () => {
+      const orderRef = await settleWithBalance(4);
+      expect(await balanceOf(customer)).toBe(0);
+      const order = await orderRef.get();
+      expect(order.get("walletWaived")).toBeUndefined();
+      expect(order.get("walletPaid")).toBe(21.8);
+    });
+
+    test("cancelling afterwards refunds only what was really paid", async () => {
+      const orderRef = await settleWithBalance(3);
+      await orderRef.update({ status: "cancelled" });
+      await until(async () => (await orderRef.get()).get("walletPaid") === 0, "the refund");
+      // 3 charged + 17.80 paid = 20.80 back; the waived RM 1.00 was never taken.
+      expect(await balanceOf(customer)).toBe(20.8);
+    });
+
+    test("a refund is never held back, whatever the balance", async () => {
+      const placed = await call("placeOrder", pickup, customer.token);
+      const orderRef = db.doc(`orders/${placed.body.result.orderId}`);
+      await orderRef.update({ status: "packing", shortages: { p1: { status: "removed" } } });
+      await fund(customer, -5);
+      await orderRef.update({ status: "ready" });
+      await until(async () => (await balanceOf(customer)) === 12.8, "the refund");
+    });
+  });
+
   test("an order without shortages settles to nothing", async () => {
     const placed = await call("placeOrder", pickup, customer.token);
     const orderRef = db.doc(`orders/${placed.body.result.orderId}`);

@@ -14,6 +14,7 @@ import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue
 import 'package:mae_assignment/features/customer/catalogue/data/repositories/catalogue_repository.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/view_models/selected_branch_view_model.dart';
 import 'package:mae_assignment/features/customer/orders/presentation/views/customer_order_tracking_view.dart';
+import 'package:mae_assignment/features/customer/wallet/presentation/view_models/wallet_view_model.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_review.dart';
@@ -139,6 +140,7 @@ void main() {
     Order order, {
     List<CatalogueProduct>? catalogue,
     Stream<Order?>? updates,
+    List<Override> overrides = const [],
   }) async {
     tester.view.physicalSize = const Size(390, 1800);
     tester.view.devicePixelRatio = 1;
@@ -159,6 +161,7 @@ void main() {
       );
     final container = ProviderContainer(
       overrides: <Override>[
+        ...overrides,
         orderRepositoryProvider.overrideWithValue(orders),
         reviewRepositoryProvider.overrideWithValue(reviews),
         authRepositoryProvider.overrideWithValue(auth),
@@ -594,6 +597,85 @@ void main() {
 
       expect(find.text('Your reply is needed'), findsNothing);
       expect(find.text('Replacement accepted.'), findsOneWidget);
+    });
+
+    group('a dearer replacement and the wallet', () {
+      // proposed: 1 x RM 5 for 1 x RM 4 originally... l2 is 1 x RM 4, so the
+      // offered carrot at RM 5 costs RM 1.00 more.
+      Override balance(double amount) {
+        return walletBalanceProvider.overrideWith(
+          (ref) => Stream.value(amount),
+        );
+      }
+
+      testWidgets('is accepted when the wallet covers the difference', (
+        tester,
+      ) async {
+        when(
+          () => orders.respondToShortage('o1', 'l2', accept: true),
+        ).thenAnswer((_) async {});
+        await pump(tester, packingWith(proposed), overrides: [balance(10)]);
+
+        expect(find.byKey(const Key('replacement_short_text')), findsNothing);
+        await tester.tap(find.text('Accept replacement'));
+        await tester.pumpAndSettle();
+
+        verify(
+          () => orders.respondToShortage('o1', 'l2', accept: true),
+        ).called(1);
+      });
+
+      testWidgets('needs a top up first when the wallet is short', (
+        tester,
+      ) async {
+        await pump(tester, packingWith(proposed), overrides: [balance(0.4)]);
+
+        expect(find.byKey(const Key('replacement_short_text')), findsOneWidget);
+        expect(
+          find.textContaining('Your wallet is RM 0.60 short'),
+          findsOneWidget,
+        );
+        final accept = tester.widget<ButtonStyleButton>(
+          find.ancestor(
+            of: find.text('Accept replacement'),
+            matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+          ),
+        );
+        expect(accept.onPressed, isNull);
+        // Removing the item is still possible.
+        expect(find.text('Remove item'), findsOneWidget);
+        expect(find.byKey(const Key('replacement_top_up')), findsOneWidget);
+      });
+
+      testWidgets('a negative balance is treated as empty', (tester) async {
+        await pump(tester, packingWith(proposed), overrides: [balance(-3)]);
+
+        expect(find.textContaining('RM 1.00 short'), findsOneWidget);
+      });
+
+      testWidgets('a replacement that costs the same needs no top up', (
+        tester,
+      ) async {
+        final same = packingWith(
+          proposed.copyWith(
+            replacement: replacement.copyWith(
+              unitPrice: 4,
+              name: 'Other tomato',
+            ),
+          ),
+        );
+        await pump(tester, same, overrides: [balance(0)]);
+
+        expect(find.byKey(const Key('replacement_short_text')), findsNothing);
+      });
+
+      testWidgets('an unknown balance does not block the customer', (
+        tester,
+      ) async {
+        await pump(tester, packingWith(proposed));
+
+        expect(find.byKey(const Key('replacement_short_text')), findsNothing);
+      });
     });
 
     testWidgets('removing the item sends the answer', (tester) async {

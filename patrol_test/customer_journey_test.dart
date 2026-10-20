@@ -78,6 +78,22 @@ void main() {
     await $(find.byTooltip('Back')).tap();
     await waitForWidget($, $('DELIVER TO'));
 
+    // --- Wallet top up -----------------------------------------------
+    await $('Account').tap();
+    await $('Wallet').scrollTo().tap();
+    await waitForWidget($, $('Grocerly Wallet'));
+    await waitForWidget($, $(find.byKey(const Key('wallet_balance'))));
+    await $(find.byKey(const Key('wallet_top_up_button'))).tap();
+    await waitForWidget(
+      $,
+      $('RM 50.00 added to your wallet.'),
+      timeout: catalogueTimeout,
+    );
+    await waitForWidget($, $('Top up').first);
+    await $(find.byTooltip('Back')).tap();
+    await $('Home').tap();
+    await waitForWidget($, $('DELIVER TO'), timeout: catalogueTimeout);
+
     // --- Grocery list ------------------------------------------------
     // The Grocery tab: add an item no store sells, see it has no match,
     // then take it off again so the next run starts clean.

@@ -144,16 +144,35 @@ export const settleOrderWallet = onDocumentUpdated(
           typeof held === "number") {
         const owed = adjustedTotal(order);
         const difference = money(owed - held);
-        if (difference !== 0) {
+        // A refund always goes through. A charge for a dearer replacement
+        // never takes the wallet below zero: it is limited to what the
+        // customer has, and the rest is waived (recorded on the order and in
+        // the history) rather than left as debt. The app asks customers to top
+        // up before they accept a dearer replacement, so this is the safety
+        // net for a balance spent in the meantime.
+        const balance = typeof wallet.get("balance") === "number" ? (wallet.get("balance") as number) : 0;
+        const available = money(Math.max(0, balance));
+        const charge = difference > 0 ? Math.min(difference, available) : 0;
+        const waived = difference > 0 ? money(difference - charge) : 0;
+        const settledAmount = difference > 0 ? money(held + charge) : owed;
+        if (difference < 0) {
           postEntry(tx, uid, wallet, {
-            type: difference < 0 ? "refund" : "adjustment",
-            amount: -difference, orderId: ref.id,
-            description: difference < 0
-              ? `Refund for unavailable items on order #${number}`
+            type: "refund", amount: -difference, orderId: ref.id,
+            description: `Refund for unavailable items on order #${number}`,
+          });
+        } else if (charge > 0) {
+          postEntry(tx, uid, wallet, {
+            type: "adjustment", amount: -charge, orderId: ref.id,
+            description: waived > 0
+              ? `Replacement price difference on order #${number} ` +
+                `(RM ${waived.toFixed(2)} waived: not enough balance)`
               : `Replacement price difference on order #${number}`,
           });
         }
-        tx.update(ref, { walletPaid: owed, walletSettled: true });
+        tx.update(ref, {
+          walletPaid: settledAmount, walletSettled: true,
+          ...(waived > 0 ? { walletWaived: waived } : {}),
+        });
       }
     });
 

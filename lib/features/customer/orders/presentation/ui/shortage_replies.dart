@@ -4,6 +4,8 @@ import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/customer/orders/presentation/view_models/order_actions_view_model.dart';
+import 'package:mae_assignment/features/customer/wallet/presentation/view_models/wallet_view_model.dart';
+import 'package:mae_assignment/features/customer/wallet/presentation/views/wallet_view.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
@@ -53,6 +55,9 @@ class ShortageReplies extends ConsumerWidget {
     if (!isNeeded(order)) return const SizedBox.shrink();
     final textTheme = Theme.of(context).textTheme;
     final busy = ref.watch(orderActionsViewModelProvider);
+    // Null while the balance is loading or cannot be read; then the server's
+    // settlement (which never goes below zero) is the only guard.
+    final balance = ref.watch(walletBalanceProvider).value;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.l),
@@ -91,6 +96,7 @@ class ShortageReplies extends ConsumerWidget {
                   original: item,
                   replacement: shortage.replacement!,
                   busy: busy,
+                  balance: balance,
                   onAccept: () => _answer(context, ref, item, accept: true),
                   onRemove: () => _answer(context, ref, item, accept: false),
                 ),
@@ -106,6 +112,7 @@ class _Offer extends StatelessWidget {
     required this.original,
     required this.replacement,
     required this.busy,
+    required this.balance,
     required this.onAccept,
     required this.onRemove,
   });
@@ -113,6 +120,9 @@ class _Offer extends StatelessWidget {
   final OrderItem original;
   final OrderItem replacement;
   final bool busy;
+
+  /// The wallet balance, or null if unknown.
+  final double? balance;
   final VoidCallback onAccept;
   final VoidCallback onRemove;
 
@@ -120,6 +130,11 @@ class _Offer extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final difference = replacement.lineTotal - original.lineTotal;
+    // A dearer replacement is charged to the wallet, so it needs the money.
+    final shortBy =
+        balance != null && difference > 0.005 && balance! < difference
+        ? difference - (balance! < 0 ? 0 : balance!)
+        : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.m),
@@ -163,8 +178,32 @@ class _Offer extends StatelessWidget {
           const SizedBox(height: AppSpacing.s),
           Text(_differenceText(difference), style: textTheme.bodyMedium),
           const SizedBox(height: AppSpacing.m),
+          if (shortBy > 0) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Your wallet is ${Formatters.money(shortBy)} short for '
+                    'this. Top up to accept it, or remove the item.',
+                    key: const Key('replacement_short_text'),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.error,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  key: const Key('replacement_top_up'),
+                  onPressed: () => Navigator.of(context).push<void>(
+                    MaterialPageRoute(builder: (_) => const WalletView()),
+                  ),
+                  child: const Text('Top up'),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.s),
+          ],
           FilledButton.icon(
-            onPressed: busy ? null : onAccept,
+            onPressed: busy || shortBy > 0 ? null : onAccept,
             icon: busy
                 ? const ButtonLoadingIndicator()
                 : const Icon(Icons.check_rounded),

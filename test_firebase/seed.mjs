@@ -280,6 +280,9 @@ async function seedShortageOrder() {
     discount: 0,
     total: 24.6,
     status: "packing",
+    // Paid from the wallet at checkout, so finishing packing can settle the
+    // difference when the customer accepts a replacement.
+    walletPaid: 24.6,
     packerId: "packer-daniel",
     packerName: "Daniel Lee",
     packerAssignedAt: minutesAgo(8),
