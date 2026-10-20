@@ -141,6 +141,13 @@ void main() {
       expect(base().qrPayload, 'grocerly:order:o1:${base().collectionCode}');
     });
 
+    test('new orders use the server-issued collection code', () {
+      final order = base().copyWith(collectionToken: 'ACDE3479');
+      expect(order.collectionCode, 'ACDE3479');
+      expect(order.toFirestore()[OrderFields.collectionCode], 'ACDE3479');
+      expect(order.qrPayload, 'grocerly:order:o1:ACDE3479');
+    });
+
     test("the customer's pickup QR differs from the bag label's", () {
       final order = base(isDelivery: false);
 

@@ -53,12 +53,6 @@ service cloud.firestore {
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.createdAt == request.time;
 
-      // The admin creates Store Worker profiles from the Staff tab.
-      allow create: if isAdmin()
-        && request.resource.data.role == 'storeWorker'
-        && request.resource.data.workerRole in ['packingStaff', 'deliveryDriver']
-        && request.resource.data.isActive == true;
-
       // Users can edit their details, but never their own role, email,
       // creation time, branch or active flag.
       allow update: if isOwner()
@@ -66,13 +60,13 @@ service cloud.firestore {
             .hasAny(['role', 'email', 'createdAt', 'workerRole', 'branchId',
                      'isActive', 'joinedAt']);
 
-      // The admin edits workers (details, role, branch, active), but not
+      // The admin edits worker details and assignment, but not
       // their login email, and cannot turn them into another kind of user.
       allow update: if isAdmin()
         && resource.data.role == 'storeWorker'
         && request.resource.data.role == 'storeWorker'
         && !request.resource.data.diff(resource.data).affectedKeys()
-            .hasAny(['email', 'createdAt', 'joinedAt']);
+            .hasAny(['email', 'createdAt', 'joinedAt', 'isActive']);
 
       allow delete: if false;
 
@@ -182,8 +176,8 @@ service cloud.firestore {
       }
     }
 
-    // Customer orders (the shared order contract). The customer app writes
-    // an order at checkout and reads its own orders for tracking; Store
+    // Customer orders (the shared order contract). The checkout Function
+    // creates an order and the customer reads its own orders for tracking; Store
     // Admin oversees every order; a Store Worker sees and changes only the
     // orders their job gives them (see below).
     //
@@ -310,39 +304,8 @@ service cloud.firestore {
         || (isPacker() && resource.data.branchId == profile().branchId)
         || (isDriver() && resource.data.get('driverId', null) == request.auth.uid);
 
-      // A customer creates their own order. The order must belong to them,
-      // start in a pending state, and carry the required fields, so a
-      // client cannot forge an order into packing or onto another account.
-      // The money must at least add up; prices are not re-checked here (that
-      // needs trusted server code).
-      allow create: if request.auth != null
-        && request.resource.data.customerId == request.auth.uid
-        && request.resource.data.status == 'pending'
-        && request.resource.data.keys().hasAll(
-            ['number', 'customerId', 'branchId', 'items', 'total', 'status',
-             'placedAt'])
-        && request.resource.data.keys().hasOnly(checkoutKeys().concat(
-            ['status', 'statusSince']))
-        && request.resource.data.placedAt == request.time
-        && request.resource.data.statusSince == request.time
-        && request.resource.data.number is int
-        && request.resource.data.branchId is string
-        && request.resource.data.items is list
-        && request.resource.data.items.size() >= 1
-        && request.resource.data.items.size() <= 100
-        && request.resource.data.subtotal is number
-        && request.resource.data.deliveryFee is number
-        && request.resource.data.discount is number
-        && request.resource.data.total is number
-        && request.resource.data.subtotal >= 0
-        && request.resource.data.deliveryFee >= 0
-        && request.resource.data.discount >= 0
-        && request.resource.data.discount <= request.resource.data.subtotal
-        && request.resource.data.total >= 0
-        && math.abs(request.resource.data.total
-            - (request.resource.data.subtotal
-               + request.resource.data.deliveryFee
-               - request.resource.data.discount)) < 0.01;
+      // The callable Function alone creates priced orders with Admin SDK.
+      allow create: if false;
 
       // Store Admin assigns packers and drivers and sets the due time. It
       // cannot touch the checkout fields (customer, items, money) or the
@@ -352,12 +315,7 @@ service cloud.firestore {
       // not finished (for example one waiting too long for the customer to
       // answer a replacement).
       allow update: if isAdmin()
-        && changedKeys().hasOnly(
-            assignmentKeys().concat(['status', 'statusSince']))
-        && (('status' in changedKeys()) == ('statusSince' in changedKeys()))
-        && (!('status' in changedKeys())
-            || (request.resource.data.status == 'cancelled'
-                && !(resource.data.status in ['completed', 'cancelled'])))
+        && changedKeys().hasOnly(assignmentKeys())
         && serverTime('statusSince')
         && serverTime('packerAssignedAt')
         && serverTime('driverAssignedAt');
@@ -482,16 +440,6 @@ service cloud.firestore {
         && changedKeys().hasAll(['driverPosition', 'driverPositionAt'])
         && request.resource.data.driverPosition is latlng
         && request.resource.data.driverPositionAt == request.time;
-      // A customer may cancel their own order, but only while it is still
-      // pending (nobody has started packing it), and nothing else about the
-      // order may change.
-      allow update: if isOrderOwner()
-        && resource.data.status == 'pending'
-        && request.resource.data.status == 'cancelled'
-        && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['status', 'statusSince'])
-        && request.resource.data.statusSince == request.time;
-
       // The customer answers a replacement while the order is being packed:
       // accept it or remove the item. Only the answer and its server time
       // change; the packer's proposal stays as it was.
@@ -584,23 +532,14 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Monotonic counters, e.g. the order-number sequence. Any signed-in
-    // user may read and bump a counter (checkout reserves the next order
-    // number here, since a customer cannot scan all orders). It moves
-    // forward one at a time: the first order gets 1001, then each checkout
-    // adds exactly 1, so nobody can burn through the numbers. Ownership of
-    // an order is still enforced on orders/.
+    // Monotonic order-number counter. The Function alone increments it;
+    // signed-in users may read it for older screens.
     match /counters/{name} {
       allow read: if isSignedIn();
       // `resource` is null when the counter does not exist yet (first bump),
       // so check for null before reading resource.data; `!resource.exists`
       // would throw a null error and deny the create.
-      allow write: if isSignedIn()
-        && request.resource.data.keys().hasOnly(['value'])
-        && request.resource.data.value is int
-        && ((resource == null && request.resource.data.value == 1001)
-            || (resource != null
-                && request.resource.data.value == resource.data.value + 1));
+      allow write: if false;
     }
   }
 }

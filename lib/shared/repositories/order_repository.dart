@@ -5,7 +5,6 @@ import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/models/branch.dart';
 import 'package:mae_assignment/shared/models/customer_address.dart';
 import 'package:mae_assignment/shared/models/order.dart';
-import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/services/order_service.dart';
 
 final Provider<OrderRepository> orderRepositoryProvider =
@@ -20,10 +19,8 @@ class OrderException extends AppException {
 
 /// Places and reads orders through the shared "orders" collection.
 ///
-/// Placing an order turns the customer's [Cart] into an [Order] (capturing
-/// the price of every line so totals never drift), gives it the next order
-/// number, and writes it to Firestore. The admin and worker apps read and
-/// update the same orders through their own repositories.
+/// The trusted Function turns a cart intent into a priced order. The admin
+/// and worker apps read and update the same orders.
 class OrderRepository {
   OrderRepository(this._service);
 
@@ -52,58 +49,20 @@ class OrderRepository {
       throw const OrderException('Please choose a delivery address.');
     }
 
-    final fee = cart.deliveryFeeFor(deliveryFee);
-    final nextNumber = await _run(
-      _service.nextOrderNumber,
-      label: 'nextOrderNumber (counters/orders)',
+    return await _run(
+      () => _service.placeOrder(
+        branchId: branch.id,
+        lines: [
+          for (final line in cart.lines)
+            {'productId': line.product.id, 'quantity': line.quantity},
+        ],
+        fulfilment: isDelivery ? 'delivery' : 'pickup',
+        addressId: isDelivery ? address!.id : null,
+        promoCode: cart.promoCode,
+        customerNote: customerNote?.trim(),
+      ),
+      label: 'placeOrder (callable)',
     );
-
-    final order = Order(
-      // The real id comes from Firestore on write; this placeholder is
-      // replaced below. Kept non-empty so the model stays valid.
-      id: '',
-      number: nextNumber,
-      customerId: customer.uid,
-      customerName: customer.name,
-      customerPhone: customer.phone,
-      branchId: branch.id,
-      branchName: branch.name,
-      branchAddress: branch.address,
-      isDelivery: isDelivery,
-      items: [
-        for (final line in cart.lines)
-          OrderItem(
-            lineId: line.product.id,
-            productId: line.product.id,
-            name: line.product.name,
-            brand: line.product.brand,
-            packSize: line.product.packSize,
-            quantity: line.quantity,
-            unitPrice: line.product.price,
-            categoryId: line.product.categoryId,
-            category: line.product.categoryName,
-            description: line.product.description,
-            imageUrl: line.product.coverImageUrl,
-          ),
-      ],
-      subtotal: cart.subtotal,
-      deliveryFee: fee,
-      discount: cart.discount,
-      total: cart.totalWith(deliveryFee),
-      status: OrderStatus.pending,
-      address: isDelivery ? address!.line : null,
-      addressLocation: isDelivery ? address!.location : null,
-      customerNote: (customerNote?.trim().isEmpty ?? true)
-          ? null
-          : customerNote!.trim(),
-      promoCode: cart.promoCode,
-    );
-
-    final id = await _run(
-      () => _service.createOrder(order),
-      label: 'createOrder (orders/*)',
-    );
-    return order.copyWith(id: id);
   }
 
   /// Cancels a pending order. Throws an [OrderException] if packing has

@@ -421,16 +421,13 @@ void main() {
       expect(find.text('Check your list'), findsNothing);
     });
 
-    testWidgets('a phone that cannot scan is told to type instead', (
-      tester,
-    ) async {
+    testWidgets('a phone that cannot scan offers manual entry', (tester) async {
       scanner.isSupported = false;
       await pump(tester);
 
-      await tester.tap(find.byKey(const Key('grocery_scan_button')));
-      await tester.pumpAndSettle();
-
-      expect(find.textContaining('needs an Android phone'), findsOneWidget);
+      expect(find.byKey(const Key('grocery_scan_button')), findsNothing);
+      expect(find.byKey(const Key('grocery_input')), findsOneWidget);
+      expect(find.textContaining('Type what you need'), findsWidgets);
     });
 
     testWidgets('a scanner failure shows a friendly message', (tester) async {

@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/core/firebase/firestore_models.dart';
 import 'package:mae_assignment/core/firebase/firestore_paths.dart';
@@ -34,44 +33,43 @@ class StaffService {
     return snapshot.toModels(fromFirestore: Worker.fromFirestore);
   }
 
-  /// Creates the worker's Firebase login and returns its id.
-  ///
-  /// Creating a login normally signs the app in as the new user, which
-  /// would sign the admin out. So it is done on a second, separate
-  /// Firebase app, and the admin stays signed in.
-  Future<String> createLogin({
+  /// Admin-only Function creates Auth and profile together.
+  Future<void> createStaff({
+    required String name,
     required String email,
-    required String password,
+    required String phone,
+    required String temporaryPassword,
+    required WorkerRole role,
+    required String? branchId,
   }) async {
-    const appName = 'createWorker';
-    final app = Firebase.apps.any((app) => app.name == appName)
-        ? Firebase.app(appName)
-        : await Firebase.initializeApp(
-            name: appName,
-            options: Firebase.app().options,
-          );
-
-    final auth = FirebaseAuth.instanceFor(app: app);
-    final credential = await auth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-    await auth.signOut();
-    return credential.user!.uid;
-  }
-
-  /// Saves a new worker's profile, with the server time as joinedAt.
-  Future<void> createWorker(Worker worker) {
-    return _refs.user(worker.id).set({
-      ..._document(worker),
-      UserFields.joinedAt: FieldValue.serverTimestamp(),
-      UserFields.createdAt: FieldValue.serverTimestamp(),
+    await FirebaseFunctions.instanceFor(
+      region: 'asia-southeast1',
+    ).httpsCallable('createStaff').call<void>({
+      'name': name,
+      'email': email,
+      'phone': phone,
+      'temporaryPassword': temporaryPassword,
+      'workerRole': role.name,
+      'branchId': branchId,
     });
   }
 
-  /// Saves changed details. Email and joinedAt are never changed here.
-  Future<void> updateWorker(Worker worker) {
-    final data = _document(worker)..remove(UserFields.email);
-    return _refs.user(worker.id).update(data);
+  Future<void> setStaffActive(String uid, {required bool isActive}) async {
+    await FirebaseFunctions.instanceFor(region: 'asia-southeast1')
+        .httpsCallable('setStaffActive')
+        .call<void>({'uid': uid, 'isActive': isActive});
+  }
+
+  /// Saves changed details. Account state is handled by the Function.
+  Future<void> updateWorker(Worker worker) async {
+    final ref = _refs.user(worker.id);
+    final before = await ref.get();
+    if (before.data()?[UserFields.isActive] != worker.isActive) {
+      await setStaffActive(worker.id, isActive: worker.isActive);
+    }
+    final data = _document(worker)
+      ..remove(UserFields.email)
+      ..remove(UserFields.isActive);
+    await ref.update(data);
   }
 }

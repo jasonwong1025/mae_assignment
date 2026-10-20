@@ -16,6 +16,7 @@ class FakeAuthRepository extends Fake implements AuthRepository {
 
   bool signedIn = false;
   String? lastSignUpPhone;
+  String? lastResetEmail;
 
   @override
   bool get isSignedIn => signedIn;
@@ -75,5 +76,10 @@ class FakeAuthRepository extends Fake implements AuthRepository {
   @override
   Future<void> signOut() async {
     signedIn = false;
+  }
+
+  @override
+  Future<void> resetPassword(String email) async {
+    lastResetEmail = email;
   }
 }

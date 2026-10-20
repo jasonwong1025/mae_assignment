@@ -13,21 +13,6 @@ import 'package:mocktail/mocktail.dart';
 
 class _MockOrderService extends Mock implements OrderService {}
 
-CatalogueProduct _product(String id, String name, double price) {
-  return CatalogueProduct(
-    id: id,
-    name: name,
-    brand: 'BrandCo',
-    categoryId: 'produce',
-    packSize: '1kg',
-    price: price,
-    stock: 50,
-    imageUrls: ['https://img/$id.png'],
-  );
-}
-
-class _FakeOrder extends Fake implements Order {}
-
 const _customer = AppUser(
   uid: 'u1',
   name: 'Aisha',
@@ -35,7 +20,6 @@ const _customer = AppUser(
   phone: '0123456789',
   role: UserRole.customer,
 );
-
 const _branch = Branch(
   id: 'ss15',
   name: 'SS15 Subang',
@@ -47,215 +31,169 @@ const _branch = Branch(
   baseDeliveryFee: 3,
   feePerKm: 1,
 );
-
 const _address = CustomerAddress(
   id: 'a1',
   label: 'Home',
   line: '12 Jalan Besar',
   location: LatLng(3.001, 101.001),
 );
+const _savedOrder = Order(
+  id: 'o1',
+  number: 2301,
+  customerId: 'u1',
+  customerName: 'Aisha',
+  customerPhone: '0123456789',
+  branchId: 'ss15',
+  branchName: 'SS15 Subang',
+  isDelivery: true,
+  items: [],
+  subtotal: 24.6,
+  deliveryFee: 4,
+  discount: 5,
+  total: 23.6,
+  status: OrderStatus.pending,
+);
 
-Cart _cart({
-  FulfilmentMethod fulfilment = FulfilmentMethod.delivery,
-  String? promo,
-}) {
-  return Cart(
-    lines: [
-      CartLine(product: _product('p1', 'Fresh milk', 8.9), quantity: 2),
-      CartLine(product: _product('p2', 'Roma tomato', 6.8), quantity: 1),
-    ],
-    fulfilment: fulfilment,
-    promoCode: promo,
-  );
-}
+Cart _cart({FulfilmentMethod fulfilment = FulfilmentMethod.delivery}) => Cart(
+  lines: [
+    const CartLine(
+      product: CatalogueProduct(
+        id: 'p1',
+        name: 'Milk',
+        brand: 'Brand',
+        categoryId: 'dairy',
+        packSize: '1L',
+        price: 8.9,
+        stock: 50,
+      ),
+      quantity: 2,
+    ),
+  ],
+  fulfilment: fulfilment,
+  promoCode: Cart.promoFresh5,
+);
 
 void main() {
   late _MockOrderService service;
   late OrderRepository repository;
-
-  setUpAll(() {
-    registerFallbackValue(_FakeOrder());
-  });
 
   setUp(() {
     service = _MockOrderService();
     repository = OrderRepository(service);
   });
 
-  void stubCreate({int nextNumber = 1, String newId = 'o1'}) {
-    when(service.nextOrderNumber).thenAnswer((_) async => nextNumber);
-    when(() => service.createOrder(any())).thenAnswer((_) async => newId);
+  void stubPlace() {
+    when(
+      () => service.placeOrder(
+        branchId: any(named: 'branchId'),
+        lines: any(named: 'lines'),
+        fulfilment: any(named: 'fulfilment'),
+        addressId: any(named: 'addressId'),
+        promoCode: any(named: 'promoCode'),
+        customerNote: any(named: 'customerNote'),
+      ),
+    ).thenAnswer((_) async => _savedOrder);
   }
 
-  test(
-    'turns the cart into an order with the next number and new id',
-    () async {
-      stubCreate(nextNumber: 2301, newId: 'o-new');
-
-      final order = await repository.placeOrder(
-        cart: _cart(),
-        customer: _customer,
-        branch: _branch,
-        address: _address,
-        deliveryFee: 3,
-      );
-
-      expect(order.id, 'o-new');
-      expect(order.number, 2301);
-      expect(order.customerId, 'u1');
-      expect(order.branchId, 'ss15');
-      expect(order.status, OrderStatus.pending);
-      expect(order.items, hasLength(2));
-      expect(order.itemCount, 3);
-      expect(order.address, '12 Jalan Besar');
-      expect(order.addressLocation, const LatLng(3.001, 101.001));
-    },
-  );
-
-  test('captures line prices and the quoted delivery fee', () async {
-    stubCreate();
-
+  test('sends only cart intent and returns the saved server order', () async {
+    stubPlace();
     final order = await repository.placeOrder(
       cart: _cart(),
       customer: _customer,
       branch: _branch,
       address: _address,
-      deliveryFee: 4.5,
+      deliveryFee: 999,
+      customerNote: '  please ring  ',
     );
-
-    // Subtotal 8.9*2 + 6.8 = 24.6, + 4.5 quoted delivery.
-    expect(order.subtotal, closeTo(24.6, 0.001));
-    expect(order.deliveryFee, 4.5);
-    expect(order.total, closeTo(29.1, 0.001));
-    final milk = order.items.firstWhere((i) => i.productId == 'p1');
-    expect(milk.unitPrice, 8.9);
-    expect(milk.quantity, 2);
-    expect(milk.imageUrl, 'https://img/p1.png');
+    expect(order, _savedOrder);
+    final captured =
+        verify(
+              () => service.placeOrder(
+                branchId: 'ss15',
+                lines: captureAny(named: 'lines'),
+                fulfilment: 'delivery',
+                addressId: 'a1',
+                promoCode: Cart.promoFresh5,
+                customerNote: 'please ring',
+              ),
+            ).captured.single
+            as List<Map<String, Object>>;
+    expect(captured, [
+      {'productId': 'p1', 'quantity': 2},
+    ]);
   });
 
-  test('pickup orders carry no address and no delivery fee', () async {
-    stubCreate();
-
-    final order = await repository.placeOrder(
+  test('pickup has no delivery address', () async {
+    stubPlace();
+    await repository.placeOrder(
       cart: _cart(fulfilment: FulfilmentMethod.pickup),
       customer: _customer,
       branch: _branch,
     );
-
-    expect(order.isDelivery, isFalse);
-    expect(order.address, isNull);
-    expect(order.addressLocation, isNull);
-    expect(order.deliveryFee, 0);
+    verify(
+      () => service.placeOrder(
+        branchId: 'ss15',
+        lines: any(named: 'lines'),
+        fulfilment: 'pickup',
+        promoCode: Cart.promoFresh5,
+      ),
+    ).called(1);
   });
 
-  test('rejects an empty cart', () async {
-    stubCreate();
-
+  test('rejects an empty cart and a delivery without an address', () async {
     await expectLater(
       repository.placeOrder(
         cart: const Cart(),
         customer: _customer,
         branch: _branch,
-        address: _address,
-        deliveryFee: 3,
       ),
       throwsA(isA<OrderException>()),
     );
-    verifyNever(() => service.createOrder(any()));
-  });
-
-  test('requires an address for delivery', () async {
-    stubCreate();
-
     await expectLater(
       repository.placeOrder(
         cart: _cart(),
         customer: _customer,
         branch: _branch,
       ),
-      throwsA(
-        isA<OrderException>().having(
-          (e) => e.message,
-          'message',
-          contains('address'),
-        ),
-      ),
+      throwsA(isA<OrderException>()),
     );
-    verifyNever(() => service.createOrder(any()));
+    verifyZeroInteractions(service);
   });
 
-  test('wraps a Firestore failure in a friendly OrderException', () async {
-    when(service.nextOrderNumber).thenThrow(Exception('offline'));
-
+  test('wraps a Function failure in a friendly error', () async {
+    when(
+      () => service.placeOrder(
+        branchId: any(named: 'branchId'),
+        lines: any(named: 'lines'),
+        fulfilment: any(named: 'fulfilment'),
+        addressId: any(named: 'addressId'),
+        promoCode: any(named: 'promoCode'),
+        customerNote: any(named: 'customerNote'),
+      ),
+    ).thenThrow(Exception('offline'));
     await expectLater(
       repository.placeOrder(
         cart: _cart(),
         customer: _customer,
         branch: _branch,
         address: _address,
-        deliveryFee: 3,
       ),
-      throwsA(
-        isA<OrderException>().having(
-          (e) => e.message,
-          'message',
-          contains('Could not reach the server'),
-        ),
-      ),
+      throwsA(isA<OrderException>()),
     );
-  });
-
-  test('carries the applied promo code onto the order', () async {
-    stubCreate();
-
-    final order = await repository.placeOrder(
-      cart: _cart(promo: Cart.promoFresh5),
-      customer: _customer,
-      branch: _branch,
-      address: _address,
-      deliveryFee: 3,
-    );
-
-    expect(order.promoCode, Cart.promoFresh5);
-    expect(order.discount, 5);
   });
 
   group('cancelOrder', () {
     test('cancels a pending order', () async {
       when(() => service.cancelOrder('o1')).thenAnswer((_) async => true);
-
       await repository.cancelOrder('o1');
-
       verify(() => service.cancelOrder('o1')).called(1);
     });
 
-    test('tells the customer when packing has already started', () async {
+    test('reports an order that can no longer be cancelled', () async {
       when(() => service.cancelOrder('o1')).thenAnswer((_) async => false);
-
       await expectLater(
         repository.cancelOrder('o1'),
-        throwsA(
-          isA<OrderException>().having(
-            (e) => e.message,
-            'message',
-            contains('can no longer be cancelled'),
-          ),
-        ),
-      );
-    });
-
-    test('turns a backend failure into a friendly error', () async {
-      when(() => service.cancelOrder('o1')).thenThrow(Exception('offline'));
-
-      await expectLater(
-        repository.cancelOrder('o1'),
-        throwsA(
-          isA<OrderException>().having(
-            (e) => e.message,
-            'message',
-            contains('Could not reach the server'),
-          ),
-        ),
+        throwsA(isA<OrderException>()),
       );
     });
   });

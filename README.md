@@ -20,7 +20,10 @@ fvm flutter run -d <device-id>
 
 `.fvmrc` pins Flutter 3.47.6, and `pubspec.lock` pins package versions. FVM downloads the project SDK and configures VS Code. The **Grocerly** VS Code launch configuration also works after `fvm use`. If Android SDK licenses are missing, run `fvm flutter doctor --android-licenses` once.
 
-Android and Web are configured for the shared project. The iOS Firebase app still needs configuration on a Mac before iOS can run. The Windows desktop runner is not configured; Windows teammates can run the Android app from Windows.
+Android, Web and iOS Firebase app configuration files are present. An iOS
+build and sign-in smoke test still require a Mac with Xcode. The ML Kit
+document scanner is Android-only; on iOS and Web the Grocery tab offers manual
+entry without a scan button. The Windows desktop runner is not configured.
 
 ## Demo data and logins
 
@@ -62,7 +65,7 @@ dart pub global activate flutterfire_cli
 fvm exec dart run tool/setup_firebase.dart
 ```
 
-The script uses the project ID in `.firebaserc`. It reuses existing Firebase apps and the Firestore database, configures Android and Web, also configures iOS on macOS, enables email/password sign-in, and deploys `firestore.rules`. Commit any updated `firebase.json`, `lib/firebase_options.dart`, platform configuration files, and rules after reviewing them. Firebase and Google Cloud login credentials stay in each maintainer's home directory.
+The script uses the project ID in `.firebaserc`. It reuses existing Firebase apps and the Firestore database, configures Android and Web, also configures iOS on macOS, enables email/password sign-in, and deploys `firestore.rules`. The trusted checkout and staff actions additionally require deploying `functions/`; use `npm ci --prefix functions`, `npm run build --prefix functions`, then `firebase deploy --only functions,firestore:rules` from the repository root with the project maintainer's account. Deploy Functions and Rules together because direct client order creation and staff provisioning are denied by the new Rules. Commit any updated `firebase.json`, `lib/firebase_options.dart`, platform configuration files, and rules after reviewing them. Firebase and Google Cloud login credentials stay in each maintainer's home directory.
 
 When paid services are needed, the project owner should check the [Billing Credits page](https://console.cloud.google.com/billing/credits) for an available balance, expiry date, and eligible services on the chosen account. Then link that account:
 
@@ -111,6 +114,15 @@ npm install          # first time only
 npm test             # starts the emulator, runs the tests, shuts it down
 ```
 
+The callable Functions have separate emulator tests for checkout pricing,
+stock reservation, cancellation and staff authorization:
+
+```bash
+npm ci --prefix functions
+npm run build --prefix functions
+npm run test:functions --prefix test_firebase
+```
+
 ### 3. End-to-end tests (Patrol, Android emulator + Firebase emulators)
 
 [Patrol](https://patrol.leancode.co) drives the real app on an Android
@@ -142,9 +154,11 @@ One-time setup:
 Each run:
 
 ```bash
-# 1. Start the Firebase emulators (Auth + Firestore).
+# 1. Build Functions and start the Firebase emulators.
+cd ..
+npm run build --prefix functions
 cd test_firebase
-npx firebase emulators:start --only auth,firestore --project mae-assignment-grocerly
+npx firebase emulators:start --only auth,firestore,functions,storage --project mae-assignment-grocerly
 
 # 2. In another shell, start your Android emulator (Device Manager, or:
 #    fvm flutter emulators --launch <id>), then run the E2E command.

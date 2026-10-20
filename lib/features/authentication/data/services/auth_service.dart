@@ -45,6 +45,9 @@ class AuthService {
 
   Future<void> signOut() => _auth.signOut();
 
+  Future<void> sendPasswordResetEmail(String email) =>
+      _auth.sendPasswordResetEmail(email: email);
+
   /// Asks the backend to refresh the signed-in account. Throws a
   /// [FirebaseAuthException] such as `user-token-expired` when the saved
   /// session is no longer valid. Does nothing when signed out.

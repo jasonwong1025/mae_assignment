@@ -92,6 +92,39 @@ describe("users/{uid} create", () => {
   });
 });
 
+describe("staff provisioning", () => {
+  const admin = { uid: "admin", email: "admin@example.com" };
+  const worker = { uid: "worker", email: "worker@example.com" };
+
+  beforeEach(async () => {
+    await seed(testEnv, async (db) => {
+      await setDoc(doc(db, "users", admin.uid), { role: "storeAdmin" });
+      await setDoc(doc(db, "users", worker.uid), {
+        role: "storeWorker", workerRole: "packingStaff",
+        branchId: "ss15", email: worker.email, isActive: true,
+      });
+    });
+  });
+
+  test("even HQ admin cannot create a worker profile directly", async () => {
+    const db = firestoreForUser(testEnv, admin.uid, admin.email);
+    await assertFails(setDoc(doc(db, "users", "new-worker"), {
+      role: "storeWorker", workerRole: "packingStaff",
+      branchId: "ss15", email: "new@example.com", isActive: true,
+    }));
+  });
+
+  test("even HQ admin cannot toggle the Auth account from Firestore", async () => {
+    const db = firestoreForUser(testEnv, admin.uid, admin.email);
+    await assertFails(updateDoc(doc(db, "users", worker.uid), { isActive: false }));
+  });
+
+  test("HQ admin can still edit worker details", async () => {
+    const db = firestoreForUser(testEnv, admin.uid, admin.email);
+    await assertSucceeds(updateDoc(doc(db, "users", worker.uid), { phone: "0120000000" }));
+  });
+});
+
 describe("users/{uid} read", () => {
   beforeEach(async () => {
     await seed(testEnv, (db) =>

@@ -30,9 +30,27 @@ const _admin = AppUser(
 /// 3 pm, so "minutes ago" orders in the seed data are still today.
 final _now = DateTime(2026, 10, 16, 15);
 
+class _FakeAdminOrderService extends OrderService {
+  _FakeAdminOrderService(this.firestore) : super(firestore);
+
+  final FakeFirebaseFirestore firestore;
+
+  @override
+  Future<bool> cancelOrderAsAdmin(String id) async {
+    final ref = firestore.collection('orders').doc(id);
+    final snapshot = await ref.get();
+    final status = snapshot.data()?['status'];
+    if (!snapshot.exists || status == 'cancelled' || status == 'completed') {
+      return false;
+    }
+    await ref.update({'status': 'cancelled'});
+    return true;
+  }
+}
+
 OrdersRepository _repository(FakeFirebaseFirestore firestore) {
   return OrdersRepository(
-    OrderService(firestore),
+    _FakeAdminOrderService(firestore),
     StaffService(firestore),
     clock: () => _now,
   );

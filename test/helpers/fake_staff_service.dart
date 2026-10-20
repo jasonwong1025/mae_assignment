@@ -1,6 +1,6 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
+import 'package:mae_assignment/features/store_admin/staff/data/repositories/staff_repository.dart';
 import 'package:mae_assignment/features/store_admin/staff/data/services/staff_service.dart';
 
 /// In-memory StaffService, so tests do not need Firebase.
@@ -22,31 +22,37 @@ class FakeStaffService extends Fake implements StaffService {
     for (var i = 20; i <= 30; i++) _worker('w$i', 'Driver $i'),
   ];
 
-  /// Emails that already have a login.
-  final Set<String> logins = {};
-
   int _nextId = 100;
 
   @override
   Future<List<Worker>> getWorkers() async => [...workers];
 
   @override
-  Future<String> createLogin({
+  Future<void> createStaff({
+    required String name,
     required String email,
-    required String password,
+    required String phone,
+    required String temporaryPassword,
+    required WorkerRole role,
+    required String? branchId,
   }) async {
-    final taken =
-        logins.contains(email) ||
-        workers.any((worker) => worker.email == email);
+    final taken = workers.any((worker) => worker.email == email);
     if (taken) {
-      throw FirebaseAuthException(code: 'email-already-in-use');
+      throw const StaffException('An account with this email already exists.');
     }
-    logins.add(email);
-    return 'w${_nextId++}';
+    workers.add(
+      Worker(
+        id: 'w${_nextId++}',
+        name: name,
+        email: email,
+        phone: phone,
+        role: role,
+        branchId: branchId,
+        isActive: true,
+        joinedAt: DateTime.now(),
+      ),
+    );
   }
-
-  @override
-  Future<void> createWorker(Worker worker) async => workers.add(worker);
 
   @override
   Future<void> updateWorker(Worker worker) async {

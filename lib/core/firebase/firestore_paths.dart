@@ -27,7 +27,7 @@ class FirestoreCollections {
   static const String inventory = 'inventory';
 
   /// orders/{orderId} — one document per placed order. Written by the
-  /// customer at checkout; read by the customer (tracking) and by the
+  /// trusted checkout Function; read by the customer (tracking) and by the
   /// Store Worker / Store Admin apps.
   static const String orders = 'orders';
 
@@ -54,8 +54,9 @@ class FirestoreCollections {
   static const String driverLocations = 'driverLocations';
 
   /// counters/{name} — monotonic counters (e.g. the order number sequence)
-  /// incremented in a transaction. Not per-user: a customer cannot read
-  /// other customers' orders, so the next order number comes from here
+  /// incremented by the checkout Function transaction. Not per-user: a
+  /// customer cannot read other customers' orders, so the next number comes
+  /// from here
   /// rather than from scanning the orders collection.
   static const String counters = 'counters';
 }
@@ -283,6 +284,7 @@ class OrderFields {
 
   /// Promo code applied, uppercased, or absent if none.
   static const String promoCode = 'promoCode';
+  static const String collectionCode = 'collectionCode';
 
   // Money, in ringgit, captured at checkout so totals never drift if a
   // price changes later.
@@ -371,7 +373,7 @@ class OrderFields {
     completedAt,
   ];
 
-  /// Fields only the customer app writes, at checkout. Nobody else may
+  /// Fields only the checkout Function writes. Nobody else may
   /// change them afterwards.
   static const List<String> checkoutKeys = [
     number,
@@ -387,6 +389,7 @@ class OrderFields {
     customerNote,
     items,
     promoCode,
+    collectionCode,
     subtotal,
     deliveryFee,
     discount,

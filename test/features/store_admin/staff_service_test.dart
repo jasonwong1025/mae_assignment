@@ -23,21 +23,11 @@ void main() {
     service = StaffService(firestore);
   });
 
-  test('createWorker saves a storeWorker profile with server times', () async {
-    await service.createWorker(worker);
-
-    final data = (await firestore.collection('users').doc('w1').get()).data()!;
-    expect(data['role'], 'storeWorker');
-    expect(data['workerRole'], 'packingStaff');
-    expect(data['branchId'], 'ss15');
-    expect(data['isActive'], true);
-    expect(data.containsKey('joinedAt'), isTrue);
-    expect(data.containsKey('createdAt'), isTrue);
-    expect(data.containsKey('id'), isFalse);
-  });
-
   test('getWorkers returns only store workers', () async {
-    await service.createWorker(worker);
+    await firestore.collection('users').doc('w1').set({
+      ...worker.toFirestore(),
+      'role': 'storeWorker',
+    });
     await firestore.collection('users').doc('c1').set({
       'name': 'Aisha',
       'role': 'customer',
@@ -50,7 +40,10 @@ void main() {
   });
 
   test('updateWorker never changes the login email', () async {
-    await service.createWorker(worker);
+    await firestore.collection('users').doc('w1').set({
+      ...worker.toFirestore(),
+      'role': 'storeWorker',
+    });
 
     await service.updateWorker(
       worker.copyWith(name: 'Daniel L.', email: 'changed@grocerly.test'),

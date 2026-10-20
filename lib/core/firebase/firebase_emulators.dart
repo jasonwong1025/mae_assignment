@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
@@ -26,6 +27,7 @@ class FirebaseEmulators {
   static const int _authPort = 9099;
   static const int _firestorePort = 8085;
   static const int _storagePort = 9199;
+  static const int _functionsPort = 5001;
 
   /// True inside `flutter test` (the test runner sets FLUTTER_TEST). Used
   /// as a hard safety gate: a test must never reach the real project.
@@ -101,6 +103,9 @@ class FirebaseEmulators {
     unawaited(
       FirebaseStorage.instance.useStorageEmulator(emulatorHost, _storagePort),
     );
+    FirebaseFunctions.instanceFor(
+      region: 'asia-southeast1',
+    ).useFunctionsEmulator(emulatorHost, _functionsPort);
 
     debugPrint(
       'Firebase emulators: Auth $emulatorHost:$_authPort, '

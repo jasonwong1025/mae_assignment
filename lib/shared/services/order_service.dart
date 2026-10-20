@@ -1,6 +1,7 @@
 // cloud_firestore exports its own `Order` type (used in query ordering),
 // which clashes with the app's order model; hide it so `Order` means ours.
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
@@ -20,10 +21,10 @@ final Provider<OrderService> orderServiceProvider = Provider<OrderService>((
 
 /// Reads and writes the shared "orders" collection in Firestore.
 ///
-/// The customer app creates orders here at checkout and watches its own
+/// The customer app calls a trusted Function at checkout and watches its own
 /// orders for live tracking. Store Admin watches a branch's orders and
 /// assigns packers and drivers; Store Workers watch the orders they may see
-/// and record fulfilment. Writes are plain client writes, allowed by
+/// and record fulfilment. Staff workflow writes are client writes allowed by
 /// `firestore.rules` (each role may write only its own group of fields, see
 /// `OrderFields`).
 class OrderService {
@@ -32,39 +33,31 @@ class OrderService {
   final FirebaseFirestore _firestore;
   final FirestoreRefs _refs;
 
-  /// Creates [order] with a fresh document id and returns that id. The
-  /// server sets placedAt/statusSince, so the stored times are authoritative.
-  Future<String> createOrder(Order order) async {
-    final doc = _refs.orders.doc();
-    await doc.set({
-      ...order.toFirestore(),
-      OrderFields.placedAt: FieldValue.serverTimestamp(),
-      OrderFields.statusSince: FieldValue.serverTimestamp(),
-    });
-    return doc.id;
-  }
-
-  /// Reserves and returns the next order number, atomically, from the
-  /// shared counters/orders document.
-  ///
-  /// A customer cannot read other customers' orders (see `firestore.rules`),
-  /// so the next number cannot come from scanning the orders collection.
-  /// A transaction on a single counter is both allowed and race-safe:
-  /// concurrent checkouts never get the same number. The first order starts
-  /// at 1001 so numbers look like real order ids.
-  Future<int> nextOrderNumber() {
-    final counter = _refs.counter(CounterDocs.orders);
-    return _firestore
-        .runTransaction((transaction) async {
-          final snapshot = await transaction.get(counter);
-          final current = snapshot.exists
-              ? (snapshot.data()?[CounterFields.value] as num?)?.toInt() ?? 1000
-              : 1000;
-          final next = current + 1;
-          transaction.set(counter, {CounterFields.value: next});
-          return next;
-        })
-        .timeout(FirestoreConfig.readTimeout);
+  /// The Function reads prices, stock, branch and address from Firestore and
+  /// returns the saved order. No client-supplied amount is accepted.
+  Future<Order> placeOrder({
+    required String branchId,
+    required List<Map<String, Object>> lines,
+    required String fulfilment,
+    String? addressId,
+    String? promoCode,
+    String? customerNote,
+  }) async {
+    final result =
+        await FirebaseFunctions.instanceFor(
+          region: 'asia-southeast1',
+        ).httpsCallable('placeOrder').call<Map<String, dynamic>>({
+          'branchId': branchId,
+          'lines': lines,
+          'fulfilment': fulfilment,
+          'addressId': ?addressId,
+          'promoCode': ?promoCode,
+          'customerNote': ?customerNote,
+        });
+    final id = result.data['orderId'] as String;
+    final order = await getOrder(id);
+    if (order == null) throw StateError('Placed order was not found.');
+    return order;
   }
 
   /// Cancels the order if it is still pending, and returns whether it did.
@@ -73,21 +66,14 @@ class OrderService {
   /// has just started on is never cancelled from under them. `firestore.rules`
   /// enforces the same thing on the server.
   Future<bool> cancelOrder(String id) {
-    final document = _refs.order(id);
-    return _firestore
-        .runTransaction((transaction) async {
-          final snapshot = await transaction.get(document);
-          final status = snapshot.data()?[OrderFields.status];
-          if (!snapshot.exists || status != OrderStatus.pending.name) {
-            return false;
-          }
-          transaction.update(document, {
-            OrderFields.status: OrderStatus.cancelled.name,
-            OrderFields.statusSince: FieldValue.serverTimestamp(),
-          });
-          return true;
-        })
-        .timeout(FirestoreConfig.readTimeout);
+    return _cancelOrder(id);
+  }
+
+  Future<bool> _cancelOrder(String id) async {
+    final result = await FirebaseFunctions.instanceFor(
+      region: 'asia-southeast1',
+    ).httpsCallable('cancelOrder').call<Map<String, dynamic>>({'orderId': id});
+    return result.data['cancelled'] == true;
   }
 
   /// The packer reports line [lineId] unavailable, and returns whether the
@@ -185,23 +171,7 @@ class OrderService {
   /// waiting too long for the customer's answer), and returns whether it
   /// did.
   Future<bool> cancelOrderAsAdmin(String id) {
-    final document = _refs.order(id);
-    return _firestore
-        .runTransaction((transaction) async {
-          final snapshot = await transaction.get(document);
-          final status = snapshot.data()?[OrderFields.status];
-          if (!snapshot.exists ||
-              status == OrderStatus.completed.name ||
-              status == OrderStatus.cancelled.name) {
-            return false;
-          }
-          transaction.update(document, {
-            OrderFields.status: OrderStatus.cancelled.name,
-            OrderFields.statusSince: FieldValue.serverTimestamp(),
-          });
-          return true;
-        })
-        .timeout(FirestoreConfig.readTimeout);
+    return _cancelOrder(id);
   }
 
   /// The driver reports where they are on the way to [orderId].

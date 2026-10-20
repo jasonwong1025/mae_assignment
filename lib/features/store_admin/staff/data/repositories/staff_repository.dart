@@ -1,4 +1,4 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/core/errors/app_exception.dart';
 import 'package:mae_assignment/features/store_admin/staff/data/models/worker.dart';
@@ -42,8 +42,7 @@ class StaffRepository {
     return PageResult.fromList(matching, page: page);
   }
 
-  /// Creates the worker's login and profile. They sign in with
-  /// [temporaryPassword].
+  /// Creates a worker through the admin-only Function.
   Future<void> addWorker({
     required String name,
     required String email,
@@ -52,27 +51,18 @@ class StaffRepository {
     required WorkerRole role,
     required String? branchId,
   }) async {
-    final String id;
     try {
-      id = await _service.createLogin(
+      await _service.createStaff(
+        name: name,
         email: email,
-        password: temporaryPassword,
+        phone: phone,
+        temporaryPassword: temporaryPassword,
+        role: role,
+        branchId: branchId,
       );
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseFunctionsException catch (e) {
       throw StaffException(_messageFor(e));
     }
-
-    final worker = Worker(
-      id: id,
-      name: name,
-      email: email,
-      phone: phone,
-      role: role,
-      branchId: role == WorkerRole.deliveryDriver ? null : branchId,
-      isActive: true,
-      joinedAt: DateTime.now(),
-    );
-    await _run(() => _service.createWorker(worker));
   }
 
   /// Saves changed details or the active flag.
@@ -89,18 +79,18 @@ class StaffRepository {
     );
   }
 
-  String _messageFor(FirebaseAuthException e) {
+  String _messageFor(FirebaseFunctionsException e) {
     switch (e.code) {
-      case 'email-already-in-use':
+      case 'already-exists':
         return 'An account with this email already exists.';
-      case 'invalid-email':
-        return 'Please enter a valid email.';
-      case 'weak-password':
-        return 'The temporary password is too weak.';
-      case 'network-request-failed':
+      case 'unavailable':
         return 'No internet connection. Please check and try again.';
+      case 'permission-denied':
+        return 'Only HQ admin can manage staff.';
+      case 'invalid-argument':
+        return e.message ?? 'Please check the worker details.';
       default:
-        return 'Could not create the login. Please try again.';
+        return 'Could not create the worker. Please try again.';
     }
   }
 }

@@ -168,95 +168,13 @@ const as = (user) => firestoreForUser(testEnv, user.uid, user.email);
 const order = (db, id) => doc(db, "orders", id);
 
 describe("placing orders", () => {
-  test("a customer can create their own order", async () => {
-    await assertSucceeds(
-      setDoc(order(as(ALICE), "o-created"), orderFor(ALICE.uid))
-    );
-  });
-
-  test("a customer cannot create an order for someone else", async () => {
-    await assertFails(
-      setDoc(order(as(ALICE), "o-forged"), orderFor(BOB.uid))
-    );
-  });
-
-  test("an order cannot be created already in packing", async () => {
-    await assertFails(
-      setDoc(
-        order(as(ALICE), "o-jump"),
-        orderFor(ALICE.uid, { status: "packing" })
-      )
-    );
-  });
-
-  test("a customer cannot create an order carrying fulfilment fields", async () => {
-    await assertFails(
-      setDoc(
-        order(as(ALICE), "o-sneaky"),
-        orderFor(ALICE.uid, { packerId: "w1" })
-      )
-    );
-  });
-
-  test("the status time must be the server time", async () => {
-    await assertFails(
-      setDoc(
-        order(as(ALICE), "o-time"),
-        orderFor(ALICE.uid, { statusSince: new Date(0) })
-      )
-    );
-  });
-
-  test("the money must add up", async () => {
-    // total 1 instead of 8.9 + 3.
-    await assertFails(
-      setDoc(order(as(ALICE), "o-cheap"), orderFor(ALICE.uid, { total: 1 }))
-    );
-    // A discount applies.
-    await assertSucceeds(
-      setDoc(
-        order(as(ALICE), "o-promo"),
-        orderFor(ALICE.uid, { discount: 2, total: 9.9 })
-      )
-    );
-  });
-
-  test("money cannot be negative, and a discount cannot exceed the subtotal", async () => {
-    await assertFails(
-      setDoc(
-        order(as(ALICE), "o-neg"),
-        orderFor(ALICE.uid, { subtotal: -5, total: -2 })
-      )
-    );
-    await assertFails(
-      setDoc(
-        order(as(ALICE), "o-free"),
-        orderFor(ALICE.uid, { discount: 20, total: 0 })
-      )
-    );
-  });
-
-  test("an order needs between 1 and 100 lines", async () => {
-    await assertFails(
-      setDoc(order(as(ALICE), "o-empty"), orderFor(ALICE.uid, { items: [] }))
-    );
-    await assertFails(
-      setDoc(
-        order(as(ALICE), "o-huge"),
-        orderFor(ALICE.uid, {
-          items: Array.from({ length: 101 }, () => ({ productId: "p" })),
-        })
-      )
-    );
-  });
-
-  test("a guest cannot create an order", async () => {
-    await assertFails(
-      setDoc(
-        order(firestoreForGuest(testEnv), "o-guest"),
-        orderFor("someone")
-      )
-    );
+  test("clients cannot create orders, even with honest totals", async () => {
+    for (const actor of [ALICE, ADMIN, PACKER, DRIVER]) {
+      await assertFails(setDoc(order(as(actor), `o-${actor.uid}`), orderFor(ALICE.uid)));
+    }
+    await assertFails(setDoc(
+      order(firestoreForGuest(testEnv), "o-guest"), orderFor(ALICE.uid)
+    ));
   });
 });
 
@@ -748,8 +666,8 @@ describe("customers", () => {
     );
   });
 
-  test("the owner can cancel a pending order", async () => {
-    await assertSucceeds(
+  test("the owner must cancel through the Function", async () => {
+    await assertFails(
       updateDoc(order(as(ALICE), "o-pending"), {
         status: "cancelled",
         statusSince: serverTimestamp(),
@@ -1103,8 +1021,8 @@ describe("shortages", () => {
   describe("the admin", () => {
     const cancel = { status: "cancelled", statusSince: serverTimestamp() };
 
-    test("can cancel an order that is waiting on the customer", async () => {
-      await assertSucceeds(updateDoc(order(as(ADMIN), "o-waiting"), cancel));
+    test("must cancel through the Function", async () => {
+      await assertFails(updateDoc(order(as(ADMIN), "o-waiting"), cancel));
     });
 
     test("can cancel only, not set any other status", async () => {

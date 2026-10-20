@@ -13,6 +13,7 @@ import 'package:mae_assignment/features/customer/orders/presentation/views/custo
 import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/models/customer_address.dart';
 import 'package:mae_assignment/shared/models/order.dart';
+import 'package:mae_assignment/shared/models/order_status.dart';
 import 'package:mae_assignment/shared/services/address_service.dart';
 import 'package:mae_assignment/shared/services/branch_service.dart';
 import 'package:mae_assignment/shared/services/order_service.dart';
@@ -23,8 +24,6 @@ import '../../helpers/fake_auth_repository.dart';
 import '../../helpers/fake_branch_service.dart';
 
 class _MockOrderService extends Mock implements OrderService {}
-
-class _FakeOrder extends Fake implements Order {}
 
 CatalogueProduct _product(
   String id,
@@ -205,8 +204,6 @@ void main() {
     late _MockOrderService orderService;
     late FakeAuthRepository auth;
 
-    setUpAll(() => registerFallbackValue(_FakeOrder()));
-
     setUp(() {
       orderService = _MockOrderService();
       auth = FakeAuthRepository()
@@ -218,8 +215,33 @@ void main() {
           phone: '0123456789',
           role: UserRole.customer,
         );
-      when(orderService.nextOrderNumber).thenAnswer((_) async => 2301);
-      when(() => orderService.createOrder(any())).thenAnswer((_) async => 'o1');
+      when(
+        () => orderService.placeOrder(
+          branchId: any(named: 'branchId'),
+          lines: any(named: 'lines'),
+          fulfilment: any(named: 'fulfilment'),
+          addressId: any(named: 'addressId'),
+          promoCode: any(named: 'promoCode'),
+          customerNote: any(named: 'customerNote'),
+        ),
+      ).thenAnswer(
+        (_) async => const Order(
+          id: 'o1',
+          number: 2301,
+          customerId: 'u1',
+          customerName: 'Aisha',
+          customerPhone: '0123456789',
+          branchId: 'ss15',
+          branchName: 'SS15 Subang',
+          isDelivery: false,
+          items: [],
+          subtotal: 12.9,
+          deliveryFee: 0,
+          discount: 0,
+          total: 12.9,
+          status: OrderStatus.pending,
+        ),
+      );
       // The tracking screen the view navigates to streams the order by id.
       when(() => orderService.watchOrder('o1')).thenAnswer(
         (_) => Stream.value(
@@ -364,7 +386,14 @@ void main() {
 
       // The order was written and we navigated to its tracking page, which
       // rendered the real tracking screen without a layout/null-check crash.
-      verify(() => orderService.createOrder(any())).called(1);
+      verify(
+        () => orderService.placeOrder(
+          branchId: 'ss15',
+          lines: any(named: 'lines'),
+          fulfilment: 'pickup',
+          customerNote: '',
+        ),
+      ).called(1);
       expect(find.text('Order tracking'), findsOneWidget);
       expect(find.text('Order #2301'), findsOneWidget);
       expect(find.textContaining('No store selected'), findsNothing);

@@ -226,6 +226,16 @@ class AuthRepository {
     }
   }
 
+  /// Sends Firebase's reset email without revealing whether an account exists.
+  Future<void> resetPassword(String email) async {
+    try {
+      await _authService.sendPasswordResetEmail(email.trim());
+    } on FirebaseAuthException catch (error) {
+      if (error.code == 'user-not-found') return;
+      throw AuthException(_messageFor(error));
+    }
+  }
+
   /// Error codes that mean the saved session can never work again (account
   /// deleted or disabled, tokens revoked, or the session came from another
   /// backend such as the emulator).

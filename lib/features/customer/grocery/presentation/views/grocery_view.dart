@@ -8,6 +8,7 @@ import 'package:mae_assignment/core/errors/app_exception.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/view_models/selected_branch_view_model.dart';
 import 'package:mae_assignment/features/customer/grocery/data/models/grocery_row.dart';
+import 'package:mae_assignment/features/customer/grocery/data/repositories/grocery_list_repository.dart';
 import 'package:mae_assignment/features/customer/grocery/presentation/ui/choose_product_sheet.dart';
 import 'package:mae_assignment/features/customer/grocery/presentation/ui/scan_review_sheet.dart';
 import 'package:mae_assignment/features/customer/grocery/presentation/view_models/grocery_list_view_model.dart';
@@ -129,6 +130,7 @@ class _GroceryViewState extends ConsumerState<GroceryView> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final scanSupported = ref.watch(groceryListRepositoryProvider).canScan;
     final rowsState = ref.watch(groceryRowsProvider);
     final listState = ref.watch(groceryListViewModelProvider);
     final branch = ref.watch(selectedBranchProvider).value;
@@ -183,15 +185,17 @@ class _GroceryViewState extends ConsumerState<GroceryView> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.s),
-                  OutlinedButton.icon(
-                    key: const Key('grocery_scan_button'),
-                    onPressed: _isScanning ? null : _scan,
-                    icon: _isScanning
-                        ? const ButtonLoadingIndicator()
-                        : const Icon(Icons.document_scanner_outlined),
-                    label: const Text('Scan a written list'),
-                  ),
+                  if (scanSupported) ...[
+                    const SizedBox(height: AppSpacing.s),
+                    OutlinedButton.icon(
+                      key: const Key('grocery_scan_button'),
+                      onPressed: _isScanning ? null : _scan,
+                      icon: _isScanning
+                          ? const ButtonLoadingIndicator()
+                          : const Icon(Icons.document_scanner_outlined),
+                      label: const Text('Scan a written list'),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -213,13 +217,15 @@ class _GroceryViewState extends ConsumerState<GroceryView> {
                         onRetry: () => ref.invalidate(groceryCatalogueProvider),
                       ),
                       data: (rows) => rows.isEmpty
-                          ? const EmptyState(
+                          ? EmptyState(
                               icon: Icons.checklist_rtl_rounded,
                               title: 'Your list is empty',
-                              message:
-                                  'Type what you need, or scan a written '
-                                  'list. You review it before anything is '
-                                  'added.',
+                              message: scanSupported
+                                  ? 'Type what you need, or scan a written '
+                                        'list. You review it before anything '
+                                        'is added.'
+                                  : 'Type what you need and add it to '
+                                        'your list.',
                             )
                           : _RowsAndAction(
                               rows: rows,

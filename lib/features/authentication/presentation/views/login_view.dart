@@ -83,9 +83,53 @@ class _LoginViewState extends ConsumerState<LoginView> {
     context.go(home);
   }
 
-  void _onForgotPassword() {
-    // TODO(team): password reset page once the backend is connected.
-    _showMessage('Password reset is not connected yet.');
+  Future<void> _onForgotPassword() async {
+    var resetEmail = _emailOrPhoneController.text.contains('@')
+        ? _emailOrPhoneController.text.trim()
+        : '';
+    final email = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset password'),
+        content: TextFormField(
+          initialValue: resetEmail,
+          onChanged: (value) => resetEmail = value,
+          keyboardType: TextInputType.emailAddress,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Email address',
+            hintText: 'you@example.com',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, resetEmail.trim()),
+            child: const Text('Send reset link'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || email == null) return;
+    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
+      _showMessage('Please enter a valid email address.');
+      return;
+    }
+    try {
+      await ref.read(authRepositoryProvider).resetPassword(email);
+      if (mounted) {
+        _showMessage(
+          'If this email has an account, a reset link is on its way.',
+        );
+      }
+    } on AuthException catch (error) {
+      if (mounted) {
+        _showMessage(error.message);
+      }
+    }
   }
 
   Future<void> _onGoogle() async {

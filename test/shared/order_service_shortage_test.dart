@@ -219,28 +219,4 @@ void main() {
       );
     });
   });
-
-  group('cancelOrderAsAdmin', () {
-    test('cancels an order waiting on the customer', () async {
-      expect(await service.cancelOrderAsAdmin('o4'), isTrue);
-      expect((await read('o4')).status, OrderStatus.cancelled);
-    });
-
-    test('cancels a pending order too', () async {
-      expect(await service.cancelOrderAsAdmin('o2'), isTrue);
-      expect((await read('o2')).status, OrderStatus.cancelled);
-    });
-
-    test('leaves a finished order alone', () async {
-      await putOrders(firestore, [
-        order('o8', status: OrderStatus.completed),
-        order('o9', status: OrderStatus.cancelled),
-      ]);
-
-      expect(await service.cancelOrderAsAdmin('o8'), isFalse);
-      expect(await service.cancelOrderAsAdmin('o9'), isFalse);
-      expect((await read('o8')).status, OrderStatus.completed);
-      expect(await service.cancelOrderAsAdmin('missing'), isFalse);
-    });
-  });
 }

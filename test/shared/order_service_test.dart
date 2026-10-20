@@ -39,6 +39,12 @@ Order _order({
   );
 }
 
+Future<String> _seedOrder(FakeFirebaseFirestore db, Order order) async {
+  final doc = db.collection(FirestoreCollections.orders).doc();
+  await doc.set(order.toFirestore());
+  return doc.id;
+}
+
 void main() {
   late FakeFirebaseFirestore firestore;
   late OrderService service;
@@ -48,31 +54,9 @@ void main() {
     service = OrderService(firestore);
   });
 
-  test('createOrder writes a document and returns its id', () async {
-    final id = await service.createOrder(_order(customerId: 'u1', number: 1));
-
-    final doc = await firestore
-        .collection(FirestoreCollections.orders)
-        .doc(id)
-        .get();
-    expect(doc.exists, isTrue);
-    expect(doc.data()![OrderFields.customerId], 'u1');
-    expect(doc.data()![OrderFields.number], 1);
-    expect(doc.data()![OrderFields.status], 'pending');
-  });
-
-  test('nextOrderNumber starts at 1001 for the first order', () async {
-    expect(await service.nextOrderNumber(), 1001);
-  });
-
-  test('nextOrderNumber increments on each call', () async {
-    expect(await service.nextOrderNumber(), 1001);
-    expect(await service.nextOrderNumber(), 1002);
-    expect(await service.nextOrderNumber(), 1003);
-  });
-
   test('getOrder reads back a created order', () async {
-    final id = await service.createOrder(
+    final id = await _seedOrder(
+      firestore,
       _order(customerId: 'u1', number: 7, status: OrderStatus.packing),
     );
 
@@ -88,9 +72,9 @@ void main() {
   });
 
   test("watchCustomerOrders returns only that customer's orders", () async {
-    await service.createOrder(_order(customerId: 'u1', number: 1));
-    await service.createOrder(_order(customerId: 'u2', number: 2));
-    await service.createOrder(_order(customerId: 'u1', number: 3));
+    await _seedOrder(firestore, _order(customerId: 'u1', number: 1));
+    await _seedOrder(firestore, _order(customerId: 'u2', number: 2));
+    await _seedOrder(firestore, _order(customerId: 'u1', number: 3));
 
     final orders = await service.watchCustomerOrders('u1').first;
     expect(orders.map((o) => o.number), unorderedEquals([1, 3]));
@@ -98,7 +82,7 @@ void main() {
   });
 
   test('watchOrder emits the latest version of one order', () async {
-    final id = await service.createOrder(_order(customerId: 'u1', number: 1));
+    final id = await _seedOrder(firestore, _order(customerId: 'u1', number: 1));
 
     final first = await service.watchOrder(id).first;
     expect(first!.status, OrderStatus.pending);
@@ -112,38 +96,5 @@ void main() {
         .watchOrder(id)
         .firstWhere((o) => o?.status == OrderStatus.packing);
     expect(updated!.status, OrderStatus.packing);
-  });
-
-  group('cancelOrder', () {
-    Future<Map<String, dynamic>> stored(String id) async {
-      final doc = await firestore
-          .collection(FirestoreCollections.orders)
-          .doc(id)
-          .get();
-      return doc.data()!;
-    }
-
-    test('cancels a pending order and stamps the server time', () async {
-      final id = await service.createOrder(_order(customerId: 'u1', number: 1));
-
-      expect(await service.cancelOrder(id), isTrue);
-
-      final data = await stored(id);
-      expect(data[OrderFields.status], 'cancelled');
-      expect(data.containsKey(OrderFields.statusSince), isTrue);
-    });
-
-    test('does not cancel an order that is already being packed', () async {
-      final id = await service.createOrder(
-        _order(customerId: 'u1', number: 1, status: OrderStatus.packing),
-      );
-
-      expect(await service.cancelOrder(id), isFalse);
-      expect((await stored(id))[OrderFields.status], 'packing');
-    });
-
-    test('returns false for an order that does not exist', () async {
-      expect(await service.cancelOrder('missing'), isFalse);
-    });
   });
 }

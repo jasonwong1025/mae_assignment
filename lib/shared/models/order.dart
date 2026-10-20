@@ -201,6 +201,10 @@ abstract class Order with _$Order {
     /// Applied promo code, uppercased, or null.
     String? promoCode,
 
+    /// Random server-generated code on new orders. Older demo orders use
+    /// the deterministic fallback below.
+    String? collectionToken,
+
     /// Where the bag is collected from (the branch's address), shown to
     /// drivers, who can be given deliveries from any branch.
     String? branchAddress,
@@ -297,6 +301,7 @@ abstract class Order with _$Order {
       addressLocation: data.latLng(OrderFields.addressLocation),
       customerNote: data.stringOrNull(OrderFields.customerNote),
       promoCode: data.stringOrNull(OrderFields.promoCode),
+      collectionToken: data.stringOrNull(OrderFields.collectionCode),
       branchAddress: data.stringOrNull(OrderFields.branchAddress),
       placedAt: data.dateTime(OrderFields.placedAt),
       statusSince: data.dateTime(OrderFields.statusSince),
@@ -499,11 +504,10 @@ abstract class Order with _$Order {
   /// are holding the bag, since the order number is already on their
   /// screen.
   ///
-  /// MOCK ONLY, NOT SECURE: it is worked out from the order id, so anyone
-  /// who can read the order can compute it. The real fix is a random code
-  /// generated server-side per order (for example by a Cloud Function) and
-  /// checked there.
+  /// New orders get a random value from the Function. The fallback keeps
+  /// older demo orders and tests readable.
   String get collectionCode {
+    if (collectionToken case final token? when token.isNotEmpty) return token;
     // No 0/O, 1/I/L, 2/Z, 5/S, 8/B: easy to misread on a label.
     const alphabet = 'ACDEFGHJKMNPQRTUVWXY3479';
     var hash = 0x811c9dc5;
@@ -651,6 +655,7 @@ abstract class Order with _$Order {
       OrderFields.discount: discount,
       OrderFields.total: total,
       OrderFields.status: status.name,
+      if (collectionToken != null) OrderFields.collectionCode: collectionToken,
       if (addressLocation case final location?)
         OrderFields.addressLocation: toGeoPoint(location),
       if (driverPosition case final position?)

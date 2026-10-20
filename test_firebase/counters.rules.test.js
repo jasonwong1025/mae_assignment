@@ -14,11 +14,9 @@ beforeEach(async () => {
 });
 
 describe("order-number counter", () => {
-  // The counter does not exist on a fresh project; the first checkout
-  // creates it. This is a create (resource == null), not an update.
-  test("a signed-in user can create the counter the first time", async () => {
+  test("a signed-in user cannot create the counter", async () => {
     const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
-    await assertSucceeds(
+    await assertFails(
       setDoc(doc(db, "counters", "brand-new"), { value: 1001 })
     );
   });
@@ -45,9 +43,9 @@ describe("order-number counter", () => {
     );
   });
 
-  test("a signed-in user can move the counter forward", async () => {
+  test("a signed-in user cannot move the counter forward", async () => {
     const db = firestoreForUser(testEnv, ALICE.uid, ALICE.email);
-    await assertSucceeds(
+    await assertFails(
       setDoc(doc(db, "counters", "orders"), { value: 1001 })
     );
   });
