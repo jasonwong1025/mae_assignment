@@ -108,10 +108,16 @@ void main() {
       await $.pumpAndSettle();
       await $(Checkbox).first.tap();
       await $.pumpAndSettle();
-      // Let the last tick finish saving; the button waits for it.
+      // The ticks show at once but are saved a moment later, and the button
+      // stays disabled until they are. A slow CI emulator can take several
+      // seconds, so tap until the review sheet opens (a tap on a disabled
+      // button does nothing).
       await waitForWidget($, $('PACKED (2)'));
-      await $.pump(const Duration(seconds: 2));
-      await $('Review & mark ready').tap();
+      for (var attempt = 0; attempt < 15; attempt++) {
+        await $('Review & mark ready').tap();
+        await $.pump(const Duration(seconds: 1));
+        if ($('Review order #2399').exists) break;
+      }
       await waitForWidget($, $('Review order #2399'));
       await $('Mark as ready').tap();
       await waitForWidget($, $('Order #2399 is ready'), timeout: loadTimeout);
