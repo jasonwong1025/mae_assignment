@@ -12,7 +12,20 @@ import 'package:mae_assignment/shared/ui/empty_state.dart';
 /// one opens the order. Push notifications arrive when the app is closed;
 /// this list keeps them for later.
 class NotificationsView extends ConsumerWidget {
-  const NotificationsView({super.key});
+  const NotificationsView({
+    super.key,
+    this.openOrder,
+    this.emptyMessage =
+        'We will tell you when your order is packed, on the way, or needs a '
+        'reply from you.',
+  });
+
+  /// Opens the order a notification is about. Defaults to the customer's
+  /// order tracking page; the Store Worker app opens its own order screens.
+  final void Function(BuildContext context, String orderId)? openOrder;
+
+  /// What the empty inbox says.
+  final String emptyMessage;
 
   Future<void> _open(
     BuildContext context,
@@ -25,7 +38,13 @@ class NotificationsView extends ConsumerWidget {
     if (!notification.isRead) {
       await ref.read(notificationActionsProvider).markRead([notification.id]);
     }
-    if (orderId != null) router.go(AppRoutes.customerOrder(orderId));
+    if (orderId == null) return;
+    final open = openOrder;
+    if (open != null) {
+      if (context.mounted) open(context, orderId);
+      return;
+    }
+    router.go(AppRoutes.customerOrder(orderId));
   }
 
   @override
@@ -70,12 +89,10 @@ class NotificationsView extends ConsumerWidget {
                 onRetry: () => ref.invalidate(notificationInboxProvider),
               ),
               data: (list) => list.isEmpty
-                  ? const EmptyState(
+                  ? EmptyState(
                       icon: Icons.notifications_none_rounded,
                       title: 'No notifications yet',
-                      message:
-                          'We will tell you when your order is packed, on the '
-                          'way, or needs a reply from you.',
+                      message: emptyMessage,
                     )
                   : ListView.separated(
                       itemCount: list.length,

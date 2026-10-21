@@ -17,7 +17,9 @@ mixin _$DispatchDriver {
 
  Driver get worker;/// Null if the driver shares no location.
  DriverLocation? get location;/// Null if free or busy with another branch's order.
- Order? get order;
+ Order? get order;/// Deliveries assigned to the driver that are ready or on the road, at
+/// any branch.
+ int get activeOrders;
 /// Create a copy of DispatchDriver
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,20 +31,20 @@ $DispatchDriverCopyWith<DispatchDriver> get copyWith => _$DispatchDriverCopyWith
 @override
 bool operator ==(Object other) {
   final _this = this as DispatchDriver;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DispatchDriver&&(identical(other.worker, _this.worker) || other.worker == _this.worker)&&(identical(other.location, _this.location) || other.location == _this.location)&&(identical(other.order, _this.order) || other.order == _this.order));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DispatchDriver&&(identical(other.worker, _this.worker) || other.worker == _this.worker)&&(identical(other.location, _this.location) || other.location == _this.location)&&(identical(other.order, _this.order) || other.order == _this.order)&&(identical(other.activeOrders, _this.activeOrders) || other.activeOrders == _this.activeOrders));
 }
 
 
 @override
 int get hashCode {
   final _this = this as DispatchDriver;
-  return Object.hash(runtimeType,_this.worker,_this.location,_this.order);
+  return Object.hash(runtimeType,_this.worker,_this.location,_this.order,_this.activeOrders);
 }
 
 @override
 String toString() {
   final _this = this as DispatchDriver;
-  return 'DispatchDriver(worker: ${_this.worker}, location: ${_this.location}, order: ${_this.order})';
+  return 'DispatchDriver(worker: ${_this.worker}, location: ${_this.location}, order: ${_this.order}, activeOrders: ${_this.activeOrders})';
 }
 
 
@@ -53,7 +55,7 @@ abstract mixin class $DispatchDriverCopyWith<$Res>  {
   factory $DispatchDriverCopyWith(DispatchDriver value, $Res Function(DispatchDriver) _then) = _$DispatchDriverCopyWithImpl;
 @useResult
 $Res call({
- Driver worker, DriverLocation? location, Order? order
+ Driver worker, DriverLocation? location, Order? order, int activeOrders
 });
 
 
@@ -70,12 +72,13 @@ class _$DispatchDriverCopyWithImpl<$Res>
 
 /// Create a copy of DispatchDriver
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? worker = null,Object? location = freezed,Object? order = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? worker = null,Object? location = freezed,Object? order = freezed,Object? activeOrders = null,}) {
   return _then(DispatchDriver(
 worker: null == worker ? _self.worker : worker // ignore: cast_nullable_to_non_nullable
 as Driver,location: freezed == location ? _self.location : location // ignore: cast_nullable_to_non_nullable
 as DriverLocation?,order: freezed == order ? _self.order : order // ignore: cast_nullable_to_non_nullable
-as Order?,
+as Order?,activeOrders: null == activeOrders ? _self.activeOrders : activeOrders // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 /// Create a copy of DispatchDriver
@@ -193,10 +196,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Driver worker,  DriverLocation? location,  Order? order)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Driver worker,  DriverLocation? location,  Order? order,  int activeOrders)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DispatchDriver() when $default != null:
-return $default(_that.worker,_that.location,_that.order);case _:
+return $default(_that.worker,_that.location,_that.order,_that.activeOrders);case _:
   return orElse();
 
 }
@@ -214,10 +217,10 @@ return $default(_that.worker,_that.location,_that.order);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Driver worker,  DriverLocation? location,  Order? order)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Driver worker,  DriverLocation? location,  Order? order,  int activeOrders)  $default,) {final _that = this;
 switch (_that) {
 case _DispatchDriver():
-return $default(_that.worker,_that.location,_that.order);case _:
+return $default(_that.worker,_that.location,_that.order,_that.activeOrders);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -234,10 +237,10 @@ return $default(_that.worker,_that.location,_that.order);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Driver worker,  DriverLocation? location,  Order? order)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Driver worker,  DriverLocation? location,  Order? order,  int activeOrders)?  $default,) {final _that = this;
 switch (_that) {
 case _DispatchDriver() when $default != null:
-return $default(_that.worker,_that.location,_that.order);case _:
+return $default(_that.worker,_that.location,_that.order,_that.activeOrders);case _:
   return null;
 
 }
@@ -249,7 +252,7 @@ return $default(_that.worker,_that.location,_that.order);case _:
 
 
 class _DispatchDriver extends DispatchDriver {
-  const _DispatchDriver({required this.worker, this.location, this.order}): super._();
+  const _DispatchDriver({required this.worker, this.location, this.order, this.activeOrders = 0}): super._();
   
 
 @override final  Driver worker;
@@ -257,6 +260,9 @@ class _DispatchDriver extends DispatchDriver {
 @override final  DriverLocation? location;
 /// Null if free or busy with another branch's order.
 @override final  Order? order;
+/// Deliveries assigned to the driver that are ready or on the road, at
+/// any branch.
+@override@JsonKey() final  int activeOrders;
 
 /// Create a copy of DispatchDriver
 /// with the given fields replaced by the non-null parameter values.
@@ -268,18 +274,18 @@ _$DispatchDriverCopyWith<_DispatchDriver> get copyWith => __$DispatchDriverCopyW
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _DispatchDriver&&(identical(other.worker, worker) || other.worker == worker)&&(identical(other.location, location) || other.location == location)&&(identical(other.order, order) || other.order == order));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _DispatchDriver&&(identical(other.worker, worker) || other.worker == worker)&&(identical(other.location, location) || other.location == location)&&(identical(other.order, order) || other.order == order)&&(identical(other.activeOrders, activeOrders) || other.activeOrders == activeOrders));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,worker,location,order);
+    return Object.hash(runtimeType,worker,location,order,activeOrders);
 }
 
 @override
 String toString() {
-    return 'DispatchDriver(worker: $worker, location: $location, order: $order)';
+    return 'DispatchDriver(worker: $worker, location: $location, order: $order, activeOrders: $activeOrders)';
 }
 
 
@@ -290,7 +296,7 @@ abstract mixin class _$DispatchDriverCopyWith<$Res> implements $DispatchDriverCo
   factory _$DispatchDriverCopyWith(_DispatchDriver value, $Res Function(_DispatchDriver) _then) = __$DispatchDriverCopyWithImpl;
 @override @useResult
 $Res call({
- Driver worker, DriverLocation? location, Order? order
+ Driver worker, DriverLocation? location, Order? order, int activeOrders
 });
 
 
@@ -307,12 +313,13 @@ class __$DispatchDriverCopyWithImpl<$Res>
 
 /// Create a copy of DispatchDriver
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? worker = null,Object? location = freezed,Object? order = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? worker = null,Object? location = freezed,Object? order = freezed,Object? activeOrders = null,}) {
   return _then(_DispatchDriver(
 worker: null == worker ? _self.worker : worker // ignore: cast_nullable_to_non_nullable
 as Driver,location: freezed == location ? _self.location : location // ignore: cast_nullable_to_non_nullable
 as DriverLocation?,order: freezed == order ? _self.order : order // ignore: cast_nullable_to_non_nullable
-as Order?,
+as Order?,activeOrders: null == activeOrders ? _self.activeOrders : activeOrders // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 

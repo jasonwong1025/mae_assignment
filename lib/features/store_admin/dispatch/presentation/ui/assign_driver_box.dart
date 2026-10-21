@@ -5,8 +5,9 @@ import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_m
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
 
-/// "ASSIGN #2292" box: pick a free driver and press "Assign driver".
-/// The nearest free driver is picked first.
+/// "ASSIGN #2292" box: pick a driver and press "Assign driver". Busy
+/// drivers with room for more (see [DispatchDriver.maxActiveOrders]) are
+/// listed too, with their load; the nearest is picked first.
 class AssignDriverBox extends StatefulWidget {
   const AssignDriverBox({
     required this.state,
@@ -19,7 +20,7 @@ class AssignDriverBox extends StatefulWidget {
   final DispatchState state;
   final Order order;
 
-  /// Free driver to pick instead of the nearest one.
+  /// Driver to pick instead of the nearest one.
   final String? preselectedDriverId;
 
   /// Returns an error message, or null if it worked.
@@ -37,13 +38,13 @@ class _AssignDriverBoxState extends State<AssignDriverBox> {
   @override
   void initState() {
     super.initState();
-    final freeDrivers = widget.state.freeDriversFor(widget.order);
-    final preselected = freeDrivers.any(
+    final drivers = widget.state.driversFor(widget.order);
+    final preselected = drivers.any(
       (driver) => driver.id == widget.preselectedDriverId,
     );
     _driverId = preselected
         ? widget.preselectedDriverId
-        : freeDrivers.firstOrNull?.id;
+        : drivers.firstOrNull?.id;
   }
 
   Future<void> _assign(DispatchDriver driver) async {
@@ -64,11 +65,11 @@ class _AssignDriverBoxState extends State<AssignDriverBox> {
     final textTheme = Theme.of(context).textTheme;
     final order = widget.order;
     final currentDriver = widget.state.driverOf(order);
-    final freeDrivers = widget.state.freeDriversFor(order);
+    final drivers = widget.state.driversFor(order);
     final pickUpPoint = widget.state.pickUpPoint(order);
 
     // The picked driver may have just become busy.
-    final selected = freeDrivers
+    final selected = drivers
         .where((driver) => driver.id == _driverId)
         .firstOrNull;
 
@@ -98,8 +99,8 @@ class _AssignDriverBoxState extends State<AssignDriverBox> {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 12),
-          if (freeDrivers.isEmpty)
-            Text('No free drivers right now.', style: textTheme.bodyMedium)
+          if (drivers.isEmpty)
+            Text('No drivers with room right now.', style: textTheme.bodyMedium)
           else
             DropdownButtonFormField<String>(
               // New key when the pick changes, so a driver who left the
@@ -112,12 +113,13 @@ class _AssignDriverBoxState extends State<AssignDriverBox> {
                 isDense: true,
               ),
               items: [
-                for (final (index, driver) in freeDrivers.indexed)
+                for (final (index, driver) in drivers.indexed)
                   DropdownMenuItem(
                     value: driver.id,
                     child: Text(
                       '${driver.worker.name} · '
                       '${Formatters.distance(driver.metresTo(pickUpPoint)!)}'
+                      ' · ${driver.loadText}'
                       '${index == 0 ? ' · nearest' : ''}',
                       overflow: TextOverflow.ellipsis,
                     ),
