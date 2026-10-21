@@ -15,8 +15,11 @@ extension OrderDueTime on Order {
   /// otherwise worked out from when it was placed. Null only if neither is
   /// known.
   ///
-  /// Nothing sets dueAt yet, so this keeps the screens working until Store
-  /// Admin saves real due times; once it does, those win automatically.
+  /// Nothing in the app or the Functions saves [Order.dueAt]: Store Admin has
+  /// no screen for it, so in practice every order uses the calculated
+  /// service level above (pickup 25 minutes, delivery 60). The field stays
+  /// as an optional override, used by the demo data, so a due time set by
+  /// hand (or by a future admin feature) wins.
   DateTime? get promisedAt {
     final saved = dueAt;
     if (saved != null) return saved;

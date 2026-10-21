@@ -64,12 +64,13 @@ class CheckoutViewModel extends Notifier<bool> {
       final cart = ref.read(cartViewModelProvider);
 
       CustomerAddress? address;
-      var deliveryFee = 0.0;
       if (cart.fulfilment == FulfilmentMethod.delivery) {
         address = await ref.read(effectiveDeliveryAddressProvider.future);
         if (address == null) {
           throw const OrderException('Please choose a delivery address.');
         }
+        // Only to explain a refusal early. The fee itself is worked out by
+        // the Function from the saved address; nothing here is sent.
         final quote = quoteFor(branch: branch, destination: address.location);
         if (!quote.inRange) {
           throw const OrderException(
@@ -77,7 +78,6 @@ class CheckoutViewModel extends Notifier<bool> {
             'another address or choose self-pickup.',
           );
         }
-        deliveryFee = quote.fee;
       }
 
       final order = await ref
@@ -87,7 +87,6 @@ class CheckoutViewModel extends Notifier<bool> {
             customer: user,
             branch: branch,
             address: address,
-            deliveryFee: deliveryFee,
             customerNote: note,
           );
       ref.read(cartViewModelProvider.notifier).clear();

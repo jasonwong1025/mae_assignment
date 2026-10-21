@@ -30,15 +30,14 @@ class OrderRepository {
   /// Writes the customer's cart as a new order and returns it with its id
   /// and number. The caller clears the cart on success.
   ///
-  /// For delivery, [address] (the chosen saved address) and [deliveryFee]
-  /// (the branch's distance-based quote) are required; the address's line
-  /// and location are stored on the order so a driver can navigate.
+  /// For delivery, [address] (the chosen saved address) is required. Only its
+  /// id is sent: the Function reads the address and works out the delivery
+  /// fee, the prices and the total itself, so the app supplies no amounts.
   Future<Order> placeOrder({
     required Cart cart,
     required AppUser customer,
     required Branch branch,
     CustomerAddress? address,
-    double deliveryFee = 0,
     String? customerNote,
   }) async {
     if (cart.isEmpty) {

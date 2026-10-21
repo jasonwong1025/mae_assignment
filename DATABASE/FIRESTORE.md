@@ -311,7 +311,7 @@ Assignment fields (Store Admin; all optional):
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `dueAt` | timestamp | When the customer was promised the order. |
+| `dueAt` | timestamp | Optional override of when the order is due. Nothing in the app or the Functions sets it (there is no admin screen for it), so normally it is absent. The demo data sets it on some orders. |
 | `packerId`, `packerName`, `packerAssignedAt` | string, string, timestamp | A worker only sees a packing task when `packerId` is theirs. Store Admin assigns the packer from the order details (`OrdersRepository.assignPacker`). |
 | `driverId`, `driverName`, `driverAssignedAt` | string, string, timestamp | Delivery orders only. |
 
@@ -329,7 +329,7 @@ Fulfilment fields (Store Worker; all optional):
 | `deliveredBy`, `deliveredByName` | string | |
 | `proofPhotoUrl` | string | Download URL of the delivery photo, uploaded to Storage (`orders/{orderId}/proof.jpg`) by `DeliveryProofService` just before the order is completed. |
 | `completedAt` | timestamp | Pickup or delivery done. |
-| `walletPaid`, `walletSettled`, `walletWaived`, `walletRefundedAt`, `stockReserved`, `stockReleased` | number, bool, number, timestamp, bool, bool | Written only by the Cloud Functions (payment, refunds, stock). The app never writes them and the rules let no client change them. |
+| `walletPaid`, `walletSettled`, `walletWaived`, `walletRefundedAt`, `stockReserved`, `stockSettled`, `stockReleased`, `reservedItems`, `stockShort` | number, bool, number, timestamp, bool, bool, bool, array, array | Written only by the Cloud Functions (payment, refunds, stock). The app never writes them and the rules let no client change them. |
 | `driverPosition`, `driverPositionAt` | geopoint, timestamp | Where the driver last was while the order is `outForDelivery`, and the server time of that fix. Written by the order's driver (`OrderService.updateDriverPosition`), so the customer, who may read only their own orders, can follow the delivery. The estimated arrival is not stored: `Order.etaAt` works it out. |
 
 Shortage fields (see "Shortages" below):
@@ -343,6 +343,19 @@ Shortage fields (see "Shortages" below):
 Each `items` entry: `lineId` (unique in the order), `productId`, `name`,
 `brand`, `packSize`, `quantity`, `unitPrice` (price at checkout), and
 optional `categoryId`, `category` (name), `description` and `imageUrl`.
+
+### Due times
+
+"Pickup by" and "Deliver by" on the Store Worker screens, the order sorting and
+the bag label come from `Order.promisedAt` (`order_due_time.dart`), not from a
+stored field. It is the order's `dueAt` if one was saved, otherwise the time
+the order was **placed plus a fixed service level: 25 minutes for self-pickup
+and 60 minutes for delivery** (the cart says "Ready in ~25 min" for pickup).
+These are the project's chosen targets, not per-order promises. Letting Store
+Admin set a due time per order was considered and left out: it needs an admin
+screen and a rule for who may change a promise already made to the customer,
+and no requirement calls for it. The `dueAt` field and its admin write
+permission remain, so it can be added without a data change.
 
 ### Live delivery ETA
 
@@ -380,6 +393,18 @@ item.
 - If the customer never answers, the order waits. Store Admin sees "Awaiting
   customer" in the order details and can cancel it (the only status change the
   admin can make).
+
+**Stock.** Checkout reserves the stock of every *ordered* item. So that the
+inventory matches what the customer really gets, `reconcileOrderStock`
+(`functions/src/stock.ts`, trigger on `orders`) runs once when packing finishes
+(`ready`): a removed or replaced item has its reservation put back, and an
+accepted replacement has its own stock taken. A replacement with less stock
+than needed takes the count to zero (never negative) and is listed in
+`stockShort`. The result is saved as `reservedItems`, which is what a later
+cancel releases (`reservedItems`, or the ordered `items` before reconciling),
+so cancelling never puts back stock twice or the wrong product. The item the
+packer could not find is also put back, so Store Admin should correct its count
+in Inventory if the shelf is really empty.
 
 Each write changes exactly one `shortages` entry, using a dotted field path
 (`OrderService.flagShortage` / `respondToShortage`), together with

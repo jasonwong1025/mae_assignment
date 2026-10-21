@@ -486,3 +486,136 @@ describe("notifications", () => {
     expect(messages[0].title).toContain("Packing started");
   });
 });
+
+describe("stock after shortages", () => {
+  // Checkout takes 2 of p1 (stock 3 -> 1). p2 is the replacement product.
+  const stockOf = async (id) =>
+    (await db.doc(`branches/ss15/inventory/${id}`).get()).get("stock");
+  const replacement = (quantity = 2) => ({
+    status: "accepted",
+    replacement: { lineId: "p1", productId: "p2", unitPrice: 5, quantity },
+  });
+
+  beforeEach(async () => {
+    await db.doc("products/p2").set({ name: "Other milk", brand: "Farm", packSize: "1L" });
+    await db.doc("branches/ss15/inventory/p2").set({ price: 5, stock: 5, isHidden: false });
+  });
+
+  async function place() {
+    const placed = await call("placeOrder", pickup, customer.token);
+    expect(placed.status).toBe(200);
+    expect(await stockOf("p1")).toBe(1);
+    return db.doc(`orders/${placed.body.result.orderId}`);
+  }
+
+  async function settled(orderRef) {
+    await until(async () => (await orderRef.get()).get("stockSettled") === true, "the stock to settle");
+  }
+
+  test("a removed item gives its reservation back", async () => {
+    const orderRef = await place();
+    await orderRef.update({ status: "packing", shortages: { p1: { status: "removed" } } });
+    await orderRef.update({ status: "ready" });
+    await settled(orderRef);
+    expect(await stockOf("p1")).toBe(3);
+    expect((await orderRef.get()).get("reservedItems")).toEqual([]);
+  });
+
+  test("an accepted replacement takes its own stock and frees the original", async () => {
+    const orderRef = await place();
+    await orderRef.update({ status: "packing", shortages: { p1: replacement() } });
+    await orderRef.update({ status: "ready" });
+    await settled(orderRef);
+    expect(await stockOf("p1")).toBe(3);
+    expect(await stockOf("p2")).toBe(3);
+    expect((await orderRef.get()).get("reservedItems")).toEqual([{ productId: "p2", quantity: 2 }]);
+  });
+
+  test("a replacement that is short takes the count to zero, not below", async () => {
+    await db.doc("branches/ss15/inventory/p2").update({ stock: 1 });
+    const orderRef = await place();
+    await orderRef.update({ status: "packing", shortages: { p1: replacement(2) } });
+    await orderRef.update({ status: "ready" });
+    await settled(orderRef);
+    expect(await stockOf("p2")).toBe(0);
+    expect((await orderRef.get()).get("stockShort")).toEqual(["p2"]);
+  });
+
+  test("an order with no shortage changes nothing", async () => {
+    const orderRef = await place();
+    await orderRef.update({ status: "packing" });
+    await orderRef.update({ status: "ready" });
+    await settled(orderRef);
+    expect(await stockOf("p1")).toBe(1);
+    expect((await orderRef.get()).get("reservedItems")).toBeUndefined();
+  });
+
+  test("a proposal nobody answered keeps the original reserved", async () => {
+    const orderRef = await place();
+    await orderRef.update({
+      status: "packing",
+      shortages: { p1: { ...replacement(), status: "proposed" } },
+    });
+    await orderRef.update({ status: "ready" });
+    await settled(orderRef);
+    expect(await stockOf("p1")).toBe(1);
+    expect(await stockOf("p2")).toBe(5);
+  });
+
+  test("reaching ready a second time does not count twice", async () => {
+    const orderRef = await place();
+    await orderRef.update({ status: "packing", shortages: { p1: replacement() } });
+    await orderRef.update({ status: "ready" });
+    await settled(orderRef);
+    await orderRef.update({ status: "packing" });
+    await orderRef.update({ status: "ready" });
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    expect(await stockOf("p1")).toBe(3);
+    expect(await stockOf("p2")).toBe(3);
+  });
+
+  test("cancelling afterwards puts back the replacement, not the original", async () => {
+    const orderRef = await place();
+    await orderRef.update({ status: "packing", shortages: { p1: replacement() } });
+    await orderRef.update({ status: "ready" });
+    await settled(orderRef);
+    await orderRef.update({ status: "cancelled" });
+    await until(async () => (await orderRef.get()).get("stockReleased") === true, "the release");
+    expect(await stockOf("p2")).toBe(5);
+    // The original was released when packing finished and is not added again.
+    expect(await stockOf("p1")).toBe(3);
+  });
+
+  test("cancelling before packing finishes puts back the original", async () => {
+    const orderRef = await place();
+    await orderRef.update({ status: "packing", shortages: { p1: replacement() } });
+    await orderRef.update({ status: "cancelled" });
+    await until(async () => (await orderRef.get()).get("stockReleased") === true, "the release");
+    expect(await stockOf("p1")).toBe(3);
+    expect(await stockOf("p2")).toBe(5);
+  });
+
+  test("the cancel function also releases what is really held", async () => {
+    const orderRef = await place();
+    await orderRef.update({ status: "packing", shortages: { p1: replacement() } });
+    await orderRef.update({ status: "ready" });
+    await settled(orderRef);
+    const result = await call("cancelOrder", { orderId: orderRef.id }, admin.token);
+    expect(result.body.result.cancelled).toBe(true);
+    expect(await stockOf("p2")).toBe(5);
+    expect(await stockOf("p1")).toBe(3);
+  });
+
+  test("an order that never reserved stock is left alone", async () => {
+    const orderRef = db.doc("orders/legacy");
+    await orderRef.set({
+      number: 1, customerId: customer.uid, branchId: "ss15", status: "packing",
+      items: [{ lineId: "p1", productId: "p1", quantity: 2, unitPrice: 8.9 }],
+      shortages: { p1: { status: "removed" } },
+    });
+    await orderRef.update({ status: "ready" });
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    expect(await stockOf("p1")).toBe(3);
+    expect((await orderRef.get()).get("stockSettled")).toBeUndefined();
+  });
+});

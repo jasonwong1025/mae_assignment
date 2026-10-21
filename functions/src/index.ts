@@ -3,9 +3,11 @@ import { getAuth } from "firebase-admin/auth";
 import { FieldValue, GeoPoint } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { db } from "./firebase";
+import { reservedLines } from "./stock";
 import { money, postEntry, walletRef } from "./wallet";
 
 export { notifyOrderChanges } from "./notifications";
+export { reconcileOrderStock } from "./stock";
 export { settleOrderWallet, topUpWallet } from "./wallet";
 
 function object(value: unknown): Record<string, unknown> {
@@ -210,7 +212,9 @@ export const cancelOrder = onCall({ region: "asia-southeast1" }, async (request)
         (owner && status !== "pending")) {
       return { cancelled: false };
     }
-    const items = order.get("items") as Array<{ productId: string; quantity: number }>;
+    // What the order holds now: the ordered items, or what is left of them
+    // after shortages were reconciled when packing finished.
+    const items = reservedLines(order);
     const inventoryRefs = order.get("stockReserved") === true && order.get("stockReleased") !== true
       ? items.map((item) => db.doc(`branches/${order.get("branchId")}/inventory/${item.productId}`))
       : [];

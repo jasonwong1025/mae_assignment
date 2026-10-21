@@ -103,7 +103,6 @@ void main() {
       customer: _customer,
       branch: _branch,
       address: _address,
-      deliveryFee: 999,
       customerNote: '  please ring  ',
     );
     expect(order, _savedOrder);

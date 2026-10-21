@@ -2,6 +2,7 @@ import { FieldValue, Transaction, DocumentSnapshot } from "firebase-admin/firest
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { db, region } from "./firebase";
+import { releaseReservedStock } from "./stock";
 
 // The Grocerly Wallet is simulated: a balance and a list of entries in
 // Firestore, changed only here with the Admin SDK. Clients can read their own
@@ -176,21 +177,6 @@ export const settleOrderWallet = onDocumentUpdated(
       }
     });
 
-    if (becameCancelled) await releaseStockIfNeeded(ref.id);
+    if (becameCancelled) await releaseReservedStock(ref.id);
   },
 );
-
-async function releaseStockIfNeeded(orderId: string): Promise<void> {
-  const ref = db.doc(`orders/${orderId}`);
-  await db.runTransaction(async (tx) => {
-    const order = await tx.get(ref);
-    if (order.get("stockReserved") !== true || order.get("stockReleased") === true) return;
-    const items = (order.get("items") ?? []) as Array<{ productId: string; quantity: number }>;
-    const refs = items.map((item) => db.doc(`branches/${order.get("branchId")}/inventory/${item.productId}`));
-    const inventories = await Promise.all(refs.map((item) => tx.get(item)));
-    inventories.forEach((inventory, index) => {
-      if (inventory.exists) tx.update(refs[index], { stock: FieldValue.increment(items[index].quantity) });
-    });
-    tx.update(ref, { stockReleased: true });
-  });
-}
