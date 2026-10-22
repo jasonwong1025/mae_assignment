@@ -71,11 +71,43 @@ class DispatchViewModel extends Notifier<AsyncValue<DispatchState>> {
     try {
       await ref
           .read(dispatchRepositoryProvider)
-          .assignDriver(order: order, driver: driver.worker);
+          .assignDriver(
+            order: order,
+            driver: driver.worker,
+            activeOrders: driver.activeOrders,
+            maxActiveOrders: DispatchDriver.maxActiveOrders,
+          );
     } on DispatchException catch (e) {
       return e.message;
     }
 
+    return null;
+  }
+
+  /// Gives every order in [batch] to [driver], in drop-off order. Returns an
+  /// error message, or null if all were assigned. Stops at the first one
+  /// that fails, so the message says which orders still need a driver.
+  Future<String?> assignBatch(
+    DeliveryBatch batch,
+    DispatchDriver driver,
+  ) async {
+    if (state.value == null) return 'Still loading. Please try again.';
+    final repository = ref.read(dispatchRepositoryProvider);
+    var held = driver.activeOrders;
+    for (final (index, order) in batch.orders.indexed) {
+      try {
+        await repository.assignDriver(
+          order: order,
+          driver: driver.worker,
+          activeOrders: held,
+          maxActiveOrders: DispatchDriver.maxActiveOrders,
+        );
+        held++;
+      } on DispatchException catch (e) {
+        final left = batch.orders.skip(index).map((o) => '#${o.number}');
+        return '${e.message} Still need a driver: ${left.join(', ')}.';
+      }
+    }
     return null;
   }
 }

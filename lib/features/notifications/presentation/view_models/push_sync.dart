@@ -6,6 +6,7 @@ import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/core/firebase/firebase_emulators.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/notifications/data/repositories/notification_repository.dart';
+import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/shared/models/app_user.dart';
 
 /// Keeps this phone registered for push notifications while someone is signed
@@ -16,7 +17,8 @@ import 'package:mae_assignment/shared/models/app_user.dart';
 ///   permission and registers the phone's token for that account.
 /// - A replaced token is registered again.
 /// - Sign-out removes the registration (see `AuthRepository.signOut`).
-/// - Tapping a notification takes a customer to that order.
+/// - Tapping a notification opens that order: a customer's tracking page,
+///   or a worker's delivery or packing screen.
 ///
 /// Off when running against the Firebase emulators: they cannot send pushes,
 /// and the system permission dialog would get in the way of automated tests.
@@ -45,8 +47,26 @@ final Provider<void> pushSyncProvider = Provider<void>((ref) {
   Future<void> openOrder(String orderId) async {
     try {
       final user = await ref.read(authRepositoryProvider).getCurrentUser();
-      if (user?.role != UserRole.customer) return;
-      ref.read(appRouterProvider).go(AppRoutes.customerOrder(orderId));
+      final router = ref.read(appRouterProvider);
+      switch (user?.role) {
+        case UserRole.customer:
+          router.go(AppRoutes.customerOrder(orderId));
+        case UserRole.storeWorker:
+          // Workers are told about new assignments: a driver opens the
+          // delivery, a packer the order to pack.
+          final worker = ref.read(workerSessionProvider);
+          if (worker == null) return;
+          unawaited(
+            router.push(
+              worker.isDeliveryDriver
+                  ? AppRoutes.workerDeliveryOrder(orderId)
+                  : AppRoutes.workerPackingOrder(orderId),
+            ),
+          );
+        case UserRole.storeAdmin:
+        case null:
+          return;
+      }
     } on Object catch (error) {
       debugPrint('Could not open the order from a notification: $error');
     }

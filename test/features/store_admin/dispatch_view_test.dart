@@ -95,18 +95,25 @@ void main() {
 
       final deliveries = await repository.watchActiveDeliveries().first;
       final order = deliveries.firstWhere((o) => o.number == 2292);
-      await repository.assignDriver(order: order, driver: kumar);
+      await repository.assignDriver(
+        order: order,
+        driver: kumar,
+        activeOrders: 0,
+        maxActiveOrders: 3,
+      );
 
       final updated = (await orders.getOrder(order.id))!;
       expect(updated.driverId, kumar.id);
       expect(updated.handledBy, 'Kumar');
       expect(updated.timeline.last.title, 'Driver Kumar assigned');
 
-      // A busy driver cannot take another order.
+      // A driver already holding the most deliveries cannot take another.
       expect(
         () => repository.assignDriver(
           order: order,
           driver: amir.withCurrentOrder(2290),
+          activeOrders: 3,
+          maxActiveOrders: 3,
         ),
         throwsA(isA<DispatchException>()),
       );
@@ -121,7 +128,12 @@ void main() {
       final deliveries = await repository.watchActiveDeliveries().first;
       final order = deliveries.firstWhere((o) => o.number == 2290);
       expect(order.driverId, 'driver-amir');
-      await repository.assignDriver(order: order, driver: kumar);
+      await repository.assignDriver(
+        order: order,
+        driver: kumar,
+        activeOrders: 0,
+        maxActiveOrders: 3,
+      );
 
       expect((await orders.getOrder(order.id))!.driverId, kumar.id);
     });
@@ -138,6 +150,8 @@ void main() {
         () => repository.assignDriver(
           order: order.copyWith(addressLocation: null),
           driver: kumar,
+          activeOrders: 0,
+          maxActiveOrders: 3,
         ),
         throwsA(isA<DispatchException>()),
       );

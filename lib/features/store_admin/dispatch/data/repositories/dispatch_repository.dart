@@ -63,9 +63,22 @@ class DispatchRepository {
 
   /// Gives [order] to [driver]. Any old driver of the order is set free,
   /// because a driver's current order is worked out from the orders.
-  Future<void> assignDriver({required Order order, required Driver driver}) {
-    if (!driver.isOnDuty || driver.currentOrderNumber != null) {
-      throw DispatchException('${driver.name} is not free any more.');
+  ///
+  /// A driver may hold up to [maxActiveOrders] deliveries at once;
+  /// [activeOrders] is how many they hold now.
+  Future<void> assignDriver({
+    required Order order,
+    required Driver driver,
+    required int activeOrders,
+    required int maxActiveOrders,
+  }) {
+    if (!driver.isOnDuty) {
+      throw DispatchException('${driver.name} is not on duty.');
+    }
+    if (activeOrders >= maxActiveOrders) {
+      throw DispatchException(
+        '${driver.name} already has $activeOrders deliveries.',
+      );
     }
     if (order.addressLocation == null) {
       throw const DispatchException('This order has no address on the map.');

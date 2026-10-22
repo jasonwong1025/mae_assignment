@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
+import 'package:mae_assignment/features/store_worker/shell/presentation/ui/worker_notifications_bell.dart';
 import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
 
 /// Mobile page frame shared by every Store Worker tab: a compact app bar
@@ -77,7 +78,12 @@ class WorkerScaffold extends ConsumerWidget {
                 branchName: worker?.coverageLabel,
               ),
         ),
-        actions: [...actions, if (actions.isNotEmpty) const SizedBox(width: 4)],
+        actions: [
+          ...actions,
+          // New assignments from HQ arrive here (and as a push).
+          if (worker != null) const WorkerNotificationsBell(),
+          const SizedBox(width: 4),
+        ],
       ),
       body: SafeArea(
         // The app bar and bottom navigation already keep clear of the

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/assign_driver_box.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/batch_suggestion_card.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/deliveries_table.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/dispatch_labels.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/dispatch_map.dart';
@@ -77,6 +78,24 @@ class _DispatchViewState extends ConsumerState<DispatchView> {
         _selectedDriverId = driver.id;
       });
       _showMessage('#${order.number} assigned to ${driver.worker.name}.');
+    }
+    return error;
+  }
+
+  Future<String?> _assignBatch(
+    DeliveryBatch batch,
+    DispatchDriver driver,
+  ) async {
+    final error = await ref
+        .read(dispatchViewModelProvider.notifier)
+        .assignBatch(batch, driver);
+    if (error == null && mounted) {
+      setState(() {
+        _selectedOrderNumber = null;
+        _selectedDriverId = driver.id;
+      });
+      final numbers = batch.orders.map((order) => '#${order.number}');
+      _showMessage('${numbers.join(', ')} assigned to ${driver.worker.name}.');
     }
     return error;
   }
@@ -298,13 +317,26 @@ class _DispatchViewState extends ConsumerState<DispatchView> {
     );
   }
 
-  /// "Needs a driver" orders, then every driver.
+  /// Suggested trips, "Needs a driver" orders, then every driver.
   Widget _sideLists(DispatchState state, {required bool isWide}) {
     final needsDriver = state.needsDriver;
+    final batches = state.batchSuggestions;
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 8),
       children: [
+        // Nearby ready orders one driver could take in one trip.
+        if (batches.isNotEmpty) ...[
+          SectionHeading('Deliver together (${batches.length})'),
+          for (final batch in batches)
+            BatchSuggestionCard(
+              // Starts again when the orders in it change.
+              key: ValueKey(batch.key),
+              state: state,
+              batch: batch,
+              onAssign: (driver) => _assignBatch(batch, driver),
+            ),
+        ],
         SectionHeading('Needs a driver (${needsDriver.length})'),
         if (needsDriver.isEmpty)
           Padding(

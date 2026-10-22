@@ -38,10 +38,16 @@ class PackingOrderView extends ConsumerStatefulWidget {
 }
 
 class _PackingOrderViewState extends ConsumerState<PackingOrderView> {
-  /// Ticks the packer just made that are still being saved, by line id.
-  /// Shown straight away so the checklist feels instant; dropped once the
-  /// repository answers (the saved order then shows the same thing).
+  /// Ticks the packer just made, by line id. Shown straight away so the
+  /// checklist feels instant, and kept until the live order shows the same
+  /// thing. (The save is a transaction, which Firestore does not show
+  /// locally, so the updated order arrives a moment after the save
+  /// finishes; dropping the tick when the save finished made it flick back
+  /// for that moment.) Dropped at once if the save fails.
   final Map<String, bool> _savingTicks = {};
+
+  /// Lines whose tick is still being saved, for the "saving" state.
+  final Set<String> _inFlight = {};
 
   /// True while Start packing or Mark as ready is running.
   bool _isBusy = false;
@@ -76,10 +82,18 @@ class _PackingOrderViewState extends ConsumerState<PackingOrderView> {
   }
 
   Future<void> _setPacked(String lineId, bool packed) async {
-    setState(() => _savingTicks[lineId] = packed);
+    setState(() {
+      _savingTicks[lineId] = packed;
+      _inFlight.add(lineId);
+    });
     final error = await _viewModel.setItemPacked(lineId, packed: packed);
     if (!mounted) return;
-    setState(() => _savingTicks.remove(lineId));
+    setState(() {
+      _inFlight.remove(lineId);
+      // Saved: keep showing the tick until the live order catches up (see
+      // _withSavingTicks). Refused: put it back as it was.
+      if (error != null) _savingTicks.remove(lineId);
+    });
     if (error != null) _showMessage(error);
   }
 
@@ -123,6 +137,12 @@ class _PackingOrderViewState extends ConsumerState<PackingOrderView> {
 
   /// The order with the ticks still being saved applied on top.
   Order _withSavingTicks(Order order) {
+    // Forget ticks the live order already shows, unless a newer save for
+    // that line is still running.
+    _savingTicks.removeWhere(
+      (lineId, packed) =>
+          !_inFlight.contains(lineId) && order.isPacked(lineId) == packed,
+    );
     if (_savingTicks.isEmpty) return order;
     final lines = {...order.packedLineIds};
     _savingTicks.forEach((lineId, packed) {
@@ -206,7 +226,7 @@ class _PackingOrderViewState extends ConsumerState<PackingOrderView> {
                   canEdit: canEdit,
                   canStart: canStart,
                   isBusy: _isBusy,
-                  isSaving: _savingTicks.isNotEmpty,
+                  isSaving: _inFlight.isNotEmpty,
                   onSetPacked: _setPacked,
                   onFlagUnavailable: _flagUnavailable,
                   onStart: _startPacking,
