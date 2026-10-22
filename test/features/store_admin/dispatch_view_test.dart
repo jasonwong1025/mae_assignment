@@ -168,7 +168,9 @@ void main() {
     expect(find.text('NEEDS A DRIVER (2)'), findsOneWidget);
     expect(find.text('#2284 · Ahmad Fauzi'), findsOneWidget);
     expect(find.text('Amir Hamzah'), findsOneWidget);
-    expect(find.text('Delivering #2290'), findsOneWidget);
+    // Amir holds four deliveries in the demo data (#2290 and #2309 on the
+    // road, #2308 and #1184 ready to collect); the line follows the first.
+    expect(find.text('Delivering #2290 +3 more'), findsOneWidget);
     // Map labels.
     expect(find.text('SS15 Subang'), findsWidgets);
     expect(find.text('Amir · #2290'), findsOneWidget);
