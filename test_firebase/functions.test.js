@@ -4,14 +4,24 @@ import { getAuth } from "firebase-admin/auth";
 import { GeoPoint, getFirestore } from "firebase-admin/firestore";
 
 const projectId = "mae-assignment-grocerly";
+// Without these the Admin SDK would write to the real shared project.
+if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_AUTH_EMULATOR_HOST) {
+  throw new Error(
+    "Emulators not configured. Run inside `firebase emulators:exec`, or export " +
+    "FIRESTORE_EMULATOR_HOST=127.0.0.1:8085 and FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099."
+  );
+}
 if (!getApps().length) initializeApp({ projectId });
 const db = getFirestore();
+// Unique per run, so test emails never clash with accounts a previous run
+// left in a long-running Auth emulator.
+const runId = Date.now().toString(36);
 let serial = 0;
 let customer;
 let admin;
 
 async function signUp(role, label) {
-  const email = `${label}-${++serial}@example.test`;
+  const email = `${label}-${runId}-${++serial}@example.test`;
   const response = await fetch(
     "http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake-key",
     {
@@ -151,7 +161,7 @@ describe("placeOrder", () => {
 describe("staff management", () => {
   test("only HQ admin creates Auth and worker profile", async () => {
     const input = {
-      name: "Packer", email: `packer-${++serial}@example.test`,
+      name: "Packer", email: `packer-${runId}-${++serial}@example.test`,
       phone: "0123456789", temporaryPassword: "Password123!",
       workerRole: "packingStaff", branchId: "ss15",
     };
