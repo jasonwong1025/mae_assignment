@@ -23,7 +23,7 @@ import 'package:mae_assignment/shared/models/app_user.dart';
 /// Off when running against the Firebase emulators: they cannot send pushes,
 /// and the system permission dialog would get in the way of automated tests.
 final Provider<void> pushSyncProvider = Provider<void>((ref) {
-  if (FirebaseEmulators.enabled) return;
+  if (FirebaseEmulators.enabled || kIsWeb) return;
 
   String? uid;
   StreamSubscription<String>? tokens;

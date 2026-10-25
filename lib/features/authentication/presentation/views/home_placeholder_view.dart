@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,7 +14,9 @@ class HomePlaceholderView extends ConsumerWidget {
 
   Future<void> _signOut(BuildContext context, WidgetRef ref) async {
     await ref.read(authRepositoryProvider).signOut();
-    if (context.mounted) context.go(AppRoutes.onboarding);
+    if (context.mounted) {
+      context.go(kIsWeb ? AppRoutes.login : AppRoutes.onboarding);
+    }
   }
 
   @override
@@ -36,6 +39,19 @@ class HomePlaceholderView extends ConsumerWidget {
                       children: [
                         const BrandHeader(),
                         const SizedBox(height: 32),
+                        if (kIsWeb) ...[
+                          Text(
+                            'Admin access required',
+                            style: textTheme.headlineMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Sign in with an HQ admin account to use the web '
+                            'console.',
+                            style: textTheme.bodyMedium,
+                          ),
+                          const SizedBox(height: 24),
+                        ],
                         currentUser.when(
                           loading: () =>
                               const Center(child: CircularProgressIndicator()),

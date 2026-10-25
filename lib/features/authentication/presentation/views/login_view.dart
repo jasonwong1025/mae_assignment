@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -178,7 +179,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const BrandHeader(showBackButton: true),
+                            const BrandHeader(showBackButton: !kIsWeb),
                             const SizedBox(height: 32),
                             Text(
                               'Sign in to continue',
@@ -186,8 +187,10 @@ class _LoginViewState extends ConsumerState<LoginView> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'One account for shopping, packing, and '
-                              'running the store.',
+                              kIsWeb
+                                  ? 'Sign in with your HQ admin account.'
+                                  : 'One account for shopping, packing, and '
+                                        'running the store.',
                               style: textTheme.bodyMedium,
                             ),
                             const SizedBox(height: 28),
@@ -223,7 +226,9 @@ class _LoginViewState extends ConsumerState<LoginView> {
                             _RoleButton(
                               icon: Icons.dashboard_outlined,
                               title: UserRole.storeAdmin.label,
-                              subtitle: 'Tablet dashboard',
+                              subtitle: kIsWeb
+                                  ? 'Web dashboard'
+                                  : 'Tablet dashboard',
                               isLoading:
                                   isLoading &&
                                   _selectedRole == UserRole.storeAdmin,
@@ -231,54 +236,57 @@ class _LoginViewState extends ConsumerState<LoginView> {
                                   ? null
                                   : () => _onContinueAs(UserRole.storeAdmin),
                             ),
-                            const SizedBox(height: 12),
-                            _RoleButton(
-                              icon: Icons.inventory_2_outlined,
-                              title: UserRole.storeWorker.label,
-                              subtitle: 'Packing and delivery',
-                              isLoading:
-                                  isLoading &&
-                                  _selectedRole == UserRole.storeWorker,
-                              onPressed: isLoading
-                                  ? null
-                                  : () => _onContinueAs(UserRole.storeWorker),
-                            ),
-                            const SizedBox(height: 12),
-                            _RoleButton(
-                              icon: Icons.shopping_basket_outlined,
-                              title: UserRole.customer.label,
-                              subtitle: 'Browse and order',
-                              isLoading:
-                                  isLoading &&
-                                  _selectedRole == UserRole.customer,
-                              onPressed: isLoading
-                                  ? null
-                                  : () => _onContinueAs(UserRole.customer),
-                            ),
-                            const SizedBox(height: 20),
-                            const OrDivider(),
-                            const SizedBox(height: 20),
-                            GoogleSignInButton(
-                              onPressed: isLoading ? null : _onGoogle,
-                              isLoading: isGoogleLoading,
-                            ),
+                            if (!kIsWeb) ...[
+                              const SizedBox(height: 12),
+                              _RoleButton(
+                                icon: Icons.inventory_2_outlined,
+                                title: UserRole.storeWorker.label,
+                                subtitle: 'Packing and delivery',
+                                isLoading:
+                                    isLoading &&
+                                    _selectedRole == UserRole.storeWorker,
+                                onPressed: isLoading
+                                    ? null
+                                    : () => _onContinueAs(UserRole.storeWorker),
+                              ),
+                              const SizedBox(height: 12),
+                              _RoleButton(
+                                icon: Icons.shopping_basket_outlined,
+                                title: UserRole.customer.label,
+                                subtitle: 'Browse and order',
+                                isLoading:
+                                    isLoading &&
+                                    _selectedRole == UserRole.customer,
+                                onPressed: isLoading
+                                    ? null
+                                    : () => _onContinueAs(UserRole.customer),
+                              ),
+                              const SizedBox(height: 20),
+                              const OrDivider(),
+                              const SizedBox(height: 20),
+                              GoogleSignInButton(
+                                onPressed: isLoading ? null : _onGoogle,
+                                isLoading: isGoogleLoading,
+                              ),
+                            ],
                           ],
                         ),
                       ),
                     ),
                   ),
                 ),
-                BottomActionBar(
-                  children: [
-                    TextButton(
-                      // Replace instead of push, so "back" from sign-up
-                      // returns to onboarding, not to this page.
-                      onPressed: () =>
-                          context.pushReplacement(AppRoutes.register),
-                      child: const Text('New to Grocerly? Create an account'),
-                    ),
-                  ],
-                ),
+                if (!kIsWeb)
+                  BottomActionBar(
+                    children: [
+                      TextButton(
+                        // Replace instead of push, so "back" from sign-up
+                        // returns to onboarding, not to this page.
+                        onPressed: () =>
+                            context.pushReplacement(AppRoutes.register),
+                        child: const Text('New to Grocerly? Create an account'),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),

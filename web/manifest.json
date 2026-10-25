@@ -5,8 +5,7 @@
     "display": "standalone",
     "background_color": "#FAF8F2",
     "theme_color": "#0B5D45",
-    "description": "Your neighbourhood grocer, online.",
-    "orientation": "portrait-primary",
+    "description": "Grocerly HQ admin console.",
     "prefer_related_applications": false,
     "icons": [
         {

@@ -5,6 +5,10 @@ onboarding, account access, catalogue browsing and checkout. Store Admin and
 Store Worker work on the same Firestore data (orders, staff, reviews), and the
 demo data comes from the seed script in `test_firebase/`, not from the app.
 
+The deployed HQ admin website and customer/worker Android APK are listed in
+[DEPLOYMENT.md](DEPLOYMENT.md). They use the existing Grocerly Dev Firebase
+project and do not require a local emulator or terminal to run.
+
 ## Team setup
 
 The app uses the shared Firebase project `mae-assignment-grocerly`. Its Firebase app configuration is committed to this repository, so teammates do not need Firebase CLI access or their own Firebase projects to run the app. Test accounts and Firestore data are shared.

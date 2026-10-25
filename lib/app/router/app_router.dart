@@ -97,6 +97,26 @@ Future<String?> _adminRedirect(AuthRepository authRepository) async {
   }
 }
 
+/// The hosted web build is the HQ admin console. Mobile builds keep their
+/// customer and worker routes; Firestore Rules enforce access on both.
+Future<String?> _webAdminRedirect(
+  AuthRepository authRepository,
+  String location,
+) async {
+  if (!authRepository.isSignedIn) {
+    return location == AppRoutes.login ? null : AppRoutes.login;
+  }
+  try {
+    final user = await authRepository.getCurrentUser();
+    if (user?.role == UserRole.storeAdmin) {
+      return location.startsWith('/admin/') ? null : AppRoutes.adminDashboard;
+    }
+  } on Object catch (_) {
+    // The fallback page explains the problem and lets the user sign out.
+  }
+  return location == AppRoutes.home ? null : AppRoutes.home;
+}
+
 /// The home page for an already signed-in user, by role. Used when the app
 /// opens with a live session (e.g. after a restart) so each role lands on
 /// its own home instead of the shared placeholder. Falls back to the
@@ -154,7 +174,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     // The first page shown when the app opens.
-    initialLocation: AppRoutes.onboarding,
+    initialLocation: kIsWeb ? AppRoutes.login : AppRoutes.onboarding,
     refreshListenable: workerSessionChanges,
     // Runs before every navigation:
     // - Store Worker pages: sign-in and role checks (workerRouteRedirect)
@@ -162,6 +182,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     // - not signed in and on any other page: go to onboarding
     // Screens still call context.go() themselves after signing in or out.
     redirect: (context, state) {
+      if (kIsWeb) {
+        return _webAdminRedirect(authRepository, state.matchedLocation);
+      }
       // checks if the user is signed in
       final isSignedIn = authRepository.isSignedIn;
 

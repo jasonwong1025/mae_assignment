@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "989446025690-lnn952aosm84mmq6u2rkhj2caipqad93.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mae_assignment",
+            "certificate_hash": "e7a66e48ef981ab0864a4e515346953bc99688ab"
+          }
+        },
+        {
           "client_id": "989446025690-vjtmm719ji7ke1eptihluibhoa506900.apps.googleusercontent.com",
           "client_type": 3
         }
