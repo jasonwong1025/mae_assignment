@@ -1,0 +1,75 @@
+        ✅   1. tap widgets with text "I already have an account".
+        ✅   2. waitUntilVisible widgets with text "Sign in to continue".
+        ✅   3. enterText widgets with type "TextFormField" (ignoring all but index 0).
+        ✅   4. enterText widgets with type "TextFormField" (ignoring all but index 1).
+        ✅   5. tap widgets with text "Customer".
+        ✅   6. waitUntilExists widgets with text "DELIVER TO".
+        ✅   7. waitUntilExists widgets with icon "IconData(U+0F537)".
+        ✅   8. scrollTo widgets with icon "IconData(U+0F537)".
+        ✅   9. tap widgets with icon "IconData(U+0F537)" (considering only hit-testable widgets with a RenderBox).
+        ✅  10. scrollTo widgets with type "CustomerProductCard".
+        ✅  11. tap widgets with type "CustomerProductCard" (considering only hit-testable widgets with a RenderBox).
+        ✅  12. waitUntilExists widgets with text "Product details".
+        ✅  13. waitUntilExists widgets with text "In your cart: 1".
+        ✅  14. tap widgets with widget matching predicate.
+        ✅  15. tap widgets with text containing Add to cart.
+        ✅  16. waitUntilExists widgets with text "In your cart: 3".
+        ✅  17. waitUntilExists widgets with text "DELIVER TO".
+        ✅  18. waitUntilExists widgets with icon "IconData(U+0F537)".
+        ✅  19. scrollTo widgets with type "CustomerProductCard".
+        ✅  20. tap widgets with type "CustomerProductCard" (considering only hit-testable widgets with a RenderBox).
+        ✅  21. waitUntilExists widgets with text "Product details".
+        ✅  22. waitUntilExists widgets with text "In your cart: 3".
+        ✅  23. tap widgets with widget matching predicate.
+        ✅  24. waitUntilExists widgets with text "DELIVER TO".
+        ✅  25. tap widgets with text "Account".
+        ✅  26. scrollTo widgets with text "Wallet".
+        ✅  27. tap widgets with text "Wallet" (considering only hit-testable widgets with a RenderBox).
+        ✅  28. waitUntilExists widgets with text "Grocerly Wallet".
+        ✅  29. waitUntilExists widgets with key [<'wallet_balance'>].
+        ✅  30. tap widgets with key [<'wallet_top_up_button'>].
+        ✅  31. waitUntilExists widgets with text "RM 50.00 added to your wallet.".
+        ✅  32. waitUntilExists widgets with text "Top up".
+        ✅  33. tap widgets with widget matching predicate.
+        ✅  34. tap widgets with text "Home".
+        ✅  35. waitUntilExists widgets with text "DELIVER TO".
+        ✅  36. tap widgets with text "Grocery".
+        ✅  37. waitUntilExists widgets with text "Grocery list".
+        ✅  38. enterText widgets with key [<'grocery_input'>].
+        ✅  39. tap widgets with key [<'grocery_add_button'>].
+        ✅  40. waitUntilExists widgets with text "No match at this store".
+        ✅  41. tap widgets with widget matching predicate.
+        ✅  42. waitUntilExists widgets with text "Your list is empty".
+        ✅  43. tap widgets with text "Home".
+        ✅  44. waitUntilExists widgets with text "DELIVER TO".
+        ✅  45. tap widgets with key [<'cart_button'>].
+        ✅  46. waitUntilExists widgets with text "Your cart".
+        ✅  47. tap widgets with key [<'place_order_button'>].
+        ✅  48. waitUntilExists widgets with text "Order tracking".
+        ✅  49. waitUntilExists widgets with text "Pending".
+        ✅  50. tap widgets with key [<'cancel_order_button'>].
+        ✅  51. tap widgets with type "FilledButton" that are ancestors of widgets with text "Cancel order".
+        ✅  52. waitUntilExists widgets with text "Cancelled".
+        ✅  53. tap widgets with key [<'reorder_button'>].
+        ✅  54. waitUntilExists widgets with text "Your cart".
+        ✅  55. tap widgets with widget matching predicate.
+        ✅  56. waitUntilExists widgets with text "DELIVER TO".
+        ✅  57. tap widgets with text "Orders".
+        ✅  58. waitUntilExists widgets with text "Your orders".
+        ✅  59. tap widgets with text "Account".
+        ✅  60. scrollTo widgets with text "Wallet".
+        ✅  61. tap widgets with text "Wallet" (considering only hit-testable widgets with a RenderBox).
+        ✅  62. waitUntilExists widgets with text "Wallet".
+        ✅  63. waitUntilExists widgets with text containing Refund for cancelled order.
+        ✅  64. scrollTo widgets with text containing Payment for order.
+        ✅  65. tap widgets with widget matching predicate.
+        ✅  66. scrollTo widgets with text "Notifications".
+        ✅  67. tap widgets with text "Notifications" (considering only hit-testable widgets with a RenderBox).
+        ✅  68. waitUntilExists widgets with text containing was cancelled.
+✅ customer places an order and tracks it (/customer_journey_test.dart) (50s)
+Test summary:
+📝 Total: 1
+✅ Successful: 1
+❌ Failed: 0
+⏩ Skipped: 0
+⏱️  Duration: 1m 46s

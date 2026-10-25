@@ -1,0 +1,96 @@
+        ✅   1. tap widgets with text "I already have an account".
+        ✅   2. waitUntilVisible widgets with text "Sign in to continue".
+        ✅   3. enterText widgets with type "TextFormField" (ignoring all but index 0).
+        ✅   4. enterText widgets with type "TextFormField" (ignoring all but index 1).
+        ✅   5. scrollTo widgets with text "Store Worker".
+        ✅   6. tap widgets with text "Store Worker" (considering only hit-testable widgets with a RenderBox).
+        ✅   7. waitUntilExists widgets with text "My Tasks".
+        ✅   8. waitUntilExists widgets with text "#2399".
+        ✅   9. scrollTo widgets with text "#2399".
+        ✅  10. tap widgets with text "#2399" (considering only hit-testable widgets with a RenderBox).
+        ✅  11. waitUntilExists widgets with text "Order #2399".
+        ✅  12. waitUntilExists widgets with text "Review & mark ready".
+        ✅  13. scrollTo widgets with text "Item unavailable?".
+        ✅  14. tap widgets with text "Item unavailable?" (considering only hit-testable widgets with a RenderBox).
+        ✅  15. waitUntilExists widgets with text containing is unavailable.
+        ✅  16. waitUntilExists widgets with text "Chicken breast".
+        ✅  17. tap widgets with text "Chicken breast".
+        ✅  18. waitUntilExists widgets with text "WAITING FOR CUSTOMER (1)".
+        ✅  19. waitUntilExists widgets with text "Waiting for the customer".
+        ✅  20. tap widgets with widget matching predicate.
+        ✅  21. tap widgets with text "Account".
+        ✅  22. waitUntilExists widgets with text "Daniel Lee".
+        ✅  23. scrollTo widgets with text "Sign out".
+        ✅  24. tap widgets with text "Sign out" (considering only hit-testable widgets with a RenderBox).
+        ✅  25. waitUntilExists widgets with text "I already have an account".
+        ✅  26. tap widgets with text "I already have an account".
+        ✅  27. waitUntilVisible widgets with text "Sign in to continue".
+        ✅  28. enterText widgets with type "TextFormField" (ignoring all but index 0).
+        ✅  29. enterText widgets with type "TextFormField" (ignoring all but index 1).
+        ✅  30. scrollTo widgets with text "Customer".
+        ✅  31. tap widgets with text "Customer" (considering only hit-testable widgets with a RenderBox).
+        ✅  32. waitUntilExists widgets with text "DELIVER TO".
+        ✅  33. tap widgets with text "Orders".
+        ✅  34. waitUntilExists widgets with text "Needs your reply".
+        ✅  35. tap widgets with text "Order #2399".
+        ✅  36. waitUntilExists widgets with text "Your reply is needed".
+        ✅  37. waitUntilExists widgets with text "Chicken breast".
+        ✅  38. waitUntilExists widgets with text containing more than the original.
+        ✅  39. scrollTo widgets with text "Accept replacement".
+        ✅  40. tap widgets with text "Accept replacement" (considering only hit-testable widgets with a RenderBox).
+        ✅  41. waitUntilExists widgets with text "Replacement accepted.".
+        ✅  42. waitUntilExists widgets with text "Unavailable, replaced".
+        ✅  43. tap widgets with widget matching predicate.
+        ✅  44. tap widgets with text "Account".
+        ✅  45. waitUntilExists widgets with text "E2E Customer".
+        ✅  46. scrollTo widgets with text "Sign out".
+        ✅  47. tap widgets with text "Sign out" (considering only hit-testable widgets with a RenderBox).
+        ✅  48. waitUntilExists widgets with text "I already have an account".
+        ✅  49. tap widgets with text "I already have an account".
+        ✅  50. waitUntilVisible widgets with text "Sign in to continue".
+        ✅  51. enterText widgets with type "TextFormField" (ignoring all but index 0).
+        ✅  52. enterText widgets with type "TextFormField" (ignoring all but index 1).
+        ✅  53. scrollTo widgets with text "Store Worker".
+        ✅  54. tap widgets with text "Store Worker" (considering only hit-testable widgets with a RenderBox).
+        ✅  55. waitUntilExists widgets with text "#2399".
+        ✅  56. scrollTo widgets with text "#2399".
+        ✅  57. tap widgets with text "#2399" (considering only hit-testable widgets with a RenderBox).
+        ✅  58. waitUntilExists widgets with text "Order #2399".
+        ✅  59. waitUntilExists widgets with text "Replacement for Roma tomato".
+        ✅  60. tap widgets with type "Checkbox".
+        ✅  61. tap widgets with type "Checkbox".
+        ✅  62. waitUntilExists widgets with text "PACKED (2)".
+        ✅  63. tap widgets with text "Review & mark ready".
+        ✅  64. tap widgets with text "Review & mark ready".
+        ✅  65. waitUntilExists widgets with text "Review order #2399".
+        ✅  66. tap widgets with text "Mark as ready".
+        ✅  67. waitUntilExists widgets with text "Order #2399 is ready".
+        ✅  68. tap widgets with text "Back to My Tasks".
+        ✅  69. waitUntilExists widgets with text "My Tasks".
+        ✅  70. tap widgets with text "Account".
+        ✅  71. waitUntilExists widgets with text "Daniel Lee".
+        ✅  72. scrollTo widgets with text "Sign out".
+        ✅  73. tap widgets with text "Sign out" (considering only hit-testable widgets with a RenderBox).
+        ✅  74. waitUntilExists widgets with text "I already have an account".
+        ✅  75. tap widgets with text "I already have an account".
+        ✅  76. waitUntilVisible widgets with text "Sign in to continue".
+        ✅  77. enterText widgets with type "TextFormField" (ignoring all but index 0).
+        ✅  78. enterText widgets with type "TextFormField" (ignoring all but index 1).
+        ✅  79. scrollTo widgets with text "Customer".
+        ✅  80. tap widgets with text "Customer" (considering only hit-testable widgets with a RenderBox).
+        ✅  81. waitUntilExists widgets with text "DELIVER TO".
+        ✅  82. tap widgets with text "Account".
+        ✅  83. scrollTo widgets with text "Wallet".
+        ✅  84. tap widgets with text "Wallet" (considering only hit-testable widgets with a RenderBox).
+        ✅  85. waitUntilExists widgets with text containing Replacement price difference.
+        ✅  86. tap widgets with widget matching predicate.
+        ✅  87. scrollTo widgets with text "Notifications".
+        ✅  88. tap widgets with text "Notifications" (considering only hit-testable widgets with a RenderBox).
+        ✅  89. waitUntilExists widgets with text containing ready for pickup.
+✅ packer offers a replacement, customer accepts, packer continues (/shortage_journey_test.dart) (42s)
+Test summary:
+📝 Total: 1
+✅ Successful: 1
+❌ Failed: 0
+⏩ Skipped: 0
+⏱️  Duration: 1m 25s

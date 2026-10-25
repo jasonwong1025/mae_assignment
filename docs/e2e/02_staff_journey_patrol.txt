@@ -1,0 +1,65 @@
+        ✅   1. tap widgets with text "I already have an account".
+        ✅   2. waitUntilVisible widgets with text "Sign in to continue".
+        ✅   3. enterText widgets with type "TextFormField" (ignoring all but index 0).
+        ✅   4. enterText widgets with type "TextFormField" (ignoring all but index 1).
+        ✅   5. scrollTo widgets with text "Store Admin".
+        ✅   6. tap widgets with text "Store Admin" (considering only hit-testable widgets with a RenderBox).
+        ✅   7. waitUntilExists widgets with text "RIGHT NOW".
+        ✅   8. tap widgets with widget matching predicate.
+        ✅   9. tap widgets with widget matching predicate.
+        ✅  10. tap widgets with text "SS15 Subang".
+        ✅  11. tap widgets with text "Orders" descending from widgets with type "ListTile".
+        ✅  12. waitUntilExists widgets with text "#2287".
+        ✅  13. scrollTo widgets with text "#2287".
+        ✅  14. tap widgets with text "#2287" (considering only hit-testable widgets with a RenderBox).
+        ✅  15. waitUntilExists widgets with text "Order #2287".
+        ✅  16. waitUntilExists widgets with text "No packer assigned".
+        ✅  17. scrollTo widgets with text "Assign packer".
+        ✅  18. tap widgets with text "Assign packer" (considering only hit-testable widgets with a RenderBox).
+        ✅  19. waitUntilExists widgets with text "Hakim Roslan".
+        ✅  20. tap widgets with text "Hakim Roslan".
+        ✅  21. waitUntilExists widgets with text "Hakim Roslan will pack #2287.".
+        ✅  22. waitUntilExists widgets with text "Packer: Hakim Roslan".
+        ✅  23. tap widgets with widget matching predicate.
+        ✅  24. tap widgets with widget matching predicate.
+        ✅  25. tap widgets with widget matching predicate.
+        ✅  26. waitUntilExists widgets with text "I already have an account".
+        ✅  27. tap widgets with text "I already have an account".
+        ✅  28. waitUntilVisible widgets with text "Sign in to continue".
+        ✅  29. enterText widgets with type "TextFormField" (ignoring all but index 0).
+        ✅  30. enterText widgets with type "TextFormField" (ignoring all but index 1).
+        ✅  31. scrollTo widgets with text "Store Worker".
+        ✅  32. tap widgets with text "Store Worker" (considering only hit-testable widgets with a RenderBox).
+        ✅  33. waitUntilExists widgets with text "My Tasks".
+        ✅  34. waitUntilExists widgets with text "#2287".
+        ✅  35. scrollTo widgets with text "#2287".
+        ✅  36. tap widgets with text "#2287" (considering only hit-testable widgets with a RenderBox).
+        ✅  37. waitUntilExists widgets with text "Order #2287".
+        ✅  38. waitUntilExists widgets with text "Review & mark ready".
+        ✅  39. tap widgets with widget matching predicate.
+        ✅  40. tap widgets with text "Account".
+        ✅  41. waitUntilExists widgets with text "Hakim Roslan".
+        ✅  42. scrollTo widgets with text "Sign out".
+        ✅  43. tap widgets with text "Sign out" (considering only hit-testable widgets with a RenderBox).
+        ✅  44. waitUntilExists widgets with text "I already have an account".
+        ✅  45. tap widgets with text "I already have an account".
+        ✅  46. waitUntilVisible widgets with text "Sign in to continue".
+        ✅  47. enterText widgets with type "TextFormField" (ignoring all but index 0).
+        ✅  48. enterText widgets with type "TextFormField" (ignoring all but index 1).
+        ✅  49. scrollTo widgets with text "Store Admin".
+        ✅  50. tap widgets with text "Store Admin" (considering only hit-testable widgets with a RenderBox).
+        ✅  51. tap widgets with widget matching predicate.
+        ✅  52. tap widgets with widget matching predicate.
+        ✅  53. tap widgets with text "SS15 Subang".
+        ✅  54. tap widgets with text "Orders" descending from widgets with type "ListTile".
+        ✅  55. waitUntilExists widgets with text containing Packing .
+        ✅  56. tap widgets with text containing Packing .
+        ✅  57. scrollTo widgets with text "#2287".
+        ✅  58. waitUntilExists widgets with text "Hakim".
+✅ admin assigns a packer and the packer starts the order (/staff_journey_test.dart) (29s)
+Test summary:
+📝 Total: 1
+✅ Successful: 1
+❌ Failed: 0
+⏩ Skipped: 0
+⏱️  Duration: 1m 14s
