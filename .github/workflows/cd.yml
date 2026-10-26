@@ -130,10 +130,16 @@ jobs:
       - name: Verify release certificate
         run: |
           set -euo pipefail
-          apk_signer="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name apksigner | sort -V | tail -n 1)"
-          test -n "$apk_signer"
+          apk_signer="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name apksigner | sort -V | tail -n 1)"
+          if [ -z "$apk_signer" ] || [ ! -x "$apk_signer" ]; then
+            echo '::error::Android SDK apksigner was not found or is not executable.'
+            exit 1
+          fi
           certificate="$("$apk_signer" verify --print-certs build/app/outputs/flutter-apk/app-release.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
-          test "${certificate,,}" = 'e2730b2f9c524a39186d4e6ff7f750eb503421dbfc381a10421c812dffe7e95f'
+          if [ "${certificate,,}" != 'e2730b2f9c524a39186d4e6ff7f750eb503421dbfc381a10421c812dffe7e95f' ]; then
+            echo "::error::Unexpected APK signer certificate: ${certificate:-none}"
+            exit 1
+          fi
 
       - name: Build HQ admin website and package APK download
         run: |
