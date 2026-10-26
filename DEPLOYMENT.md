@@ -40,6 +40,11 @@ Firestore rules and indexes, Storage rules, and Firebase Hosting to the existing
 Grocerly Dev project. The hosted APK is replaced at the download URL above.
 The same APK is also retained as a GitHub Actions artifact for 14 days. No
 local terminal needs to stay open for either the deployment or the live apps.
+Successful CD jobs are recorded in GitHub's **Deployments** section under
+`grocerly-dev`. When `pubspec.yaml` has a new version, CD publishes the signed
+APK and its SHA-256 checksum as a GitHub **prerelease** tagged with that version
+(for example, `v1.0.0+1`). Further deploys with the same version keep that
+release; increase the version before publishing an Android update.
 
 The workflow uses GitHub's short-lived OpenID Connect credentials to impersonate
 `grocerly-github-deploy@mae-assignment-grocerly.iam.gserviceaccount.com` through

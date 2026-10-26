@@ -61,9 +61,13 @@ jobs:
     if: needs.select-commit.outputs.deploy == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 50
+    environment:
+      name: grocerly-dev
+      url: https://mae-assignment-grocerly.web.app
     permissions:
       contents: read
       id-token: write
+      deployments: write
     steps:
       - name: Checkout verified commit
         uses: actions/checkout@v5
@@ -191,3 +195,74 @@ jobs:
           cmp build/web/downloads/grocerly.apk "$RUNNER_TEMP/grocerly-live.apk"
           echo "Website: $HOSTING_URL"
           echo "Android APK: $HOSTING_URL/downloads/grocerly.apk"
+
+  release:
+    name: Publish versioned Android prerelease
+    needs: [select-commit, deploy]
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Checkout deployed commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.select-commit.outputs.target_sha }}
+          persist-credentials: false
+
+      - name: Read Android version
+        id: version
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^version: *//p' pubspec.yaml)"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+\+[0-9]+$ ]]; then
+            echo "::error::Expected a Flutter version such as 1.0.0+1; got '$version'."
+            exit 1
+          fi
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Check whether this version is already released
+        id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json url >/dev/null 2>&1; then
+            echo 'exists=true' >> "$GITHUB_OUTPUT"
+            echo "$RELEASE_TAG already has a GitHub Release."
+          else
+            echo 'exists=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download signed APK from this deployment
+        if: steps.existing.outputs.exists == 'false'
+        uses: actions/download-artifact@v4
+        with:
+          name: grocerly-android-${{ needs.select-commit.outputs.target_sha }}
+          path: release-assets
+
+      - name: Publish Grocerly Dev prerelease
+        if: steps.existing.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          TARGET_SHA: ${{ needs.select-commit.outputs.target_sha }}
+        run: |
+          set -euo pipefail
+          cd release-assets
+          sha256sum --check grocerly.apk.sha256
+          cat > "$RUNNER_TEMP/grocerly-release-notes.md" <<EOF
+          Signed Android app for Grocerly Dev (customer and worker roles).
+
+          - HQ admin website: https://mae-assignment-grocerly.web.app
+          - Firebase project: mae-assignment-grocerly
+          - Deployed commit: $TARGET_SHA
+          - Android package: com.example.mae_assignment
+
+          The release APK uses the same signing key as the hosted APK and can update
+          an existing release installation with a lower Android build number.
+          EOF
+          gh release create "$RELEASE_TAG" grocerly.apk grocerly.apk.sha256 \
+            --repo "$GITHUB_REPOSITORY" --target "$TARGET_SHA" \
+            --title "Grocerly Dev $RELEASE_TAG" --prerelease \
+            --notes-file "$RUNNER_TEMP/grocerly-release-notes.md"
