@@ -1,0 +1,184 @@
+name: CD
+
+# Deploy only the exact main commit that passed the entire CI workflow.
+# A manual run is available from the Actions tab, but only on main.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: grocerly-dev-deploy
+  cancel-in-progress: false
+
+env:
+  FIREBASE_PROJECT_ID: mae-assignment-grocerly
+  HOSTING_URL: https://mae-assignment-grocerly.web.app
+
+jobs:
+  select-commit:
+    name: Select verified main commit
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    outputs:
+      target_sha: ${{ steps.check.outputs.target_sha }}
+      deploy: ${{ steps.check.outputs.deploy }}
+    steps:
+      - name: Skip superseded CI runs
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          current_main="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq .object.sha)"
+          echo "target_sha=${TARGET_SHA}" >> "$GITHUB_OUTPUT"
+          if [ "$TARGET_SHA" != "$current_main" ]; then
+            echo 'A newer main commit exists; skipping this deployment.'
+            echo 'deploy=false' >> "$GITHUB_OUTPUT"
+          elif [ "$GITHUB_EVENT_NAME" = 'workflow_dispatch' ] && \
+               [ "$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${TARGET_SHA}&event=push&status=success&per_page=1" --jq '.workflow_runs | length')" != '1' ]; then
+            echo 'This main commit has not passed CI; skipping manual deployment.'
+            echo 'deploy=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'deploy=true' >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    name: Build and deploy Grocerly Dev
+    needs: select-commit
+    if: needs.select-commit.outputs.deploy == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout verified commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.select-commit.outputs.target_sha }}
+          persist-credentials: false
+
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          android: false
+          tool-cache: false
+          large-packages: false
+          swap-storage: false
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            functions/package-lock.json
+            test_firebase/package-lock.json
+
+      - name: Restore Android release signing files
+        env:
+          KEYSTORE_BASE64: ${{ secrets.GROCERLY_ANDROID_KEYSTORE_BASE64 }}
+          KEY_PROPERTIES_BASE64: ${{ secrets.GROCERLY_ANDROID_KEY_PROPERTIES_BASE64 }}
+        run: |
+          set -euo pipefail
+          test -n "$KEYSTORE_BASE64"
+          test -n "$KEY_PROPERTIES_BASE64"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > android/app/grocerly-release.jks
+          printf '%s' "$KEY_PROPERTIES_BASE64" | base64 --decode > android/key.properties
+          chmod 600 android/app/grocerly-release.jks android/key.properties
+
+      - name: Install locked dependencies
+        run: |
+          flutter pub get --enforce-lockfile
+          npm ci --prefix functions
+          npm ci --prefix test_firebase
+
+      - name: Build Cloud Functions
+        run: npm run build --prefix functions
+
+      - name: Build signed Android APK
+        run: flutter build apk --release
+
+      - name: Verify release certificate
+        run: |
+          set -euo pipefail
+          apk_signer="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -type f -name apksigner | sort -V | tail -n 1)"
+          test -n "$apk_signer"
+          certificate="$("$apk_signer" verify --print-certs build/app/outputs/flutter-apk/app-release.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          test "${certificate,,}" = 'e2730b2f9c524a39186d4e6ff7f750eb503421dbfc381a10421c812dffe7e95f'
+
+      - name: Build HQ admin website and package APK download
+        run: |
+          set -euo pipefail
+          flutter build web --release --no-wasm-dry-run
+          mkdir -p build/web/downloads
+          cp build/app/outputs/flutter-apk/app-release.apk build/web/downloads/grocerly.apk
+          apk_hash="$(sha256sum build/web/downloads/grocerly.apk | cut -d ' ' -f 1)"
+          printf '%s  grocerly.apk\n' "$apk_hash" > build/web/downloads/grocerly.apk.sha256
+
+      - name: Save APK from this deployment
+        uses: actions/upload-artifact@v6
+        with:
+          name: grocerly-android-${{ needs.select-commit.outputs.target_sha }}
+          path: |
+            build/web/downloads/grocerly.apk
+            build/web/downloads/grocerly.apk.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: ${{ env.FIREBASE_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.GROCERLY_WIF_PROVIDER }}
+          service_account: ${{ secrets.GROCERLY_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: Deploy backend, rules, and indexes
+        run: |
+          ./test_firebase/node_modules/.bin/firebase deploy \
+            --only functions,firestore:rules,firestore:indexes,storage \
+            --project "$FIREBASE_PROJECT_ID" --non-interactive
+
+      - name: Deploy website and APK download
+        run: |
+          ./test_firebase/node_modules/.bin/firebase deploy \
+            --only hosting --project "$FIREBASE_PROJECT_ID" --non-interactive
+
+      - name: Verify live website and APK
+        run: |
+          set -euo pipefail
+          curl --retry 5 --retry-delay 3 --fail --silent --show-error --location \
+            --output /dev/null "$HOSTING_URL/"
+          curl --retry 5 --retry-delay 3 --fail --silent --show-error --location \
+            --output "$RUNNER_TEMP/grocerly-live.apk" "$HOSTING_URL/downloads/grocerly.apk"
+          cmp build/web/downloads/grocerly.apk "$RUNNER_TEMP/grocerly-live.apk"
+          echo "Website: $HOSTING_URL"
+          echo "Android APK: $HOSTING_URL/downloads/grocerly.apk"

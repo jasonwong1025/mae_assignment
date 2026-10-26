@@ -3,8 +3,8 @@ name: CI
 # Quality gate for every change to main. Enforces the team guidelines:
 # the pinned Flutter SDK, formatting, very_good_analysis (infos are fatal),
 # the Dart test suite, up-to-date generated code, the Firestore rules tests,
-# and the Patrol end-to-end journey on an Android emulator. Deployment is
-# intentionally out of scope for now.
+# and the Patrol end-to-end journey on an Android emulator. The separate CD
+# workflow deploys successful main commits after this workflow completes.
 
 on:
   push:

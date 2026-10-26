@@ -48,6 +48,9 @@ app.*.map.json
 
 .env
 
+# Short-lived credentials created by google-github-actions/auth in CI/CD.
+gha-creds-*.json
+
 # FVM Version Cache
 .fvm/
 

@@ -31,7 +31,40 @@ name. Android cannot keep both installed together. Remove the debug build once
 before installing the release APK; later release updates can install over this
 release copy using the same signing key.
 
-## Publish an update
+## Continuous deployment
+
+The [CD workflow](.github/workflows/cd.yml) publishes the latest `main` commit
+after its push-triggered CI run passes, including the Android end-to-end test.
+It builds a signed release APK and the HQ web app, then deploys Cloud Functions,
+Firestore rules and indexes, Storage rules, and Firebase Hosting to the existing
+Grocerly Dev project. The hosted APK is replaced at the download URL above.
+The same APK is also retained as a GitHub Actions artifact for 14 days. No
+local terminal needs to stay open for either the deployment or the live apps.
+
+The workflow uses GitHub's short-lived OpenID Connect credentials to impersonate
+`grocerly-github-deploy@mae-assignment-grocerly.iam.gserviceaccount.com` through
+the `grocerly-github/main-cd` Workload Identity provider. Its provider condition
+limits access to this repository's `cd.yml` on `main`. The repository's Actions
+secrets are:
+
+| Secret | Purpose |
+| --- | --- |
+| `GROCERLY_WIF_PROVIDER` | Google Workload Identity provider resource name |
+| `GROCERLY_DEPLOY_SERVICE_ACCOUNT` | Deployment service account email |
+| `GROCERLY_ANDROID_KEYSTORE_BASE64` | Base64-encoded private release keystore |
+| `GROCERLY_ANDROID_KEY_PROPERTIES_BASE64` | Base64-encoded private signing properties |
+
+Never print or commit either signing secret. If the signing files change, update
+the two secrets together and confirm that the release certificate still matches
+the SHA-256 above. Android updates also need a higher `version` build number in
+`pubspec.yaml` so devices can install them over the existing release.
+
+To rerun a deployment, use **Actions > CD > Run workflow** on `main`. Manual
+runs deploy only the current `main` commit after that commit has passed CI.
+The workflow skips older CI completions when a newer commit is already on
+`main`. A failing build or deploy stops before the website is published.
+
+## Publish an update manually
 
 Run from the repository root after testing the changes:
 
