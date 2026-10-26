@@ -110,17 +110,31 @@ service cloud.firestore {
           && request.resource.data.updatedAt == request.time;
       }
 
-      // A customer's grocery list: a single document, private to the owner.
-      // Each item is a name, a quantity and, once the customer picks one, a
-      // product id; the match with the catalogue is worked out in the app.
+      // A customer's grocery lists, one document per list: the default
+      // `current` ("My list") and up to four more made from a recipe or a
+      // scanned list. Private to the owner. Holds words, quantities and
+      // optional product ids only; prices and stock are read from the
+      // catalogue when the list is shown, so nothing here can affect an
+      // order. The app keeps the number of lists to five; rules cannot
+      // count documents.
       match /groceryList/{docId} {
         allow read, delete: if isOwner();
         allow create, update: if isOwner()
-          && docId == 'current'
-          && request.resource.data.keys().hasOnly(['items', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(
+              ['name', 'items', 'createdAt', 'updatedAt'])
           && request.resource.data.keys().hasAll(['items', 'updatedAt'])
           && request.resource.data.items is list
           && request.resource.data.items.size() <= 100
+          && (!('name' in request.resource.data)
+              || (request.resource.data.name is string
+                  && request.resource.data.name.size() > 0
+                  && request.resource.data.name.size() <= 30))
+          // Set once, by the server, when the list is made.
+          && (!('createdAt' in request.resource.data)
+              || request.resource.data.createdAt == request.time
+              || (resource != null
+                  && request.resource.data.createdAt
+                      == resource.data.createdAt))
           && request.resource.data.updatedAt == request.time;
       }
 

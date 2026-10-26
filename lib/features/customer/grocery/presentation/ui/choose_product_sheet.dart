@@ -19,7 +19,7 @@ Future<CatalogueProduct?> showChooseProductSheet(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    showDragHandle: true,
+    showDragHandle: false,
     builder: (sheetContext) => _ChooseProductSheet(
       query: query,
       products: products,
@@ -84,6 +84,32 @@ class _ChooseProductSheetState extends State<_ChooseProductSheet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Drag handle in the middle, close (X) in the top-right
+              // corner, like the app's other sheets.
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.s),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.textSecondary.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: IconButton(
+                        tooltip: 'Close',
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               Text('Choose a product', style: textTheme.titleLarge),
               const SizedBox(height: AppSpacing.m),
               TextField(

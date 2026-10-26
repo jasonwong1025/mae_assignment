@@ -15,7 +15,8 @@ Color orderStatusColor(OrderStatus status) {
     case OrderStatus.ready:
       return AppColors.success;
     case OrderStatus.outForDelivery:
-      return AppColors.darkGreen;
+      // Orange, so it stands apart from the greens of ready and completed.
+      return AppColors.orange;
     case OrderStatus.completed:
       return AppColors.green;
     case OrderStatus.cancelled:
@@ -86,7 +87,13 @@ class OrderStatusBadge extends StatelessWidget {
           fontWeight: FontWeight.w700,
           // Grey text on its own tint is hard to read, so pending uses the
           // main text colour.
-          color: status == OrderStatus.pending ? AppColors.textPrimary : color,
+          // Pending text is dark grey; orange text is darkened so it stays
+          // readable on its light orange background.
+          color: switch (status) {
+            OrderStatus.pending => AppColors.textPrimary,
+            OrderStatus.outForDelivery => const Color(0xFFB45309),
+            _ => color,
+          },
         ),
       ),
     );

@@ -207,9 +207,10 @@ class _PackingOrderViewState extends ConsumerState<PackingOrderView> {
                     message:
                         'This order is no longer assigned to you. It may have '
                         'been reassigned or removed.',
-                    action: OutlinedButton(
+                    action: OutlinedButton.icon(
                       onPressed: () => context.go(AppRoutes.workerPacking),
-                      child: const Text('Back to My Tasks'),
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      label: const Text('Back to My Tasks'),
                     ),
                   );
                 }
@@ -662,7 +663,13 @@ class _ActionBar extends StatelessWidget {
 
     // Read-only: nothing left for the packer to do here.
     return BottomActionBar(
-      children: [OutlinedButton(onPressed: onBack, child: const Text('Back'))],
+      children: [
+        OutlinedButton.icon(
+          onPressed: onBack,
+          icon: const Icon(Icons.arrow_back_rounded),
+          label: const Text('Back'),
+        ),
+      ],
     );
   }
 }

@@ -137,13 +137,14 @@ class _AssignDriverBoxState extends State<AssignDriverBox> {
             ),
           ],
           const SizedBox(height: 12),
-          FilledButton(
+          FilledButton.icon(
             onPressed: selected == null || _isSaving
                 ? null
                 : () => _assign(selected),
-            child: _isSaving
+            icon: _isSaving
                 ? const ButtonLoadingIndicator()
-                : const Text('Assign driver'),
+                : const Icon(Icons.local_shipping_outlined),
+            label: const Text('Assign driver'),
           ),
         ],
       ),

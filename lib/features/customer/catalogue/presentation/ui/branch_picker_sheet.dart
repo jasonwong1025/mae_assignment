@@ -50,9 +50,10 @@ class _BranchPickerSheet extends ConsumerWidget {
               onPressed: () => Navigator.of(context).pop(false),
               child: const Text('Keep my cart'),
             ),
-            FilledButton(
+            FilledButton.icon(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Switch store'),
+              icon: const Icon(Icons.storefront_outlined),
+              label: const Text('Switch store'),
             ),
           ],
         ),

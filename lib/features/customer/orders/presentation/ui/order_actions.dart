@@ -15,6 +15,59 @@ import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
 import 'package:mae_assignment/shared/ui/confirm_sheet.dart';
 import 'package:mae_assignment/shared/ui/star_rating.dart';
 
+void _say(BuildContext context, String message) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(content: Text(message)));
+}
+
+/// Puts [order]'s items back in the cart (asking first if the cart is not
+/// empty) and opens the cart. Used by the order page and the Past orders
+/// cards.
+Future<void> orderAgain(
+  BuildContext context,
+  WidgetRef ref,
+  Order order,
+) async {
+  final cartCount = ref.read(cartCountProvider);
+  if (cartCount > 0) {
+    final confirmed = await showConfirmSheet(
+      context,
+      icon: Icons.shopping_cart_outlined,
+      title: 'Replace your cart?',
+      message:
+          'Your cart has $cartCount ${cartCount == 1 ? 'item' : 'items'}. '
+          'Ordering again replaces them with this order.',
+      confirmLabel: 'Replace cart',
+      cancelLabel: 'Keep my cart',
+    );
+    if (!confirmed || !context.mounted) return;
+  }
+
+  final result = await ref
+      .read(orderActionsViewModelProvider.notifier)
+      .reorder(order);
+  if (!context.mounted) return;
+  if (!result.isSuccess) {
+    _say(context, result.error!);
+    return;
+  }
+  if (result.unavailable.isNotEmpty) {
+    _say(
+      context,
+      'Not available right now, so left out: '
+      '${result.unavailable.join(', ')}.',
+    );
+  }
+  context.go(AppRoutes.customerCart);
+}
+
+/// Opens the review sheet for a completed [order].
+Future<void> rateOrder(BuildContext context, Order order) async {
+  final sent = await showReviewSheet(context, order);
+  if (sent && context.mounted) _say(context, 'Thanks for your feedback!');
+}
+
 /// What the customer can do with an order, depending on where it is:
 /// cancel it while it is still pending, order the same things again once it
 /// is finished, and rate it once it is completed.
@@ -22,12 +75,6 @@ class OrderActions extends ConsumerWidget {
   const OrderActions({required this.order, super.key});
 
   final Order order;
-
-  void _say(BuildContext context, String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
-  }
 
   Future<void> _cancel(BuildContext context, WidgetRef ref) async {
     final confirmed = await showConfirmSheet(
@@ -48,45 +95,6 @@ class OrderActions extends ConsumerWidget {
     _say(context, error ?? 'Order #${order.number} was cancelled.');
   }
 
-  Future<void> _orderAgain(BuildContext context, WidgetRef ref) async {
-    final cartCount = ref.read(cartCountProvider);
-    if (cartCount > 0) {
-      final confirmed = await showConfirmSheet(
-        context,
-        icon: Icons.shopping_cart_outlined,
-        title: 'Replace your cart?',
-        message:
-            'Your cart has $cartCount ${cartCount == 1 ? 'item' : 'items'}. '
-            'Ordering again replaces them with this order.',
-        confirmLabel: 'Replace cart',
-        cancelLabel: 'Keep my cart',
-      );
-      if (!confirmed || !context.mounted) return;
-    }
-
-    final result = await ref
-        .read(orderActionsViewModelProvider.notifier)
-        .reorder(order);
-    if (!context.mounted) return;
-    if (!result.isSuccess) {
-      _say(context, result.error!);
-      return;
-    }
-    if (result.unavailable.isNotEmpty) {
-      _say(
-        context,
-        'Not available right now, so left out: '
-        '${result.unavailable.join(', ')}.',
-      );
-    }
-    context.go(AppRoutes.customerCart);
-  }
-
-  Future<void> _rate(BuildContext context) async {
-    final sent = await showReviewSheet(context, order);
-    if (sent && context.mounted) _say(context, 'Thanks for your feedback!');
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final busy = ref.watch(orderActionsViewModelProvider);
@@ -96,7 +104,7 @@ class OrderActions extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (isCompleted) _ReviewSection(order: order, onRate: _rate),
+        if (isCompleted) _ReviewSection(order: order),
         if (isPending)
           OutlinedButton.icon(
             key: const Key('cancel_order_button'),
@@ -110,7 +118,7 @@ class OrderActions extends ConsumerWidget {
         if (order.status.isFinished)
           FilledButton.icon(
             key: const Key('reorder_button'),
-            onPressed: busy ? null : () => _orderAgain(context, ref),
+            onPressed: busy ? null : () => orderAgain(context, ref, order),
             icon: busy
                 ? const ButtonLoadingIndicator()
                 : const Icon(Icons.replay_rounded),
@@ -123,10 +131,9 @@ class OrderActions extends ConsumerWidget {
 
 /// "Rate your order" until the customer has rated; the rating given after.
 class _ReviewSection extends ConsumerWidget {
-  const _ReviewSection({required this.order, required this.onRate});
+  const _ReviewSection({required this.order});
 
   final Order order;
-  final Future<void> Function(BuildContext context) onRate;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -141,7 +148,7 @@ class _ReviewSection extends ConsumerWidget {
       child: value == null
           ? OutlinedButton.icon(
               key: const Key('rate_order_button'),
-              onPressed: () => onRate(context),
+              onPressed: () => rateOrder(context, order),
               icon: const Icon(Icons.star_outline_rounded),
               label: const Text('Rate your order'),
             )

@@ -94,9 +94,9 @@ void main() {
         await _tap(tester, 'Mark as ready');
         expect(find.text('Order #2303 is ready'), findsOneWidget);
 
-        // Handover screen, verified, with its confirmation sheet.
+        // Handover screen, with its Scan customer QR code button.
         await _show(tester, container, AppRoutes.workerPickupOrder('ord-2306'));
-        expect(find.text('Slide to hand over'), findsOneWidget);
+        expect(find.text('Scan customer QR code'), findsOneWidget);
 
         // A handed-over record.
         await _show(tester, container, AppRoutes.workerPickupOrder('ord-2307'));

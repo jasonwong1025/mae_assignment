@@ -84,14 +84,16 @@ class _OnboardingViewState extends State<OnboardingView> {
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                   child: Column(
                     children: [
-                      FilledButton(
+                      FilledButton.icon(
                         onPressed: () => context.push(AppRoutes.register),
-                        child: const Text('Get started'),
+                        icon: const Icon(Icons.arrow_forward_rounded),
+                        label: const Text('Get started'),
                       ),
                       const SizedBox(height: 12),
-                      OutlinedButton(
+                      OutlinedButton.icon(
                         onPressed: () => context.push(AppRoutes.login),
-                        child: const Text('I already have an account'),
+                        icon: const Icon(Icons.login_rounded),
+                        label: const Text('I already have an account'),
                       ),
                     ],
                   ),

@@ -7,6 +7,8 @@ import 'package:mae_assignment/app/theme/app_spacing.dart';
 import 'package:mae_assignment/core/errors/app_exception.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/customer/catalogue/presentation/view_models/selected_branch_view_model.dart';
+import 'package:mae_assignment/features/customer/grocery/data/grocery_text_parser.dart';
+import 'package:mae_assignment/features/customer/grocery/data/models/grocery_list.dart';
 import 'package:mae_assignment/features/customer/grocery/data/models/grocery_row.dart';
 import 'package:mae_assignment/features/customer/grocery/data/repositories/grocery_list_repository.dart';
 import 'package:mae_assignment/features/customer/grocery/presentation/ui/choose_product_sheet.dart';
@@ -19,9 +21,11 @@ import 'package:mae_assignment/shared/ui/bottom_action_bar.dart';
 import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
 
-/// Customer Grocery tab: a list of things to buy, typed or scanned from a
-/// written list. Each item is matched to a product at the customer's store,
-/// and the matched ones can be added to the cart in one tap.
+/// Customer Grocery tab: lists of things to buy, shown as tabs. Items are
+/// typed, scanned from a written list or suggested from a recipe; a scan or
+/// recipe can become its own list. Each item is matched to a product at the
+/// customer's store, and the open list's matched items can be added to the
+/// cart in one tap.
 class GroceryView extends ConsumerStatefulWidget {
   const GroceryView({super.key});
 
@@ -74,13 +78,9 @@ class _GroceryViewState extends ConsumerState<GroceryView> {
       }
       final chosen = await showScanReviewSheet(context, lines: lines);
       if (chosen == null || chosen.isEmpty || !mounted) return;
-      final error = await _viewModel.addAll(chosen);
-      if (!mounted) return;
-      _say(
-        error ??
-            (chosen.length == 1
-                ? '1 item added to your list.'
-                : '${chosen.length} items added to your list.'),
+      await _saveChosen(
+        chosen,
+        suggestedName: 'Scanned ${Formatters.dayMonth(DateTime.now())}',
       );
     } on AppException catch (error) {
       if (mounted) _say(error.message);
@@ -90,9 +90,13 @@ class _GroceryViewState extends ConsumerState<GroceryView> {
   }
 
   Future<void> _recipe() async {
+    var dish = '';
     final lines = await showRecipeSheet(
       context,
-      suggest: _viewModel.suggestFromRecipe,
+      suggest: (name, servings) {
+        dish = name;
+        return _viewModel.suggestFromRecipe(name, servings);
+      },
     );
     if (lines == null || !mounted) return;
     final chosen = await showScanReviewSheet(
@@ -104,14 +108,132 @@ class _GroceryViewState extends ConsumerState<GroceryView> {
           'do not need, and change any amount.',
     );
     if (chosen == null || chosen.isEmpty || !mounted) return;
-    final error = await _viewModel.addAll(chosen);
+    await _saveChosen(chosen, suggestedName: _titleCase(dish));
+  }
+
+  /// Asks whether reviewed items become a new list or join the open one,
+  /// then saves them there.
+  Future<void> _saveChosen(
+    List<ParsedLine> chosen, {
+    required String suggestedName,
+  }) async {
+    final lists = ref.read(groceryListViewModelProvider).value;
+    if (lists == null) return;
+    final choice = await showDialog<_Destination>(
+      context: context,
+      builder: (_) => _DestinationDialog(
+        suggestedName: suggestedName,
+        currentName: lists.selected.name,
+        canCreate: !lists.isFull,
+      ),
+    );
+    if (choice == null || !mounted) return;
+    final newName = choice.newListName;
+    final error = newName == null
+        ? await _viewModel.addAll(chosen)
+        : await _viewModel.createList(newName, chosen);
     if (!mounted) return;
+    final count = chosen.length == 1 ? '1 item' : '${chosen.length} items';
     _say(
       error ??
-          (chosen.length == 1
-              ? '1 item added to your list.'
-              : '${chosen.length} items added to your list.'),
+          (newName == null
+              ? '$count added to ${lists.selected.name}.'
+              : '$count saved to a new list, $newName.'),
     );
+  }
+
+  /// "nasi lemak" becomes "Nasi lemak".
+  static String _titleCase(String text) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return 'Recipe';
+    return trimmed[0].toUpperCase() + trimmed.substring(1);
+  }
+
+  Future<void> _newList() async {
+    final name = await showDialog<String>(
+      context: context,
+      builder: (_) =>
+          const _NameDialog(title: 'New list', confirmLabel: 'Create'),
+    );
+    if (name == null || !mounted) return;
+    final error = await _viewModel.createList(name, const []);
+    if (error != null && mounted) _say(error);
+  }
+
+  /// Rename or delete a list (the default list can only be cleared).
+  Future<void> _manage(GroceryList list) async {
+    final action = await showModalBottomSheet<_ListAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Rename list'),
+              onTap: () => Navigator.of(sheetContext).pop(_ListAction.rename),
+            ),
+            ListTile(
+              leading: Icon(
+                list.isDefault
+                    ? Icons.clear_all_rounded
+                    : Icons.delete_outline_rounded,
+                color: AppColors.error,
+              ),
+              title: Text(
+                list.isDefault ? 'Clear list' : 'Delete list',
+                style: const TextStyle(color: AppColors.error),
+              ),
+              onTap: () => Navigator.of(sheetContext).pop(_ListAction.delete),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (action == null || !mounted) return;
+    switch (action) {
+      case _ListAction.rename:
+        final name = await showDialog<String>(
+          context: context,
+          builder: (_) => _NameDialog(
+            title: 'Rename list',
+            confirmLabel: 'Save',
+            initial: list.name,
+          ),
+        );
+        if (name == null || !mounted) return;
+        final error = await _viewModel.renameList(list.id, name);
+        if (error != null && mounted) _say(error);
+      case _ListAction.delete:
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(
+              list.isDefault ? 'Clear ${list.name}?' : 'Delete ${list.name}?',
+            ),
+            content: Text(
+              list.isDefault
+                  ? 'Every item on this list will be removed.'
+                  : 'This list and its items will be removed.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(list.isDefault ? 'Clear' : 'Delete'),
+              ),
+            ],
+          ),
+        );
+        if (confirmed != true || !mounted) return;
+        final error = await _viewModel.deleteList(list.id);
+        if (error != null && mounted) _say(error);
+    }
   }
 
   Future<void> _change(GroceryRow row) async {
@@ -159,6 +281,7 @@ class _GroceryViewState extends ConsumerState<GroceryView> {
     final scanSupported = ref.watch(groceryListRepositoryProvider).canScan;
     final rowsState = ref.watch(groceryRowsProvider);
     final listState = ref.watch(groceryListViewModelProvider);
+    final lists = listState.value;
     final branch = ref.watch(selectedBranchProvider).value;
 
     return CustomerScaffold(
@@ -211,24 +334,43 @@ class _GroceryViewState extends ConsumerState<GroceryView> {
                       ),
                     ],
                   ),
-                  if (scanSupported) ...[
-                    const SizedBox(height: AppSpacing.s),
-                    OutlinedButton.icon(
-                      key: const Key('grocery_scan_button'),
-                      onPressed: _isScanning ? null : _scan,
-                      icon: _isScanning
-                          ? const ButtonLoadingIndicator()
-                          : const Icon(Icons.document_scanner_outlined),
-                      label: const Text('Scan a written list'),
+                  const SizedBox(height: AppSpacing.s),
+                  // Side by side; the scan button only on phones that can
+                  // scan.
+                  Row(
+                    children: [
+                      if (scanSupported) ...[
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            key: const Key('grocery_scan_button'),
+                            onPressed: _isScanning ? null : _scan,
+                            icon: _isScanning
+                                ? const ButtonLoadingIndicator()
+                                : const Icon(Icons.document_scanner_outlined),
+                            label: const Text('Scan a list'),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.s),
+                      ],
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          key: const Key('grocery_recipe_button'),
+                          onPressed: _recipe,
+                          icon: const Icon(Icons.auto_awesome_outlined),
+                          label: const Text('From a recipe'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (lists != null) ...[
+                    const SizedBox(height: AppSpacing.m),
+                    _ListTabs(
+                      lists: lists,
+                      onSelect: _viewModel.select,
+                      onManage: _manage,
+                      onNew: _newList,
                     ),
                   ],
-                  const SizedBox(height: AppSpacing.s),
-                  OutlinedButton.icon(
-                    key: const Key('grocery_recipe_button'),
-                    onPressed: _recipe,
-                    icon: const Icon(Icons.auto_awesome_outlined),
-                    label: const Text('Ingredients from a recipe'),
-                  ),
                 ],
               ),
             ),
@@ -252,7 +394,9 @@ class _GroceryViewState extends ConsumerState<GroceryView> {
                       data: (rows) => rows.isEmpty
                           ? EmptyState(
                               icon: Icons.checklist_rtl_rounded,
-                              title: 'Your list is empty',
+                              title:
+                                  '${lists?.selected.name ?? 'Your list'} '
+                                  'is empty',
                               message: scanSupported
                                   ? 'Type what you need, or scan a written '
                                         'list. You review it before anything '
@@ -442,6 +586,190 @@ class _GroceryRowTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+enum _ListAction { rename, delete }
+
+/// Where reviewed items go: a new list called [newListName], or the open
+/// list when it is null.
+class _Destination {
+  const _Destination(this.newListName);
+
+  final String? newListName;
+}
+
+/// One chip per list, then "New list". Tap to open a list; long-press to
+/// rename or delete it.
+class _ListTabs extends StatelessWidget {
+  const _ListTabs({
+    required this.lists,
+    required this.onSelect,
+    required this.onManage,
+    required this.onNew,
+  });
+
+  final GroceryLists lists;
+  final ValueChanged<String> onSelect;
+  final ValueChanged<GroceryList> onManage;
+  final VoidCallback onNew;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 40,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          for (final list in lists.lists) ...[
+            GestureDetector(
+              onLongPress: () => onManage(list),
+              child: ChoiceChip(
+                key: ValueKey('grocery_tab_${list.id}'),
+                label: Text('${list.name} (${list.items.length})'),
+                selected: list.id == lists.selectedId,
+                showCheckmark: false,
+                onSelected: (_) => list.id == lists.selectedId
+                    ? onManage(list)
+                    : onSelect(list.id),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.s),
+          ],
+          ActionChip(
+            key: const Key('grocery_new_list'),
+            avatar: const Icon(Icons.add_rounded, size: 18),
+            label: const Text('New list'),
+            onPressed: lists.isFull ? null : onNew,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Asks for a list name.
+class _NameDialog extends StatefulWidget {
+  const _NameDialog({
+    required this.title,
+    required this.confirmLabel,
+    this.initial = '',
+  });
+
+  final String title;
+  final String confirmLabel;
+  final String initial;
+
+  @override
+  State<_NameDialog> createState() => _NameDialogState();
+}
+
+class _NameDialogState extends State<_NameDialog> {
+  late final _controller = TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final name = _controller.text.trim();
+    if (name.isNotEmpty) Navigator.of(context).pop(name);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        maxLength: GroceryList.maxNameLength,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: const InputDecoration(hintText: 'e.g. Weekly groceries'),
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(onPressed: _submit, child: Text(widget.confirmLabel)),
+      ],
+    );
+  }
+}
+
+/// After a scan or recipe review: save the items as a new list (named after
+/// the dish or the scan date, editable) or add them to the open list.
+class _DestinationDialog extends StatefulWidget {
+  const _DestinationDialog({
+    required this.suggestedName,
+    required this.currentName,
+    required this.canCreate,
+  });
+
+  final String suggestedName;
+  final String currentName;
+  final bool canCreate;
+
+  @override
+  State<_DestinationDialog> createState() => _DestinationDialogState();
+}
+
+class _DestinationDialogState extends State<_DestinationDialog> {
+  late final _controller = TextEditingController(
+    text: widget.suggestedName.length > GroceryList.maxNameLength
+        ? widget.suggestedName.substring(0, GroceryList.maxNameLength)
+        : widget.suggestedName,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Save these items'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (widget.canCreate)
+            TextField(
+              controller: _controller,
+              maxLength: GroceryList.maxNameLength,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(labelText: 'New list name'),
+            )
+          else
+            Text(
+              'You already have ${GroceryList.maxLists} lists, so these '
+              'items can only be added to ${widget.currentName}.',
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(const _Destination(null)),
+          child: Text('Add to ${widget.currentName}'),
+        ),
+        if (widget.canCreate)
+          FilledButton(
+            onPressed: () {
+              final name = _controller.text.trim();
+              Navigator.of(
+                context,
+              ).pop(_Destination(name.isEmpty ? widget.suggestedName : name));
+            },
+            child: const Text('Save as new list'),
+          ),
+      ],
     );
   }
 }

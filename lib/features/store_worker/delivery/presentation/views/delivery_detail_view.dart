@@ -170,9 +170,10 @@ class _DeliveryDetailViewState extends ConsumerState<DeliveryDetailView> {
                     message:
                         'This delivery is no longer assigned to you. It may '
                         'have been given to another driver.',
-                    action: OutlinedButton(
+                    action: OutlinedButton.icon(
                       onPressed: () => context.go(AppRoutes.workerDelivery),
-                      child: const Text('Back to My Deliveries'),
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      label: const Text('Back to My Deliveries'),
                     ),
                   );
                 }
@@ -531,8 +532,8 @@ class _ItemsSection extends StatelessWidget {
       child: ExpansionTile(
         leading: const Icon(Icons.shopping_bag_outlined),
         title: Text(
-          'Order items (${order.lineCount} products · '
-          '${order.itemCount} items)',
+          'Order items (${order.itemCount} '
+          '${order.itemCount == 1 ? 'item' : 'items'})',
           style: Theme.of(context).textTheme.titleMedium,
         ),
         shape: const Border(),
@@ -726,9 +727,10 @@ class _ActionBar extends StatelessWidget {
       case OrderStatus.cancelled:
         return BottomActionBar(
           children: [
-            OutlinedButton(
+            OutlinedButton.icon(
               onPressed: onBack,
-              child: const Text('Back to My Deliveries'),
+              icon: const Icon(Icons.arrow_back_rounded),
+              label: const Text('Back to My Deliveries'),
             ),
           ],
         );

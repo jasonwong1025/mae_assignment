@@ -202,11 +202,12 @@ class _WorkerFormState extends ConsumerState<WorkerForm> {
               style: textTheme.bodyMedium,
             ),
           const SizedBox(height: 28),
-          FilledButton(
+          FilledButton.icon(
             onPressed: _isSaving ? null : _onSave,
-            child: _isSaving
+            icon: _isSaving
                 ? const ButtonLoadingIndicator()
-                : Text(_isAdding ? 'Add worker' : 'Save changes'),
+                : const Icon(Icons.check_rounded),
+            label: Text(_isAdding ? 'Add worker' : 'Save changes'),
           ),
           const SizedBox(height: 4),
           TextButton(

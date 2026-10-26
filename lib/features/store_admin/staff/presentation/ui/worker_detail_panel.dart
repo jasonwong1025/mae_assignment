@@ -179,10 +179,15 @@ class _WorkerDetails extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: OutlinedButton(
+              child: OutlinedButton.icon(
                 style: buttonStyle,
                 onPressed: onToggleActive,
-                child: Text(worker.isActive ? 'Deactivate' : 'Reactivate'),
+                icon: Icon(
+                  worker.isActive
+                      ? Icons.person_off_outlined
+                      : Icons.person_outline_rounded,
+                ),
+                label: Text(worker.isActive ? 'Deactivate' : 'Reactivate'),
               ),
             ),
           ],

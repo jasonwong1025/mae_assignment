@@ -178,16 +178,17 @@ class _CartContent extends ConsumerWidget {
           if (balance != null) _WalletStrip(balance: balance, total: total),
           Padding(
             padding: const EdgeInsets.all(AppSpacing.l),
-            child: FilledButton(
+            child: FilledButton.icon(
               key: const Key('place_order_button'),
               onPressed: isPlacing || cannotAfford ? null : onPlaceOrder,
-              child: isPlacing
+              icon: isPlacing
                   ? const SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : Text('Place order — ${Formatters.money(total)}'),
+                  : const Icon(Icons.shopping_bag_outlined),
+              label: Text('Place order — ${Formatters.money(total)}'),
             ),
           ),
         ],
@@ -448,6 +449,11 @@ class _CartLineTile extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: AppSpacing.xs),
+                // The price always shows; low stock is a note under it.
+                Text(
+                  Formatters.money(product.price),
+                  style: textTheme.bodyMedium,
+                ),
                 if (remaining != null)
                   Text(
                     'Only $remaining left',
@@ -455,11 +461,6 @@ class _CartLineTile extends ConsumerWidget {
                       color: AppColors.warning,
                       fontWeight: FontWeight.w700,
                     ),
-                  )
-                else
-                  Text(
-                    Formatters.money(product.price),
-                    style: textTheme.bodyMedium,
                   ),
               ],
             ),

@@ -57,10 +57,7 @@ class DeliveryOrderCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isActive ? AppColors.darkGreen : AppColors.border,
-          width: isActive ? 2 : 1,
-        ),
+        side: const BorderSide(color: AppColors.border),
       ),
       child: InkWell(
         onTap: onTap,

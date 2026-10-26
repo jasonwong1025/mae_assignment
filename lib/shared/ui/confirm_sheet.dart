@@ -55,9 +55,10 @@ Future<bool> showConfirmSheet(
               ),
             ],
             const SizedBox(height: AppSpacing.xl),
-            FilledButton(
+            FilledButton.icon(
               onPressed: () => Navigator.of(sheetContext).pop(true),
-              child: Text(confirmLabel),
+              icon: Icon(icon),
+              label: Text(confirmLabel),
             ),
             const SizedBox(height: AppSpacing.s),
             TextButton(

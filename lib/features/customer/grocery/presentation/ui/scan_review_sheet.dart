@@ -143,7 +143,7 @@ class _ScanReviewSheetState extends State<_ScanReviewSheet> {
                 ),
               ),
               const SizedBox(height: AppSpacing.s),
-              FilledButton(
+              FilledButton.icon(
                 key: const Key('scan_review_add_button'),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.darkGreen,
@@ -151,7 +151,8 @@ class _ScanReviewSheetState extends State<_ScanReviewSheet> {
                 onPressed: count == 0
                     ? null
                     : () => Navigator.of(context).pop(_chosen),
-                child: Text(
+                icon: const Icon(Icons.playlist_add_rounded),
+                label: Text(
                   count == 1 ? 'Add 1 item to my list' : 'Add $count items',
                 ),
               ),

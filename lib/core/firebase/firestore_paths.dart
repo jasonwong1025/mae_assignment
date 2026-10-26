@@ -39,9 +39,10 @@ class FirestoreCollections {
   /// every change is atomic. Owner-only.
   static const String cart = 'cart';
 
-  /// users/{uid}/groceryList/current — the customer's grocery list (things
-  /// they plan to buy, typed or scanned from a written list), one document
-  /// so every change is atomic. Owner-only.
+  /// users/{uid}/groceryList/{listId} — the customer's grocery lists (things
+  /// they plan to buy, typed, scanned from a written list or suggested from a
+  /// recipe), one document per list so every change is atomic. The default
+  /// list's id is `current`. Owner-only.
   static const String groceryList = 'groceryList';
 
   /// users/{uid}/wallet/current — the customer's simulated wallet balance.
@@ -175,13 +176,19 @@ class DeviceFields {
 class GroceryListDocs {
   GroceryListDocs._();
 
-  /// The one list a customer has.
+  /// The default list ("My list") every customer has.
   static const String current = 'current';
 }
 
-/// Field keys in users/{uid}/groceryList/current.
+/// Field keys in users/{uid}/groceryList/{listId}.
 class GroceryListFields {
   GroceryListFields._();
+
+  /// The list's name, shown on its tab. Missing on an old default list.
+  static const String name = 'name';
+
+  /// Server time the list was made. Set once, when it is created.
+  static const String createdAt = 'createdAt';
 
   /// Array of maps; see [GroceryItemFields].
   static const String items = 'items';

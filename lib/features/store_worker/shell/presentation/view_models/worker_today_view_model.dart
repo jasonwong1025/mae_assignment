@@ -7,26 +7,17 @@ import 'package:mae_assignment/shared/models/order_status.dart';
 
 /// The worker's day so far, for the Today card on the Account tab.
 ///
-/// - Packing Staff: orders packed today, their average packing time, and
-///   tasks still to pack.
+/// - Packing Staff: orders packed today and tasks still to pack.
 /// - Delivery Drivers: deliveries completed today, and deliveries still
 ///   to do (on the road or ready to collect).
 class WorkerTodaySummary {
-  const WorkerTodaySummary({
-    required this.doneToday,
-    required this.stillToDo,
-    this.averageMinutes,
-  });
+  const WorkerTodaySummary({required this.doneToday, required this.stillToDo});
 
   /// Orders packed (packer) or delivered (driver) since midnight.
   final int doneToday;
 
   /// Tasks left to pack (packer) or deliveries left to finish (driver).
   final int stillToDo;
-
-  /// Packers only: average minutes from start to ready for today's orders.
-  /// Null if none had both times.
-  final int? averageMinutes;
 }
 
 /// Today's numbers for the signed-in worker, live. Null while loading or
@@ -69,17 +60,9 @@ WorkerTodaySummary _summarise(
 
   if (worker.isPackingStaff) {
     final packedToday = history.where((o) => isToday(o.readyAt)).toList();
-    final durations = [
-      for (final order in packedToday)
-        if (order.packingStartedAt case final started?)
-          order.readyAt!.difference(started).inMinutes,
-    ];
     return WorkerTodaySummary(
       doneToday: packedToday.length,
       stillToDo: active.length,
-      averageMinutes: durations.isEmpty
-          ? null
-          : (durations.reduce((a, b) => a + b) / durations.length).round(),
     );
   }
 

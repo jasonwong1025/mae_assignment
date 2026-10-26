@@ -70,8 +70,42 @@ describe("grocery list is private to the owner", () => {
 describe("grocery list shape", () => {
   const bob = () => firestoreForUser(testEnv, BOB.uid, BOB.email);
 
-  test("only the one document called current", async () => {
-    await assertFails(setDoc(listRef(bob(), BOB.uid, "other"), list()));
+  test("the owner can keep more named lists besides current", async () => {
+    await assertSucceeds(
+      setDoc(
+        listRef(bob(), BOB.uid, "nasi-lemak"),
+        list({ name: "Nasi lemak", createdAt: serverTimestamp() })
+      )
+    );
+  });
+
+  test("a list name must be 1 to 30 characters", async () => {
+    await assertFails(setDoc(listRef(bob(), BOB.uid, "l1"), list({ name: "" })));
+    await assertFails(
+      setDoc(listRef(bob(), BOB.uid, "l1"), list({ name: "x".repeat(31) }))
+    );
+    await assertFails(setDoc(listRef(bob(), BOB.uid, "l1"), list({ name: 42 })));
+    await assertSucceeds(
+      setDoc(listRef(bob(), BOB.uid, "l1"), list({ name: "x".repeat(30) }))
+    );
+  });
+
+  test("createdAt is set once, by the server", async () => {
+    const ref = listRef(bob(), BOB.uid, "l2");
+    await assertFails(
+      setDoc(ref, list({ name: "Party", createdAt: new Date(2020, 0, 1) }))
+    );
+    await assertSucceeds(
+      setDoc(ref, list({ name: "Party", createdAt: serverTimestamp() }))
+    );
+    // Saving again keeps the original time (as the app's merge does) ...
+    await assertSucceeds(
+      setDoc(ref, list({ name: "Party snacks" }), { merge: true })
+    );
+    // ... but it cannot be changed afterwards.
+    await assertFails(
+      setDoc(ref, list({ createdAt: new Date(2021, 0, 1) }), { merge: true })
+    );
   });
 
   test("no extra fields, and both fields are required", async () => {

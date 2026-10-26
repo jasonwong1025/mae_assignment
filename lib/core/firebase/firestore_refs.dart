@@ -56,9 +56,12 @@ class FirestoreRefs {
       user(uid).collection(FirestoreCollections.devices).doc(token);
 
   // users/{uid}/groceryList/current
-  DocumentReference<Map<String, dynamic>> groceryList(String uid) => user(
-    uid,
-  ).collection(FirestoreCollections.groceryList).doc(GroceryListDocs.current);
+  DocumentReference<Map<String, dynamic>> groceryList(String uid) =>
+      groceryLists(uid).doc(GroceryListDocs.current);
+
+  // users/{uid}/groceryList
+  CollectionReference<Map<String, dynamic>> groceryLists(String uid) =>
+      user(uid).collection(FirestoreCollections.groceryList);
 
   // products/{productId}
   CollectionReference<Map<String, dynamic>> get products =>

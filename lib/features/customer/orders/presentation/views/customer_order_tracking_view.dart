@@ -53,9 +53,10 @@ class CustomerOrderTrackingView extends ConsumerWidget {
               icon: Icons.search_off_rounded,
               title: 'Order not found',
               message: 'This order may have been removed.',
-              action: OutlinedButton(
+              action: OutlinedButton.icon(
                 onPressed: goToOrders,
-                child: const Text('Back to orders'),
+                icon: const Icon(Icons.arrow_back_rounded),
+                label: const Text('Back to orders'),
               ),
             );
           }

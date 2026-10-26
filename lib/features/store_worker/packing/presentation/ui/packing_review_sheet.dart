@@ -104,15 +104,6 @@ class _PackingReviewSheet extends StatelessWidget {
                           ),
                           child: Row(
                             children: [
-                              SizedBox(
-                                width: 44,
-                                child: Text(
-                                  '×${item.quantity}',
-                                  style: textTheme.titleMedium?.copyWith(
-                                    color: AppColors.darkGreen,
-                                  ),
-                                ),
-                              ),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -125,6 +116,13 @@ class _PackingReviewSheet extends StatelessWidget {
                                   ],
                                 ),
                               ),
+                              const SizedBox(width: AppSpacing.m),
+                              Text(
+                                '×${item.quantity}',
+                                style: textTheme.titleMedium?.copyWith(
+                                  color: AppColors.darkGreen,
+                                ),
+                              ),
                             ],
                           ),
                         );
@@ -132,9 +130,10 @@ class _PackingReviewSheet extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.l),
-                  FilledButton(
+                  FilledButton.icon(
                     onPressed: () => Navigator.of(context).pop(true),
-                    child: const Text('Mark as ready'),
+                    icon: const Icon(Icons.task_alt_rounded),
+                    label: const Text('Mark as ready'),
                   ),
                 ],
               ),

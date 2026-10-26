@@ -19,7 +19,6 @@ import 'package:mae_assignment/shared/models/verification_method.dart';
 import 'package:mae_assignment/shared/ui/bottom_action_bar.dart';
 import 'package:mae_assignment/shared/ui/empty_state.dart';
 import 'package:mae_assignment/shared/ui/order_status_label.dart';
-import 'package:mae_assignment/shared/ui/slide_to_confirm.dart';
 
 /// Handover screen for one self-pickup order: who it is for, what is in
 /// the bag (read-only), the manual check, and Complete pickup.
@@ -51,28 +50,10 @@ class _PickupHandoverViewState extends ConsumerState<PickupHandoverView> {
     }
   }
 
-  /// Runs once the packer slides to hand over (after checking the order
-  /// number and name, as the reminder above the slider asks). Returns true
-  /// if it worked, so the slider shows its tick.
-  Future<bool> _completePickup() async {
-    final error = await ref
-        .read(pickupHandoverViewModelProvider(widget.orderId).notifier)
-        .completePickup(method: VerificationMethod.manual);
-    if (!mounted) return false;
-
-    if (error != null) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(error)));
-      return false;
-    }
-    setState(() => _isLeaving = true);
-    return true;
-  }
-
   /// The customer shows a QR code on their phone; the packer scans it. A
-  /// code that belongs to this order hands it over straight away, so the
-  /// slider is not needed. Any other code is explained and nothing changes.
+  /// code that belongs to this order hands it over straight away; any other
+  /// code is explained and nothing changes. This is the only way to hand
+  /// over a pickup order, so the right customer always collects it.
   Future<void> _scanCustomerQr() async {
     final order = _lastOrder;
     if (order == null) return;
@@ -96,7 +77,7 @@ class _PickupHandoverViewState extends ConsumerState<PickupHandoverView> {
     _afterHandover(order);
   }
 
-  /// After the tick: back to Ready for Pickup with a success message.
+  /// After the handover: back to Ready for Pickup with a success message.
   void _afterHandover(Order order) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -171,20 +152,17 @@ class _PickupHandoverViewState extends ConsumerState<PickupHandoverView> {
                     message:
                         'This order is no longer waiting at the store. It may '
                         'have been handed over or collected.',
-                    action: OutlinedButton(
+                    action: OutlinedButton.icon(
                       onPressed: () => context.go(AppRoutes.workerPickup),
-                      child: const Text('Back to Ready for Pickup'),
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      label: const Text('Back to Ready for Pickup'),
                     ),
                   );
                 }
                 return _HandoverContent(
                   order: order,
                   workerId: worker.id,
-                  // The slider shows its own spinner and ignores slides
-                  // while the handover runs.
-                  onComplete: _completePickup,
                   onScanQr: _scanCustomerQr,
-                  onCompleted: () => _afterHandover(order),
                   onBack: () => context.go(AppRoutes.workerPickup),
                 );
               },
@@ -200,21 +178,15 @@ class _HandoverContent extends StatelessWidget {
   const _HandoverContent({
     required this.order,
     required this.workerId,
-    required this.onComplete,
     required this.onScanQr,
-    required this.onCompleted,
     required this.onBack,
   });
 
   final Order order;
   final String workerId;
-  final Future<bool> Function() onComplete;
 
   /// Scans the customer's QR code, which hands the order over.
   final VoidCallback onScanQr;
-
-  /// Runs after the slider's tick has shown.
-  final VoidCallback onCompleted;
   final VoidCallback onBack;
 
   /// Only ready self-pickup orders. Delivery bags are collected by their
@@ -252,8 +224,8 @@ class _HandoverContent extends StatelessWidget {
                   bottom: AppSpacing.s,
                 ),
                 child: Text(
-                  'In the bag (${order.lineCount} products · '
-                  '${order.itemCount} items)',
+                  'In the bag (${order.itemCount} '
+                  '${order.itemCount == 1 ? 'item' : 'items'})',
                   style: textTheme.titleMedium,
                 ),
               ),
@@ -289,25 +261,20 @@ class _HandoverContent extends StatelessWidget {
         if (_canHandOver)
           BottomActionBar(
             children: [
-              OutlinedButton.icon(
+              FilledButton.icon(
                 onPressed: onScanQr,
                 icon: const Icon(Icons.qr_code_scanner_rounded),
                 label: const Text('Scan customer QR code'),
-              ),
-              const SizedBox(height: AppSpacing.m),
-              SlideToConfirm(
-                label: 'Slide to hand over',
-                onConfirmed: onComplete,
-                onCompleted: onCompleted,
               ),
             ],
           )
         else
           BottomActionBar(
             children: [
-              OutlinedButton(
+              OutlinedButton.icon(
                 onPressed: onBack,
-                child: const Text('Back to Ready for Pickup'),
+                icon: const Icon(Icons.arrow_back_rounded),
+                label: const Text('Back to Ready for Pickup'),
               ),
             ],
           ),

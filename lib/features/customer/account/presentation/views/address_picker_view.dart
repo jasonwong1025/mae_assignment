@@ -216,15 +216,16 @@ class _AddressPickerViewState extends ConsumerState<AddressPickerView> {
               maxLines: 2,
             ),
             const SizedBox(height: AppSpacing.xl),
-            FilledButton(
+            FilledButton.icon(
               onPressed: _isSaving ? null : _save,
-              child: _isSaving
+              icon: _isSaving
                   ? const SizedBox(
                       height: 20,
                       width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Save address'),
+                  : const Icon(Icons.check_rounded),
+              label: const Text('Save address'),
             ),
           ],
         ),

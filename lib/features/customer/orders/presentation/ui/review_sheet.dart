@@ -133,11 +133,12 @@ class _ReviewSheetState extends ConsumerState<ReviewSheet> {
               ),
             ],
             const SizedBox(height: AppSpacing.l),
-            FilledButton(
+            FilledButton.icon(
               onPressed: _isComplete && !sending ? _send : null,
-              child: sending
+              icon: sending
                   ? const ButtonLoadingIndicator()
-                  : const Text('Send rating'),
+                  : const Icon(Icons.send_rounded),
+              label: const Text('Send rating'),
             ),
           ],
         ),

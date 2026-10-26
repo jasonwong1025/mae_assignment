@@ -77,7 +77,7 @@ class PackingTaskCard extends StatelessWidget {
               const SizedBox(height: AppSpacing.xs),
               Text(
                 order.customerName,
-                style: textTheme.bodyLarge,
+                style: textTheme.titleLarge,
                 overflow: TextOverflow.ellipsis,
               ),
               if (order.promisedAt != null) ...[

@@ -175,10 +175,15 @@ class _ProductDetails extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: OutlinedButton(
+              child: OutlinedButton.icon(
                 style: buttonStyle,
                 onPressed: onToggleHidden,
-                child: Text(item.isHidden ? 'Unhide' : 'Hide'),
+                icon: Icon(
+                  item.isHidden
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                ),
+                label: Text(item.isHidden ? 'Unhide' : 'Hide'),
               ),
             ),
           ],

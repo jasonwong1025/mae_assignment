@@ -134,13 +134,14 @@ class _BatchSuggestionCardState extends State<BatchSuggestionCard> {
             ),
           ],
           const SizedBox(height: 8),
-          FilledButton(
+          FilledButton.icon(
             onPressed: selected == null || _isSaving
                 ? null
                 : () => _assign(selected),
-            child: _isSaving
+            icon: _isSaving
                 ? const ButtonLoadingIndicator()
-                : Text('Assign ${batch.orders.length} together'),
+                : const Icon(Icons.local_shipping_outlined),
+            label: Text('Assign ${batch.orders.length} together'),
           ),
         ],
       ),

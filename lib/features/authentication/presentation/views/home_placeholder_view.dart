@@ -81,9 +81,10 @@ class HomePlaceholderView extends ConsumerWidget {
                 ),
                 BottomActionBar(
                   children: [
-                    OutlinedButton(
+                    OutlinedButton.icon(
                       onPressed: () => _signOut(context, ref),
-                      child: const Text('Sign out'),
+                      icon: const Icon(Icons.logout_rounded),
+                      label: const Text('Sign out'),
                     ),
                   ],
                 ),

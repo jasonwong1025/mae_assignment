@@ -12,6 +12,22 @@ interface Message {
   orderId: string;
 }
 
+interface ShortageLine {
+  lineId?: string;
+  name?: string;
+  packSize?: string;
+}
+
+type Shortages = Record<string, { status?: string; replacement?: ShortageLine }>;
+
+/** "Fresh Milk 1L", or null when the line has no name. */
+function lineName(line: ShortageLine | undefined): string | null {
+  const name = line?.name?.trim();
+  if (!name) return null;
+  const size = line?.packSize?.trim();
+  return size ? `${name} ${size}` : name;
+}
+
 /** What each status change tells the customer. */
 function statusMessage(order: DocumentData, status: string): { title: string; body: string } | null {
   const number = order.number;
@@ -52,14 +68,30 @@ export function messagesFor(before: DocumentData, after: DocumentData, orderId: 
     }
   }
 
-  const beforeShortages = (before.shortages ?? {}) as Record<string, { status?: string }>;
-  const afterShortages = (after.shortages ?? {}) as Record<string, { status?: string }>;
+  const beforeShortages = (before.shortages ?? {}) as Shortages;
+  const afterShortages = (after.shortages ?? {}) as Shortages;
+  const items = (after.items ?? []) as ShortageLine[];
   for (const [lineId, shortage] of Object.entries(afterShortages)) {
-    if (shortage.status === "proposed" && beforeShortages[lineId]?.status !== "proposed" && after.customerId) {
+    if (!after.customerId) break;
+    const previous = beforeShortages[lineId]?.status;
+    const item = lineName(items.find((line) => line.lineId === lineId)) ?? "An item";
+    if (shortage.status === "proposed" && previous !== "proposed") {
+      const replacement = lineName(shortage.replacement);
       messages.push({
         id: `${orderId}-shortage-${lineId}`, uid: after.customerId, orderId,
         title: `Your reply is needed on order #${number}`,
-        body: "An item is unavailable. Choose a replacement or remove it.",
+        body: replacement
+          ? `${item} is unavailable. We suggest ${replacement}. Accept it or remove the item.`
+          : `${item} is unavailable. Choose a replacement or remove it.`,
+      });
+    } else if (shortage.status === "removed" && previous === undefined) {
+      // Removed straight away because nothing could replace it. A removal
+      // after a proposal is the customer's own choice, so it is not told.
+      messages.push({
+        id: `${orderId}-removed-${lineId}`, uid: after.customerId, orderId,
+        title: `An item was removed from order #${number}`,
+        body: `${item} is unavailable and has no replacement. ` +
+          "You will be refunded for it when packing finishes.",
       });
     }
   }

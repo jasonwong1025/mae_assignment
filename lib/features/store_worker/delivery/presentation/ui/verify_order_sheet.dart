@@ -153,11 +153,12 @@ class _VerifyOrderSheetState extends State<_VerifyOrderSheet> {
             ),
           ),
           const SizedBox(height: AppSpacing.l),
-          OutlinedButton(
+          OutlinedButton.icon(
             onPressed: _isChecking ? null : _verify,
-            child: _isChecking
+            icon: _isChecking
                 ? const ButtonLoadingIndicator()
-                : const Text('Verify'),
+                : const Icon(Icons.verified_outlined),
+            label: const Text('Verify'),
           ),
           const SizedBox(height: AppSpacing.s),
           TextButton(

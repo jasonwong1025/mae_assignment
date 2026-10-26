@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/app/theme/app_spacing.dart';
-import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
@@ -221,12 +220,10 @@ class _TodayCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
     final summary = ref.watch(workerTodaySummaryProvider);
-    final average = summary?.averageMinutes;
 
     final stats = worker.isPackingStaff
         ? [
             ('Packed', summary == null ? '–' : '${summary.doneToday}'),
-            ('Avg time', average == null ? '–' : Formatters.minutes(average)),
             ('To pack', summary == null ? '–' : '${summary.stillToDo}'),
           ]
         : [

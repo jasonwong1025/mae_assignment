@@ -8,15 +8,11 @@ import 'package:mae_assignment/features/store_worker/orders/data/repositories/wo
 import 'package:mae_assignment/features/store_worker/pickup/presentation/view_models/pickup_handover_view_model.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/shared/models/verification_method.dart';
-import 'package:mae_assignment/shared/ui/slide_to_confirm.dart';
 
 import '../../helpers/worker_profiles.dart';
 import '../../helpers/worker_test_app.dart';
 import '../../helpers/worker_test_orders.dart';
 import '../../helpers/worker_test_store.dart';
-
-/// Far enough to reach the end of the slider on any phone width.
-const _fullSlide = Offset(500, 0);
 
 /// Answers the camera with [code] (null: the packer went back).
 Override _scanReturns(String? code) {
@@ -168,12 +164,16 @@ void main() {
   });
 
   group('Pickup handover', () {
-    testWidgets('verify, confirm, and hand over an order someone else '
+    testWidgets('check the bag and hand over an order someone else '
         'packed', (tester) async {
+      final payload = workerTestOrders(
+        DateTime.now(),
+      ).firstWhere((order) => order.id == 'ord-2306').handoverQrPayload;
       final (container, _) = await pumpWorkerApp(
         tester,
         'Daniel Lee',
         location: AppRoutes.workerPickup,
+        overrides: [_scanReturns(payload)],
       );
 
       await tester.tap(find.text('Kelvin Lim'));
@@ -194,11 +194,9 @@ void main() {
       await tester.tap(find.byTooltip('Close'));
       await tester.pumpAndSettle();
 
-      // Slide all the way to hand over. The slider shows a tick for
-      // SlideToConfirm.tickDuration before it navigates back, so settle
-      // past that before checking the result.
-      await tester.drag(find.byKey(SlideToConfirm.handleKey), _fullSlide);
-      await tester.pumpAndSettle(SlideToConfirm.tickDuration);
+      // Scanning the customer's QR code is the only way to hand over.
+      await tester.tap(find.text('Scan customer QR code'));
+      await tester.pumpAndSettle();
 
       // Back on the list: success message and order 2306 no longer waiting.
       expect(
@@ -214,7 +212,7 @@ void main() {
           .go(AppRoutes.workerPickupOrder('ord-2306'));
       await tester.pumpAndSettle();
       expect(find.textContaining('Handed over by you at'), findsOneWidget);
-      expect(find.textContaining('(manual check)'), findsOneWidget);
+      expect(find.textContaining('(qr scan)'), findsOneWidget);
     });
 
     testWidgets("scanning the customer's QR code hands the order over", (
@@ -257,7 +255,7 @@ void main() {
 
       expect(find.text('This QR code is not for order #2306.'), findsOneWidget);
       // Still on the handover screen, order still waiting.
-      expect(find.text('Slide to hand over'), findsOneWidget);
+      expect(find.text('Scan customer QR code'), findsOneWidget);
       expect(routerLocation(container), isNot(AppRoutes.workerPickup));
     });
 
@@ -272,24 +270,7 @@ void main() {
       await tester.tap(find.text('Scan customer QR code'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Slide to hand over'), findsOneWidget);
-    });
-
-    testWidgets('a short slide does not hand over', (tester) async {
-      await pumpWorkerApp(
-        tester,
-        'Daniel Lee',
-        location: AppRoutes.workerPickupOrder('ord-2305'),
-      );
-
-      await tester.drag(
-        find.byKey(SlideToConfirm.handleKey),
-        const Offset(60, 0),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Pickup #2305'), findsOneWidget);
-      expect(find.text('Slide to hand over'), findsOneWidget);
+      expect(find.text('Scan customer QR code'), findsOneWidget);
     });
 
     testWidgets('if another packer hands it over first, the screen says so', (
@@ -311,7 +292,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Order not available'), findsOneWidget);
-      expect(find.text('Slide to hand over'), findsNothing);
+      expect(find.text('Scan customer QR code'), findsNothing);
     });
 
     testWidgets('the packer who packed it sees who handed it over', (
@@ -334,7 +315,7 @@ void main() {
         find.textContaining('Handed over by Daniel Lee at'),
         findsOneWidget,
       );
-      expect(find.text('Slide to hand over'), findsNothing);
+      expect(find.text('Scan customer QR code'), findsNothing);
       expect(find.text('Back to Ready for Pickup'), findsOneWidget);
     });
 
@@ -353,7 +334,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('Slide to hand over'), findsNothing);
+      expect(find.text('Scan customer QR code'), findsNothing);
     });
 
     testWidgets("another branch's pickup is not available", (tester) async {
@@ -370,7 +351,7 @@ void main() {
       tester,
     ) async {
       // Daniel packed delivery 2309, so he may open it read-only, but there
-      // is no slide-to-hand-over control: the driver collects it.
+      // is no handover button: the driver collects it.
       await pumpWorkerApp(
         tester,
         'Daniel Lee',
@@ -382,7 +363,7 @@ void main() {
         find.textContaining('Amir Hamzah is delivering it'),
         findsOneWidget,
       );
-      expect(find.text('Slide to hand over'), findsNothing);
+      expect(find.text('Scan customer QR code'), findsNothing);
       expect(find.text('Back to Ready for Pickup'), findsOneWidget);
     });
 

@@ -99,7 +99,7 @@ Future<void> showProductDetailsSheet(
                           onChanged(false);
                           Navigator.of(sheetContext).pop();
                         },
-                        icon: const Icon(Icons.undo_rounded),
+                        icon: const Icon(Icons.remove_done_rounded),
                         label: const Text('Mark as not packed'),
                       )
                     else
@@ -168,19 +168,13 @@ class _QuantityBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
-      decoration: BoxDecoration(
-        color: AppColors.darkGreen,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      // Same text size as the other values, so the row keeps their height.
-      child: Text(
-        '×$quantity',
-        style: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(color: Colors.white),
-      ),
+    // Dark green text, as in the review sheet, at the size of the other
+    // values so the row keeps their height.
+    return Text(
+      '×$quantity',
+      style: Theme.of(
+        context,
+      ).textTheme.titleMedium?.copyWith(color: AppColors.darkGreen),
     );
   }
 }

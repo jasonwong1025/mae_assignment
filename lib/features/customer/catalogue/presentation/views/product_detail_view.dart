@@ -53,9 +53,10 @@ class ProductDetailView extends ConsumerWidget {
               icon: Icons.search_off_rounded,
               title: 'Product not available',
               message: 'This product is not sold at your store right now.',
-              action: OutlinedButton(
+              action: OutlinedButton.icon(
                 onPressed: () => _back(context),
-                child: const Text('Back'),
+                icon: const Icon(Icons.arrow_back_rounded),
+                label: const Text('Back'),
               ),
             );
           }
@@ -184,9 +185,10 @@ class _ProductDetailState extends ConsumerState<_ProductDetail> {
                       : null,
                 ),
               ),
-            FilledButton(
+            FilledButton.icon(
               onPressed: room > 0 ? () => _addToCart(inCart) : null,
-              child: Text(buttonLabel),
+              icon: const Icon(Icons.add_shopping_cart_rounded),
+              label: Text(buttonLabel),
             ),
           ],
         ),

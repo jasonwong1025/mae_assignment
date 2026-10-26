@@ -210,9 +210,10 @@ class _Offer extends StatelessWidget {
             label: const Text('Accept replacement'),
           ),
           const SizedBox(height: AppSpacing.s),
-          OutlinedButton(
+          OutlinedButton.icon(
             onPressed: busy ? null : onRemove,
-            child: const Text('Remove item'),
+            icon: const Icon(Icons.remove_circle_outline_rounded),
+            label: const Text('Remove item'),
           ),
         ],
       ),

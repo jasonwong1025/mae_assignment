@@ -77,10 +77,11 @@ class _StockEditorState extends State<StockEditor> {
         ),
         if (hasChanged) ...[
           const SizedBox(height: 12),
-          FilledButton(
+          FilledButton.icon(
             style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
             onPressed: () => widget.onSave(typed),
-            child: const Text('Save stock'),
+            icon: const Icon(Icons.check_rounded),
+            label: const Text('Save stock'),
           ),
         ],
       ],

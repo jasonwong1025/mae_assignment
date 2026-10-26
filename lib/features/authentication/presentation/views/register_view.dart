@@ -177,11 +177,12 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
                 ),
                 BottomActionBar(
                   children: [
-                    FilledButton(
+                    FilledButton.icon(
                       onPressed: isLoading ? null : _onCreateAccount,
-                      child: isLoading
+                      icon: isLoading
                           ? const ButtonLoadingIndicator()
-                          : const Text('Create account'),
+                          : const Icon(Icons.person_add_alt_1_rounded),
+                      label: const Text('Create account'),
                     ),
                     const SizedBox(height: 4),
                     TextButton(

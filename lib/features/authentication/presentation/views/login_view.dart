@@ -189,15 +189,16 @@ class _LoginViewState extends ConsumerState<LoginView> {
                               ),
                             ),
                             const SizedBox(height: 28),
-                            FilledButton(
+                            FilledButton.icon(
                               key: const Key('login_button'),
                               onPressed: isLoading ? null : _onLogIn,
                               style: FilledButton.styleFrom(
                                 minimumSize: const Size.fromHeight(56),
                               ),
-                              child: isLoggingIn
+                              icon: isLoggingIn
                                   ? const ButtonLoadingIndicator()
-                                  : const Text('Log in'),
+                                  : const Icon(Icons.login_rounded),
+                              label: const Text('Log in'),
                             ),
                             if (!kIsWeb) ...[
                               const SizedBox(height: 20),

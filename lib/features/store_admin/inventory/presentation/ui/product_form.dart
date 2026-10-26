@@ -312,11 +312,12 @@ class _ProductFormState extends ConsumerState<ProductForm> {
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 28),
-          FilledButton(
+          FilledButton.icon(
             onPressed: _isSaving ? null : _onSave,
-            child: _isSaving
+            icon: _isSaving
                 ? const ButtonLoadingIndicator()
-                : Text(_isAdding ? 'Add product' : 'Save changes'),
+                : const Icon(Icons.check_rounded),
+            label: Text(_isAdding ? 'Add product' : 'Save changes'),
           ),
           const SizedBox(height: 4),
           TextButton(

@@ -313,18 +313,20 @@ class _BranchFormState extends ConsumerState<BranchForm> {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton(
+                child: OutlinedButton.icon(
                   onPressed: _isSaving ? null : widget.onCancel,
-                  child: const Text('Cancel'),
+                  icon: const Icon(Icons.close_rounded),
+                  label: const Text('Cancel'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: FilledButton(
+                child: FilledButton.icon(
                   onPressed: _isSaving ? null : _onSave,
-                  child: _isSaving
+                  icon: _isSaving
                       ? const ButtonLoadingIndicator()
-                      : Text(widget.branch == null ? 'Add branch' : 'Save'),
+                      : const Icon(Icons.check_rounded),
+                  label: Text(widget.branch == null ? 'Add branch' : 'Save'),
                 ),
               ),
             ],
