@@ -20,9 +20,9 @@ void main() {
   patrolTest('customer places an order and tracks it', ($) async {
     await launchApp($);
 
-    // --- Onboarding -> Sign in ---------------------------------------
+    // --- Onboarding -> Log in ----------------------------------------
     await $('I already have an account').tap();
-    await $.waitUntilVisible($('Sign in to continue'));
+    await $.waitUntilVisible($('Log in to continue'));
 
     // The sign-in form has two inputs, in order: email/phone, then
     // password. Fill them with the seeded customer's credentials.
@@ -30,8 +30,8 @@ void main() {
     await fields.at(0).enterText('e2e.customer@grocerly.test');
     await fields.at(1).enterText('Password123!');
 
-    // "Continue as Customer" signs in and lands on the catalogue.
-    await $('Customer').tap();
+    // One Log in button for every role; a customer lands on the catalogue.
+    await $(find.byKey(const Key('login_button'))).tap();
 
     // --- Catalogue (Home) --------------------------------------------
     // The catalogue reads the branch and products from Firestore, so give it

@@ -15,18 +15,17 @@ Future<void> tapByKey(PatrolIntegrationTester $, String key) async {
   await $(finder).tap();
 }
 
-/// Fills in the sign-in form and signs in with the role button [role]
-/// ("Customer", "Store Worker" or "Store Admin"), from the onboarding screen.
+/// Fills in the login form and taps Log in, from the onboarding screen.
+/// There is one login for every role: the account decides where it lands.
 Future<void> signInAs(
   PatrolIntegrationTester $, {
   required String email,
   required String password,
-  required String role,
 }) async {
   await $('I already have an account').tap();
-  await $.waitUntilVisible($('Sign in to continue'));
+  await $.waitUntilVisible($('Log in to continue'));
   final fields = $(TextFormField);
   await fields.at(0).enterText(email);
   await fields.at(1).enterText(password);
-  await $(role).scrollTo().tap();
+  await $(find.byKey(const Key('login_button'))).scrollTo().tap();
 }

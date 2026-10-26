@@ -12,6 +12,7 @@ class PasswordField extends StatefulWidget {
     this.hint,
     this.validator,
     this.isNewPassword = false,
+    this.onSubmitted,
   });
 
   final String label;
@@ -22,6 +23,9 @@ class PasswordField extends StatefulWidget {
 
   /// True on sign-up, so password managers offer to create a new password.
   final bool isNewPassword;
+
+  /// Called when Done or Enter is pressed, e.g. to submit the form.
+  final ValueChanged<String>? onSubmitted;
 
   @override
   State<PasswordField> createState() => _PasswordFieldState();
@@ -40,6 +44,7 @@ class _PasswordFieldState extends State<PasswordField> {
       validator: widget.validator,
       obscureText: _hidden,
       textInputAction: TextInputAction.done,
+      onFieldSubmitted: widget.onSubmitted,
       autofillHints: [
         if (widget.isNewPassword)
           AutofillHints.newPassword

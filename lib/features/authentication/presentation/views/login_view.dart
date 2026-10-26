@@ -5,14 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mae_assignment/app/router/app_router.dart';
-import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/core/utilities/validators.dart';
 import 'package:mae_assignment/features/authentication/data/repositories/auth_repository.dart';
 import 'package:mae_assignment/features/authentication/presentation/view_models/google_sign_in_view_model.dart';
 import 'package:mae_assignment/features/authentication/presentation/view_models/login_view_model.dart';
-import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
-import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
-import 'package:mae_assignment/shared/models/app_user.dart';
 import 'package:mae_assignment/shared/ui/bottom_action_bar.dart';
 import 'package:mae_assignment/shared/ui/brand_header.dart';
 import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
@@ -21,7 +17,9 @@ import 'package:mae_assignment/shared/ui/labeled_text_field.dart';
 import 'package:mae_assignment/shared/ui/or_divider.dart';
 import 'package:mae_assignment/shared/ui/password_field.dart';
 
-/// Sign-in page for every role. Uses email and password.
+/// Login page for every role: customers, Store Workers and Store Admin.
+/// Email and password (plus Google for customers on mobile). After logging
+/// in, each account opens its own home based on its role.
 class LoginView extends ConsumerStatefulWidget {
   const LoginView({super.key});
 
@@ -34,9 +32,6 @@ class _LoginViewState extends ConsumerState<LoginView> {
   final _emailOrPhoneController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  /// The role button that was tapped, so only that one shows a spinner.
-  UserRole? _selectedRole;
-
   @override
   void dispose() {
     _emailOrPhoneController.dispose();
@@ -44,44 +39,19 @@ class _LoginViewState extends ConsumerState<LoginView> {
     super.dispose();
   }
 
-  Future<void> _onContinueAs(UserRole role) async {
+  Future<void> _onLogIn() async {
     final isValid = _formKey.currentState!.validate();
     if (!isValid) return;
 
-    setState(() => _selectedRole = role);
-    final signedIn = await ref
+    // One login for everyone: the account's role decides where it lands.
+    final home = await ref
         .read(loginViewModelProvider.notifier)
         .signIn(
           emailOrPhone: _emailOrPhoneController.text,
           password: _passwordController.text,
-          role: role,
         );
-
-    if (!signedIn || !mounted) return;
-
-    // Each role lands on its own home. go() instead of push() so the user
-    // cannot go "back" to sign-in.
-    final String home;
-    switch (role) {
-      case UserRole.storeAdmin:
-        home = AppRoutes.adminDashboard;
-      case UserRole.customer:
-        home = AppRoutes.customerCatalogue;
-      case UserRole.storeWorker:
-        // Workers need their profile (role and branch) before any screen.
-        final error = await ref.read(workerSessionProvider.notifier).start();
-        if (!mounted) return;
-        final worker = ref.read(workerSessionProvider);
-        if (error != null || worker == null) {
-          await ref.read(authRepositoryProvider).signOut();
-          if (!mounted) return;
-          _showMessage(error ?? 'Could not start your session.');
-          setState(() => _selectedRole = null);
-          return;
-        }
-        home = workerHomeFor(worker);
-    }
-    context.go(home);
+    // go() instead of push() so the user cannot go "back" to the login page.
+    if (home != null && mounted) context.go(home);
   }
 
   Future<void> _onForgotPassword() async {
@@ -151,10 +121,10 @@ class _LoginViewState extends ConsumerState<LoginView> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final isGoogleLoading = ref.watch(googleSignInViewModelProvider).isLoading;
-    final isLoading =
-        ref.watch(loginViewModelProvider).isLoading || isGoogleLoading;
+    final isLoggingIn = ref.watch(loginViewModelProvider).isLoading;
+    final isLoading = isLoggingIn || isGoogleLoading;
 
-    // Show a message whenever sign-in fails.
+    // Show a message whenever logging in fails.
     ref.listen(loginViewModelProvider, (previous, next) {
       if (next is AsyncError) _showMessage(next.error.toString());
     });
@@ -182,13 +152,13 @@ class _LoginViewState extends ConsumerState<LoginView> {
                             const BrandHeader(showBackButton: !kIsWeb),
                             const SizedBox(height: 32),
                             Text(
-                              'Sign in to continue',
+                              'Log in to continue',
                               style: textTheme.headlineMedium,
                             ),
                             const SizedBox(height: 4),
                             Text(
                               kIsWeb
-                                  ? 'Sign in with your HQ admin account.'
+                                  ? 'Log in with your HQ admin account.'
                                   : 'One account for shopping, packing, and '
                                         'running the store.',
                               style: textTheme.bodyMedium,
@@ -210,57 +180,26 @@ class _LoginViewState extends ConsumerState<LoginView> {
                               hint: 'Your password',
                               controller: _passwordController,
                               validator: Validators.password,
+                              // Enter or Done logs in, as on any login form.
+                              onSubmitted: (_) {
+                                if (!isLoading) unawaited(_onLogIn());
+                              },
                               labelTrailing: _ForgotPasswordLink(
                                 onPressed: _onForgotPassword,
                               ),
                             ),
                             const SizedBox(height: 28),
-                            Text(
-                              'CONTINUE AS',
-                              style: textTheme.bodySmall?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.4,
+                            FilledButton(
+                              key: const Key('login_button'),
+                              onPressed: isLoading ? null : _onLogIn,
+                              style: FilledButton.styleFrom(
+                                minimumSize: const Size.fromHeight(56),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            _RoleButton(
-                              icon: Icons.dashboard_outlined,
-                              title: UserRole.storeAdmin.label,
-                              subtitle: kIsWeb
-                                  ? 'Web dashboard'
-                                  : 'Tablet dashboard',
-                              isLoading:
-                                  isLoading &&
-                                  _selectedRole == UserRole.storeAdmin,
-                              onPressed: isLoading
-                                  ? null
-                                  : () => _onContinueAs(UserRole.storeAdmin),
+                              child: isLoggingIn
+                                  ? const ButtonLoadingIndicator()
+                                  : const Text('Log in'),
                             ),
                             if (!kIsWeb) ...[
-                              const SizedBox(height: 12),
-                              _RoleButton(
-                                icon: Icons.inventory_2_outlined,
-                                title: UserRole.storeWorker.label,
-                                subtitle: 'Packing and delivery',
-                                isLoading:
-                                    isLoading &&
-                                    _selectedRole == UserRole.storeWorker,
-                                onPressed: isLoading
-                                    ? null
-                                    : () => _onContinueAs(UserRole.storeWorker),
-                              ),
-                              const SizedBox(height: 12),
-                              _RoleButton(
-                                icon: Icons.shopping_basket_outlined,
-                                title: UserRole.customer.label,
-                                subtitle: 'Browse and order',
-                                isLoading:
-                                    isLoading &&
-                                    _selectedRole == UserRole.customer,
-                                onPressed: isLoading
-                                    ? null
-                                    : () => _onContinueAs(UserRole.customer),
-                              ),
                               const SizedBox(height: 20),
                               const OrDivider(),
                               const SizedBox(height: 20),
@@ -317,63 +256,6 @@ class _ForgotPasswordLink extends StatelessWidget {
         ),
       ),
       child: const Text('Forgot password?'),
-    );
-  }
-}
-
-/// Big button for one role: icon, role name, what that role does, and ">".
-/// Uses the app's FilledButton theme so it matches other primary buttons.
-class _RoleButton extends StatelessWidget {
-  const _RoleButton({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.isLoading,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool isLoading;
-
-  /// Null disables the button.
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton(
-      onPressed: onPressed,
-      style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(64),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 24),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.greenTint,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (isLoading)
-            const ButtonLoadingIndicator()
-          else
-            const Icon(Icons.chevron_right_rounded),
-        ],
-      ),
     );
   }
 }

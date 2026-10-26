@@ -188,7 +188,7 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
                       // Replace instead of push, so "back" from login
                       // returns to onboarding, not to this page.
                       onPressed: () => context.pushReplacement(AppRoutes.login),
-                      child: const Text('Already have an account? Sign in'),
+                      child: const Text('Already have an account? Log in'),
                     ),
                   ],
                 ),

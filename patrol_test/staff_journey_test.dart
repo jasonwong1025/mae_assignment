@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart' show find;
 import 'package:patrol/patrol.dart';
 
+import 'support/actions.dart';
 import 'support/patrol_app.dart';
 import 'support/waits.dart';
 
@@ -23,7 +24,11 @@ void main() {
     const loadTimeout = Duration(seconds: 60);
 
     // --- Admin: assign the packer -------------------------------------
-    await _signIn($, 'e2e.admin@grocerly.test', 'Password123!', 'Store Admin');
+    await signInAs(
+      $,
+      email: 'e2e.admin@grocerly.test',
+      password: 'Password123!',
+    );
     await waitForWidget($, $('RIGHT NOW'), timeout: loadTimeout);
 
     await _openOrders($);
@@ -47,7 +52,11 @@ void main() {
     await waitForWidget($, $('I already have an account'));
 
     // --- Packer: start packing ----------------------------------------
-    await _signIn($, 'hakim.roslan@grocerly.my', 'Worker123!', 'Store Worker');
+    await signInAs(
+      $,
+      email: 'hakim.roslan@grocerly.my',
+      password: 'Worker123!',
+    );
     await waitForWidget($, $('My Tasks'), timeout: loadTimeout);
     await waitForWidget($, $('#2287'), timeout: loadTimeout);
     await $('#2287').scrollTo().tap();
@@ -64,7 +73,11 @@ void main() {
     await waitForWidget($, $('I already have an account'));
 
     // --- Admin sees the order being packed ----------------------------
-    await _signIn($, 'e2e.admin@grocerly.test', 'Password123!', 'Store Admin');
+    await signInAs(
+      $,
+      email: 'e2e.admin@grocerly.test',
+      password: 'Password123!',
+    );
     await _openOrders($);
     // On a phone the board shows one status tab at a time: #2287 has moved
     // from Pending to Packing.
@@ -83,21 +96,6 @@ void main() {
     );
     await waitForWidget($, $('Hakim'));
   });
-}
-
-/// Fills in the sign-in form and signs in with the role button [role].
-Future<void> _signIn(
-  PatrolIntegrationTester $,
-  String email,
-  String password,
-  String role,
-) async {
-  await $('I already have an account').tap();
-  await $.waitUntilVisible($('Sign in to continue'));
-  final fields = $(TextFormField);
-  await fields.at(0).enterText(email);
-  await fields.at(1).enterText(password);
-  await $(role).scrollTo().tap();
 }
 
 /// Opens the Orders board of SS15 Subang from the navigation drawer.

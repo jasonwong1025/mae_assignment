@@ -105,7 +105,8 @@ Future<void> _go(
   await tester.pumpAndSettle();
 }
 
-/// Fills in the sign-in form and taps the Store Worker button.
+/// Fills in the login form and taps Log in. The account's role (a Store
+/// Worker here) decides where it lands.
 Future<void> _signInAsWorker(
   WidgetTester tester,
   ProviderContainer container,
@@ -114,8 +115,8 @@ Future<void> _signInAsWorker(
   final fields = find.byType(TextFormField);
   await tester.enterText(fields.at(0), 'worker@grocerly.my');
   await tester.enterText(fields.at(1), 'Worker123!');
-  await tester.ensureVisible(find.text('Store Worker'));
-  await tester.tap(find.text('Store Worker'));
+  await tester.ensureVisible(find.byKey(const Key('login_button')));
+  await tester.tap(find.byKey(const Key('login_button')));
   await tester.pumpAndSettle();
 }
 

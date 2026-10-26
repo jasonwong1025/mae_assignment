@@ -28,6 +28,7 @@ import 'package:mae_assignment/features/store_worker/packing/presentation/views/
 import 'package:mae_assignment/features/store_worker/packing/presentation/views/packing_tasks_view.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/views/pickup_handover_view.dart';
 import 'package:mae_assignment/features/store_worker/pickup/presentation/views/pickup_queue_view.dart';
+import 'package:mae_assignment/features/store_worker/session/data/models/worker_profile.dart';
 import 'package:mae_assignment/features/store_worker/session/presentation/view_models/worker_session_view_model.dart';
 import 'package:mae_assignment/features/store_worker/shell/presentation/views/worker_account_view.dart';
 import 'package:mae_assignment/features/store_worker/shell/worker_routes.dart';
@@ -117,6 +118,21 @@ Future<String?> _webAdminRedirect(
   return location == AppRoutes.home ? null : AppRoutes.home;
 }
 
+/// The first page for a signed-in user with [role]. Store Workers land on
+/// their first tab, which depends on their job, so they need their loaded
+/// [worker] profile; without it they get the placeholder page.
+///
+/// Used both after logging in and when the app opens with a live session, so
+/// the two always agree.
+String homeRouteFor(UserRole role, {WorkerProfile? worker}) {
+  return switch (role) {
+    UserRole.storeAdmin => AppRoutes.adminDashboard,
+    UserRole.customer => AppRoutes.customerCatalogue,
+    UserRole.storeWorker =>
+      worker == null ? AppRoutes.home : workerHomeFor(worker),
+  };
+}
+
 /// The home page for an already signed-in user, by role. Used when the app
 /// opens with a live session (e.g. after a restart) so each role lands on
 /// its own home instead of the shared placeholder. Falls back to the
@@ -125,12 +141,10 @@ Future<String> _homeForSignedInUser(Ref ref) async {
   final authRepository = ref.read(authRepositoryProvider);
   try {
     final user = await authRepository.getCurrentUser();
-    return switch (user?.role) {
-      UserRole.storeAdmin => AppRoutes.adminDashboard,
-      UserRole.customer => AppRoutes.customerCatalogue,
-      UserRole.storeWorker => await _workerHome(ref),
-      _ => AppRoutes.home,
-    };
+    final role = user?.role;
+    if (role == null) return AppRoutes.home;
+    if (role == UserRole.storeWorker) return await _workerHome(ref);
+    return homeRouteFor(role);
   } on Object catch (_) {
     return AppRoutes.home;
   }
@@ -147,7 +161,7 @@ Future<String> _workerHome(Ref ref) async {
     if (error != null) return AppRoutes.home;
     worker = ref.read(workerSessionProvider);
   }
-  return worker == null ? AppRoutes.home : workerHomeFor(worker);
+  return homeRouteFor(UserRole.storeWorker, worker: worker);
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {

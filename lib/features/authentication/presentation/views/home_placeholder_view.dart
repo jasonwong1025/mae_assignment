@@ -46,7 +46,7 @@ class HomePlaceholderView extends ConsumerWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Sign in with an HQ admin account to use the web '
+                            'Log in with an HQ admin account to use the web '
                             'console.',
                             style: textTheme.bodyMedium,
                           ),

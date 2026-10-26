@@ -32,7 +32,6 @@ void main() {
         $,
         email: 'daniel.lee@grocerly.my',
         password: 'Worker123!',
-        role: 'Store Worker',
       );
       await waitForWidget($, $('My Tasks'), timeout: loadTimeout);
       await waitForWidget($, $('#2399'), timeout: loadTimeout);
@@ -65,7 +64,6 @@ void main() {
         $,
         email: 'e2e.customer@grocerly.test',
         password: 'Password123!',
-        role: 'Customer',
       );
       await waitForWidget($, $('DELIVER TO'), timeout: loadTimeout);
       await $('Orders').tap();
@@ -93,7 +91,6 @@ void main() {
         $,
         email: 'daniel.lee@grocerly.my',
         password: 'Worker123!',
-        role: 'Store Worker',
       );
       await waitForWidget($, $('#2399'), timeout: loadTimeout);
       await $('#2399').scrollTo().tap();
@@ -133,7 +130,6 @@ void main() {
         $,
         email: 'e2e.customer@grocerly.test',
         password: 'Password123!',
-        role: 'Customer',
       );
       await waitForWidget($, $('DELIVER TO'), timeout: loadTimeout);
       await $('Account').tap();

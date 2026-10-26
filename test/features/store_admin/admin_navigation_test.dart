@@ -46,7 +46,7 @@ void main() {
       'jason@example.com',
     );
     await tester.enterText(find.byType(TextFormField).last, 'password1');
-    await tester.tap(find.text('Store Admin'));
+    await tester.tap(find.byKey(const Key('login_button')));
     await tester.pumpAndSettle();
 
     // Dashboard.

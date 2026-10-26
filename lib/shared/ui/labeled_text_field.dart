@@ -18,6 +18,7 @@ class LabeledTextField extends StatelessWidget {
     this.validator,
     this.autofillHints,
     this.field,
+    this.onFieldSubmitted,
   });
 
   final String label;
@@ -35,6 +36,9 @@ class LabeledTextField extends StatelessWidget {
 
   /// Replaces the text box, e.g. with a dropdown.
   final Widget? field;
+
+  /// Called when the keyboard's action key (Done, Enter) is pressed.
+  final ValueChanged<String>? onFieldSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +72,7 @@ class LabeledTextField extends StatelessWidget {
               controller: controller,
               keyboardType: keyboardType,
               textInputAction: textInputAction,
+              onFieldSubmitted: onFieldSubmitted,
               obscureText: obscureText,
               validator: validator,
               autofillHints: autofillHints,

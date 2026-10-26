@@ -46,8 +46,10 @@ node seed.mjs                     # the real project (needs gcloud login)
 node seed.mjs --catalogue-only    # only branches, categories and products
 ```
 
-Store Worker logins (sign in with the **Store Worker** button; every account
-uses the password `Worker123!`):
+Store Worker logins (every account uses the password `Worker123!`). There is
+one **Log in** button for every role: the app reads the account's role from
+its profile and opens that role's home, so nobody picks a role. The hosted web
+build is the HQ console and only lets Store Admin accounts in.
 
 | Role | Email | Branch |
 | --- | --- | --- |
