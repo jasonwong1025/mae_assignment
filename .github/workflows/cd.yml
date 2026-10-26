@@ -135,9 +135,12 @@ jobs:
             echo '::error::Android SDK apksigner was not found or is not executable.'
             exit 1
           fi
-          certificate="$("$apk_signer" verify --print-certs build/app/outputs/flutter-apk/app-release.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
-          if [ "${certificate,,}" != 'e2730b2f9c524a39186d4e6ff7f750eb503421dbfc381a10421c812dffe7e95f' ]; then
-            echo "::error::Unexpected APK signer certificate: ${certificate:-none}"
+          echo "Verifying APK with $apk_signer"
+          certificate_report="$("$apk_signer" verify --print-certs build/app/outputs/flutter-apk/app-release.apk)"
+          printf '%s\n' "$certificate_report"
+          expected_certificate='e2730b2f9c524a39186d4e6ff7f750eb503421dbfc381a10421c812dffe7e95f'
+          if [[ "${certificate_report,,}" != *"$expected_certificate"* ]]; then
+            echo '::error::The APK signer certificate does not match the registered release certificate.'
             exit 1
           fi
 
