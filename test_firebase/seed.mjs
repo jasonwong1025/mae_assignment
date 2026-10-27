@@ -37,6 +37,7 @@
 // Options:
 //   --catalogue-only  only the catalogue (no staff, orders or history)
 //   --with-customer   emulator only: also the E2E customer and admin
+//   --orders-only     only the 40 compact demo orders; keeps catalogue and accounts
 
 import { cert, initializeApp, applicationDefault } from "firebase-admin/app";
 import {
@@ -68,6 +69,10 @@ const db = getFirestore(app);
 const WITH_CUSTOMER = process.argv.includes("--with-customer");
 // `--catalogue-only` skips the staff, orders, reviews and history below.
 const SKIP_DEMO = process.argv.includes("--catalogue-only");
+const ORDERS_ONLY = process.argv.includes("--orders-only");
+if (ORDERS_ONLY && (SKIP_DEMO || WITH_CUSTOMER)) {
+  throw new Error("--orders-only cannot be combined with other seed options.");
+}
 const E2E_CUSTOMER = {
   uid: "e2e-customer",
   email: "e2e.customer@grocerly.test",
@@ -466,6 +471,17 @@ async function seed() {
     ? `emulator (${process.env.FIRESTORE_EMULATOR_HOST})`
     : `real project (${PROJECT_ID})`;
   console.log(`Seeding ${target}...`);
+  if (ORDERS_ONLY) {
+    await seedOrders();
+    const orders = readJson("orders.json");
+    const highest = Math.max(...orders.map((order) => order.data.number));
+    const counterRef = db.collection("counters").doc("orders");
+    await db.runTransaction(async (tx) => {
+      const snapshot = await tx.get(counterRef);
+      tx.set(counterRef, { value: Math.max(snapshot.get("value") ?? 1000, highest) });
+    });
+    process.exit(0);
+  }
   const batch = db.batch();
   for (const { id, ...data } of branches) {
     batch.set(db.collection("branches").doc(id), {
@@ -477,7 +493,8 @@ async function seed() {
     batch.set(db.collection("categories").doc(id), data);
   }
   for (const { id, ...data } of products) {
-    batch.set(db.collection("products").doc(id), { ...data, imageUrls: [] });
+    // Merge so a catalogue reseed cannot erase Storage image download URLs.
+    batch.set(db.collection("products").doc(id), data, { merge: true });
   }
   for (const [branchId, items] of Object.entries(inventory)) {
     for (const [productId, item] of Object.entries(items)) {

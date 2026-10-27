@@ -37,13 +37,43 @@ The apps contain no sample data. Branches, the catalogue, Store Workers, orders
 in every state, driver positions, and about 35 days of completed orders and
 reviews are written to Firestore by `test_firebase/seed.mjs` (data in
 `test_firebase/seed-data/`). Re-running it is safe: it overwrites the same
-documents and moves the "minutes ago" times to now.
+documents and moves the "minutes ago" times to now. Product image links are
+preserved when the catalogue is seeded again.
 
 ```bash
 cd test_firebase
 npm install                       # first time only
 node seed.mjs                     # the real project (needs gcloud login)
 node seed.mjs --catalogue-only    # only branches, categories and products
+```
+
+### Reset demo activity
+
+The reset tool previews its changes by default. From `test_firebase/`, run:
+
+```bash
+npm run demo:reset
+npm run demo:reset -- --apply --confirm-project=mae-assignment-grocerly --seed-orders
+```
+
+The second command deletes orders, reviews, carts, grocery lists, notifications,
+simulated wallet balances and transaction history, and order delivery proof
+photos. It then adds 40 sample orders for the Orders and Dispatch screens,
+without recreating the 35-day sales/review history. Omit `--seed-orders` to
+start with an empty order board. It keeps Auth accounts, user profiles and
+addresses, canonical catalogue branches and their inventory, driver locations,
+device tokens, product photos, and the order-number counter. Duplicate branches
+with the same name as a seeded branch are removed together with their inventory,
+unless a preserved account is still assigned to one. Run it while nobody is placing
+orders or using the demo; it cannot undo deleted activity. The confirmation
+flag must name the existing Grocerly Dev project.
+
+Ten generic catalogue photos are stored in `test_firebase/product-images/`.
+To restore their Storage files and Firestore links, run `npm run images:upload`
+for a preview and then:
+
+```bash
+npm run images:upload -- --apply --confirm-project=mae-assignment-grocerly
 ```
 
 Store Worker logins (every account uses the password `Worker123!`). There is

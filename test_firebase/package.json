@@ -9,6 +9,9 @@
     "test:functions": "firebase emulators:exec --only auth,firestore,functions,storage --project mae-assignment-grocerly 'vitest run functions.test.js'",
     "test:watch": "firebase emulators:exec --only firestore,storage --project mae-assignment-grocerly 'vitest'",
     "seed": "node seed.mjs",
+    "demo:reset": "node reset_demo.mjs",
+    "images:upload": "node upload_product_images.mjs",
+    "test:demo-reset": "firebase emulators:exec --only firestore,storage --project mae-assignment-grocerly 'node reset_demo.emulator_test.mjs'",
     "e2e": "node run_e2e.mjs"
   },
   "devDependencies": {
