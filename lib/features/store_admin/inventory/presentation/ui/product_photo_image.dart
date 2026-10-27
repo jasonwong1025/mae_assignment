@@ -26,6 +26,9 @@ class ProductPhotoImage extends StatelessWidget {
         width: width,
         height: height,
         fit: fit,
+        // On the web console, show the photo as a browser image if Storage
+        // blocks Flutter from loading it. Does nothing on phones.
+        webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
         loadingBuilder: (context, child, progress) {
           return progress == null ? child : _placeholder(loading: true);
         },
