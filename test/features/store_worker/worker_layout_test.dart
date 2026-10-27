@@ -139,7 +139,7 @@ void main() {
           container,
           AppRoutes.workerDeliveryOrder('ord-2309'),
         );
-        await _tap(tester, 'Order items (2 products · 3 items)');
+        await _tap(tester, 'Order items (3 items)');
         // Opens the proof-of-delivery sheet (checked for overflow), then
         // closes it with the X; "Mark as delivered" no longer uses a dialog.
         await _tap(tester, 'Mark as delivered');

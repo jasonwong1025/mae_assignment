@@ -107,7 +107,7 @@ void main() {
       timeout: catalogueTimeout,
     );
     await $(find.byTooltip('Remove zzqx widget')).tap();
-    await waitForWidget($, $('Your list is empty'));
+    await waitForWidget($, $('My list is empty'));
     await $('Home').tap();
     await waitForWidget($, $('DELIVER TO'), timeout: catalogueTimeout);
 

@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue_product.dart';
 import 'package:mae_assignment/features/customer/grocery/data/models/grocery_item.dart';
+import 'package:mae_assignment/features/customer/grocery/data/models/grocery_list.dart';
 import 'package:mae_assignment/features/customer/grocery/data/models/grocery_row.dart';
 import 'package:mae_assignment/features/customer/grocery/data/repositories/grocery_list_repository.dart';
 import 'package:mae_assignment/features/customer/grocery/data/services/grocery_list_service.dart';
@@ -24,10 +26,10 @@ class _BrokenListService extends GroceryListService {
   _BrokenListService() : super(FakeFirebaseFirestore());
 
   @override
-  Future<List<GroceryItem>> getItems(String uid) => throw Exception('offline');
+  Future<List<GroceryList>> getLists(String uid) => throw Exception('offline');
 
   @override
-  Future<void> saveItems(String uid, List<GroceryItem> items) =>
+  Future<void> saveList(String uid, GroceryList list) =>
       throw Exception('offline');
 }
 
@@ -90,65 +92,144 @@ void main() {
       service = GroceryListService(firestore);
     });
 
-    test('has an empty list until one is saved', () async {
-      expect(await service.getItems('u1'), isEmpty);
+    const myList = GroceryList(
+      id: GroceryList.defaultId,
+      name: GroceryList.defaultName,
+    );
+
+    DocumentReference<Map<String, dynamic>> doc(String uid, String id) {
+      return firestore
+          .collection('users')
+          .doc(uid)
+          .collection('groceryList')
+          .doc(id);
+    }
+
+    test('has no lists until one is saved', () async {
+      expect(await service.getLists('u1'), isEmpty);
     });
 
-    test('saves and reads the list, with a server time', () async {
-      await service.saveItems('u1', const [
-        GroceryItem(id: 'a', name: 'milk', quantity: 2),
-        GroceryItem(id: 'b', name: 'eggs'),
-      ]);
+    test('saves and reads a list, with a server time', () async {
+      await service.saveList(
+        'u1',
+        myList.copyWith(
+          items: const [
+            GroceryItem(id: 'a', name: 'milk', quantity: 2),
+            GroceryItem(id: 'b', name: 'eggs'),
+          ],
+        ),
+      );
 
-      final items = await service.getItems('u1');
-      expect(items.map((i) => '${i.quantity} ${i.name}'), ['2 milk', '1 eggs']);
-      final raw = await firestore
-          .collection('users')
-          .doc('u1')
-          .collection('groceryList')
-          .doc('current')
-          .get();
-      expect(raw.data()!['updatedAt'], isNotNull);
+      final list = (await service.getLists('u1')).single;
+      expect(list.id, GroceryList.defaultId);
+      expect(list.name, 'My list');
+      expect(list.items.map((i) => '${i.quantity} ${i.name}'), [
+        '2 milk',
+        '1 eggs',
+      ]);
+      expect(
+        (await doc('u1', 'current').get()).data()!['updatedAt'],
+        isNotNull,
+      );
     });
 
     test('is private to each user', () async {
-      await service.saveItems('u1', const [GroceryItem(id: 'a', name: 'milk')]);
+      await service.saveList(
+        'u1',
+        myList.copyWith(
+          items: const [GroceryItem(id: 'a', name: 'milk')],
+        ),
+      );
 
-      expect(await service.getItems('u2'), isEmpty);
+      expect(await service.getLists('u2'), isEmpty);
     });
 
-    test('saving an empty list deletes the document', () async {
-      await service.saveItems('u1', const [GroceryItem(id: 'a', name: 'milk')]);
+    test('an emptied list is kept, so its name and tab stay', () async {
+      await service.saveList(
+        'u1',
+        myList.copyWith(
+          items: const [GroceryItem(id: 'a', name: 'milk')],
+        ),
+      );
 
-      await service.saveItems('u1', const []);
+      await service.saveList('u1', myList);
 
-      expect(await service.getItems('u1'), isEmpty);
-      final raw = await firestore
-          .collection('users')
-          .doc('u1')
-          .collection('groceryList')
-          .doc('current')
-          .get();
-      expect(raw.exists, isFalse);
+      final list = (await service.getLists('u1')).single;
+      expect(list.items, isEmpty);
+      expect((await doc('u1', 'current').get()).exists, isTrue);
     });
+
+    test('a new list gets a name and a time it was made', () async {
+      final id = service.newId('u1');
+
+      await service.createList(
+        'u1',
+        GroceryList(
+          id: id,
+          name: 'Nasi lemak',
+          items: const [GroceryItem(id: 'a', name: 'coconut milk')],
+        ),
+      );
+
+      final list = (await service.getLists('u1')).single;
+      expect(list.id, id);
+      expect(list.name, 'Nasi lemak');
+      expect(list.createdAt, isNotNull);
+    });
+
+    test('saving keeps the time a list was made', () async {
+      final id = service.newId('u1');
+      await service.createList('u1', GroceryList(id: id, name: 'Party'));
+      final made = (await service.getLists('u1')).single.createdAt;
+
+      await service.saveList(
+        'u1',
+        GroceryList(
+          id: id,
+          name: 'Birthday party',
+          items: const [GroceryItem(id: 'a', name: 'cake')],
+        ),
+      );
+
+      final list = (await service.getLists('u1')).single;
+      expect(list.name, 'Birthday party');
+      expect(list.createdAt, made);
+    });
+
+    test('a list can be deleted', () async {
+      final id = service.newId('u1');
+      await service.createList('u1', GroceryList(id: id, name: 'Party'));
+
+      await service.deleteList('u1', id);
+
+      expect(await service.getLists('u1'), isEmpty);
+    });
+
+    test(
+      'an old default list saved without a name is called My list',
+      () async {
+        await doc('u1', 'current').set({
+          'items': [
+            {'id': 'a', 'name': 'milk', 'quantity': 1},
+          ],
+        });
+
+        expect((await service.getLists('u1')).single.name, 'My list');
+      },
+    );
 
     test('skips an entry it cannot read, keeping the rest', () async {
-      await firestore
-          .collection('users')
-          .doc('u1')
-          .collection('groceryList')
-          .doc('current')
-          .set({
-            'items': [
-              {'id': 'a', 'name': 'milk', 'quantity': 1},
-              {'id': 'b'},
-              {'id': 'c', 'name': 'eggs', 'quantity': 2},
-            ],
-          });
+      await doc('u1', 'current').set({
+        'items': [
+          {'id': 'a', 'name': 'milk', 'quantity': 1},
+          {'id': 'b'},
+          {'id': 'c', 'name': 'eggs', 'quantity': 2},
+        ],
+      });
 
-      final items = await service.getItems('u1');
+      final list = (await service.getLists('u1')).single;
 
-      expect(items.map((i) => i.name), ['milk', 'eggs']);
+      expect(list.items.map((i) => i.name), ['milk', 'eggs']);
     });
   });
 
@@ -222,7 +303,7 @@ void main() {
       final broken = GroceryListRepository(_BrokenListService(), scanner);
 
       expect(
-        broken.load('u1'),
+        broken.loadLists('u1'),
         throwsA(
           isA<GroceryException>().having(
             (e) => e.message,
@@ -232,7 +313,7 @@ void main() {
         ),
       );
       expect(
-        broken.save('u1', const []),
+        broken.save('u1', const GroceryList(id: 'current', name: 'My list')),
         throwsA(
           isA<GroceryException>().having(
             (e) => e.message,

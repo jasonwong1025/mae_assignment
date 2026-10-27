@@ -9,6 +9,7 @@ import 'package:mae_assignment/features/customer/cart/presentation/view_models/c
 import 'package:mae_assignment/features/customer/catalogue/data/models/catalogue_product.dart';
 import 'package:mae_assignment/features/customer/catalogue/data/repositories/catalogue_repository.dart';
 import 'package:mae_assignment/features/customer/grocery/data/models/grocery_item.dart';
+import 'package:mae_assignment/features/customer/grocery/data/models/grocery_list.dart';
 import 'package:mae_assignment/features/customer/grocery/data/services/grocery_list_service.dart';
 import 'package:mae_assignment/features/customer/grocery/data/services/list_scan_service.dart';
 import 'package:mae_assignment/features/customer/grocery/data/services/recipe_ai_service.dart';
@@ -177,15 +178,17 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<List<GroceryItem>> saved() {
-    return GroceryListService(firestore).getItems('u1');
+  /// The items saved in "My list".
+  Future<List<GroceryItem>> saved() async {
+    final lists = await GroceryListService(firestore).getLists('u1');
+    return lists.where((list) => list.isDefault).firstOrNull?.items ?? const [];
   }
 
   group('the list', () {
     testWidgets('starts empty with a hint', (tester) async {
       await pump(tester);
 
-      expect(find.text('Your list is empty'), findsOneWidget);
+      expect(find.text('My list is empty'), findsOneWidget);
       expect(find.text('Grocery list'), findsOneWidget);
     });
 
@@ -230,14 +233,19 @@ void main() {
     });
 
     testWidgets('a saved list is loaded when the tab opens', (tester) async {
-      await GroceryListService(
-        firestore,
-      ).saveItems('u1', const [GroceryItem(id: 'a', name: 'tomato')]);
+      await GroceryListService(firestore).saveList(
+        'u1',
+        const GroceryList(
+          id: GroceryList.defaultId,
+          name: GroceryList.defaultName,
+          items: [GroceryItem(id: 'a', name: 'tomato')],
+        ),
+      );
 
       await pump(tester);
 
       expect(find.text('tomato'), findsOneWidget);
-      expect(find.text('Your list is empty'), findsNothing);
+      expect(find.text('My list is empty'), findsNothing);
     });
 
     testWidgets('quantity buttons change it, and remove deletes the item', (
@@ -257,7 +265,7 @@ void main() {
       await tester.tap(find.byTooltip('Remove tomato'));
       await tester.pumpAndSettle();
       expect(await saved(), isEmpty);
-      expect(find.text('Your list is empty'), findsOneWidget);
+      expect(find.text('My list is empty'), findsOneWidget);
     });
 
     testWidgets('writing an item twice adds the quantities', (tester) async {
@@ -396,8 +404,11 @@ void main() {
       expect(find.text('Add 2 items'), findsOneWidget);
       await tester.tap(find.byKey(const Key('scan_review_add_button')));
       await tester.pumpAndSettle();
+      // Then choose where the items go: the open list.
+      await tester.tap(find.text('Add to My list'));
+      await tester.pumpAndSettle();
 
-      expect(find.text('2 items added to your list.'), findsOneWidget);
+      expect(find.text('2 items added to My list.'), findsOneWidget);
       final items = await saved();
       expect(items.map((i) => '${i.quantity} ${i.name}'), [
         '2 fresh milk',
@@ -415,6 +426,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).last, 'roma tomato');
       await tester.tap(find.byKey(const Key('scan_review_add_button')));
+      await tester.pumpAndSettle();
+      // Then choose where the items go: the open list.
+      await tester.tap(find.text('Add to My list'));
       await tester.pumpAndSettle();
 
       expect((await saved()).single.name, 'roma tomato');
@@ -462,6 +476,30 @@ void main() {
     });
   });
 
+  group('saving scanned items as a new list', () {
+    testWidgets('a scan can become its own named list', (tester) async {
+      scanner.text = '2x fresh milk\neggs';
+      await pump(tester);
+
+      await tester.tap(find.byKey(const Key('grocery_scan_button')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('scan_review_add_button')));
+      await tester.pumpAndSettle();
+      expect(find.text('Save these items'), findsOneWidget);
+      await tester.tap(find.text('Save as new list'));
+      await tester.pumpAndSettle();
+
+      final lists = await GroceryListService(firestore).getLists('u1');
+      final made = lists.singleWhere((list) => !list.isDefault);
+      expect(made.items.map((i) => '${i.quantity} ${i.name}'), [
+        '2 fresh milk',
+        '1 eggs',
+      ]);
+      // "My list" was left alone.
+      expect(await saved(), isEmpty);
+    });
+  });
+
   group('ingredients from a recipe', () {
     Future<void> ask(WidgetTester tester, String dish) async {
       await tester.tap(find.byKey(const Key('grocery_recipe_button')));
@@ -489,6 +527,9 @@ void main() {
       await tester.tap(find.byType(Checkbox).last);
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('scan_review_add_button')));
+      await tester.pumpAndSettle();
+      // Then choose where the items go: the open list.
+      await tester.tap(find.text('Add to My list'));
       await tester.pumpAndSettle();
 
       final items = await saved();

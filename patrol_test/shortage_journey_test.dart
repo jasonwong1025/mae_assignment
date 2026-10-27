@@ -12,8 +12,8 @@ import 'support/waits.dart';
 ///
 /// - Daniel reports the tomatoes unavailable and offers chicken instead. The
 ///   order now waits for the customer and cannot be marked ready.
-/// - The customer sees "Needs your reply" in Orders, opens the order and
-///   accepts the replacement.
+/// - The customer sees "A replacement needs your answer" in Orders, opens
+///   the order and accepts the replacement.
 /// - Daniel opens the order again, sees the chicken as the replacement, ticks
 ///   every line, reviews and marks the order ready.
 /// - The customer's wallet shows the extra charge for the dearer replacement,
@@ -67,7 +67,11 @@ void main() {
       );
       await waitForWidget($, $('DELIVER TO'), timeout: loadTimeout);
       await $('Orders').tap();
-      await waitForWidget($, $('Needs your reply'), timeout: loadTimeout);
+      await waitForWidget(
+        $,
+        $('A replacement needs your answer'),
+        timeout: loadTimeout,
+      );
       await $('Order #2399').tap();
       await waitForWidget($, $('Your reply is needed'), timeout: loadTimeout);
       // The offered chicken is shown with their price difference.
