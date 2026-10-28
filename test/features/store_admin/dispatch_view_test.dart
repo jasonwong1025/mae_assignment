@@ -7,6 +7,7 @@ import 'package:mae_assignment/features/authentication/data/repositories/auth_re
 import 'package:mae_assignment/features/store_admin/dispatch/data/repositories/dispatch_repository.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/services/driver_location_service.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/deliveries_table.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_view_model.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/views/dispatch_view.dart';
 import 'package:mae_assignment/features/store_admin/orders/data/repositories/orders_repository.dart';
 import 'package:mae_assignment/features/store_admin/staff/data/services/staff_service.dart';
@@ -197,6 +198,48 @@ void main() {
         .watchBoardOrders('ss15')
         .first;
     expect(orders.firstWhere((o) => o.number == 2292).handledBy, 'Kumar');
+  });
+
+  testWidgets('Auto-assign gives each waiting order a free driver', (
+    tester,
+  ) async {
+    final container = await _pumpDispatch(tester, desktop);
+
+    await tester.tap(find.byKey(const Key('dispatch_auto_assign')));
+    await _settle(tester);
+
+    // #2284 waited longest, so it gets the nearest free driver. Kumar then
+    // has one delivery, so #2292 goes to the next nearest free driver.
+    expect(
+      find.text('Assigned #2284 to Kumar, #2292 to Jason.'),
+      findsOneWidget,
+    );
+    expect(find.text('NEEDS A DRIVER (0)'), findsOneWidget);
+
+    final orders = await container
+        .read(ordersRepositoryProvider)
+        .watchBoardOrders('ss15')
+        .first;
+    expect(orders.firstWhere((o) => o.number == 2284).handledBy, 'Kumar');
+    expect(orders.firstWhere((o) => o.number == 2292).handledBy, 'Jason');
+  });
+
+  testWidgets('Auto-assign never gives a driver more than three', (
+    tester,
+  ) async {
+    final container = await _pumpDispatch(tester, desktop);
+    final state = container.read(dispatchViewModelProvider).requireValue;
+    final kumar = state.drivers.firstWhere(
+      (d) => d.worker.name == 'Kumar Selvam',
+    );
+
+    // Only Kumar is left, with room for one more: only #2284 gets him.
+    final onlyOne = state.copyWith(drivers: [kumar.copyWith(activeOrders: 2)]);
+    expect([for (final (o, _) in onlyOne.autoAssignPlan) o.number], [2284]);
+
+    // With no room at all, nobody is given the orders.
+    final full = state.copyWith(drivers: [kumar.copyWith(activeOrders: 3)]);
+    expect(full.autoAssignPlan, isEmpty);
   });
 
   testWidgets('List view shows a table of deliveries', (tester) async {

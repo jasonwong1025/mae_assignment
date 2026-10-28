@@ -216,6 +216,30 @@ abstract class DispatchState with _$DispatchState {
       ..sort((a, b) => a.metresTo(point)!.compareTo(b.metresTo(point)!));
   }
 
+  /// Who Auto-assign gives each waiting order to, longest waiting first:
+  /// the driver with the fewest deliveries, the nearest one on a tie. No
+  /// driver goes over [DispatchDriver.maxActiveOrders].
+  List<(Order, DispatchDriver)> get autoAssignPlan {
+    final given = <String, int>{}; // orders given in this plan, per driver
+    int load(DispatchDriver driver) =>
+        driver.activeOrders + (given[driver.id] ?? 0);
+
+    final plan = <(Order, DispatchDriver)>[];
+    for (final order in needsDriver) {
+      if (order.addressLocation == null) continue;
+      // driversFor is nearest first, so on a tie the nearer driver stays.
+      DispatchDriver? best;
+      for (final driver in driversFor(order)) {
+        if (load(driver) >= DispatchDriver.maxActiveOrders) continue;
+        if (best == null || load(driver) < load(best)) best = driver;
+      }
+      if (best == null) continue;
+      given[best.id] = (given[best.id] ?? 0) + 1;
+      plan.add((order, best));
+    }
+    return plan;
+  }
+
   /// Drivers with room for every order in [batch], nearest the branch first.
   List<DispatchDriver> driversForBatch(DeliveryBatch batch) {
     return drivers

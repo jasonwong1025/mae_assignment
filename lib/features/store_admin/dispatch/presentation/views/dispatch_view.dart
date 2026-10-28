@@ -16,6 +16,7 @@ import 'package:mae_assignment/features/store_admin/shell/presentation/ui/pagina
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 import 'package:mae_assignment/shared/models/page_result.dart';
+import 'package:mae_assignment/shared/ui/button_loading_indicator.dart';
 
 /// Tabs on phones.
 enum _PhoneTab { map, list, drivers }
@@ -43,6 +44,7 @@ class _DispatchViewState extends ConsumerState<DispatchView> {
   bool _showList = false;
   _PhoneTab _phoneTab = _PhoneTab.map;
   int _listPage = 1;
+  bool _isAutoAssigning = false;
 
   void _showMessage(String text) {
     ScaffoldMessenger.of(context)
@@ -98,6 +100,27 @@ class _DispatchViewState extends ConsumerState<DispatchView> {
       _showMessage('${numbers.join(', ')} assigned to ${driver.worker.name}.');
     }
     return error;
+  }
+
+  Future<void> _autoAssign() async {
+    setState(() => _isAutoAssigning = true);
+    final assigned = await ref
+        .read(dispatchViewModelProvider.notifier)
+        .autoAssign();
+    if (!mounted) return;
+    setState(() {
+      _isAutoAssigning = false;
+      _selectedOrderNumber = null;
+    });
+    if (assigned.isEmpty) {
+      _showMessage('No driver is free for these orders.');
+      return;
+    }
+    final lines = [
+      for (final (order, driver) in assigned)
+        '#${order.number} to ${driver.firstName}',
+    ];
+    _showMessage('Assigned ${lines.join(', ')}.');
   }
 
   /// Phones: the assign box in a bottom sheet.
@@ -337,7 +360,25 @@ class _DispatchViewState extends ConsumerState<DispatchView> {
               onAssign: (driver) => _assignBatch(batch, driver),
             ),
         ],
-        SectionHeading('Needs a driver (${needsDriver.length})'),
+        Row(
+          children: [
+            Expanded(
+              child: SectionHeading('Needs a driver (${needsDriver.length})'),
+            ),
+            if (needsDriver.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8, right: 8),
+                child: TextButton.icon(
+                  key: const Key('dispatch_auto_assign'),
+                  onPressed: _isAutoAssigning ? null : _autoAssign,
+                  icon: _isAutoAssigning
+                      ? const ButtonLoadingIndicator()
+                      : const Icon(Icons.auto_mode_rounded, size: 18),
+                  label: const Text('Auto-assign'),
+                ),
+              ),
+          ],
+        ),
         if (needsDriver.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),

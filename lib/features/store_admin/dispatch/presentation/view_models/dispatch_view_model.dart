@@ -118,6 +118,31 @@ class DispatchViewModel extends Notifier<AsyncValue<DispatchState>> {
     return null;
   }
 
+  /// Gives every waiting order a driver, following
+  /// [DispatchState.autoAssignPlan]. Returns the orders that were assigned.
+  /// An order that fails stays in "Needs a driver".
+  Future<List<(Order, DispatchDriver)>> autoAssign() async {
+    final plan = state.value?.autoAssignPlan ?? const [];
+    final repository = ref.read(dispatchRepositoryProvider);
+    final given = <String, int>{}; // orders given so far, per driver
+    final assigned = <(Order, DispatchDriver)>[];
+    for (final (order, driver) in plan) {
+      try {
+        await repository.assignDriver(
+          order: order,
+          driver: driver.worker,
+          activeOrders: driver.activeOrders + (given[driver.id] ?? 0),
+          maxActiveOrders: DispatchDriver.maxActiveOrders,
+        );
+        given[driver.id] = (given[driver.id] ?? 0) + 1;
+        assigned.add((order, driver));
+      } on DispatchException {
+        continue;
+      }
+    }
+    return assigned;
+  }
+
   /// Gives every order in [batch] to [driver], in drop-off order. Returns an
   /// error message, or null if all were assigned. Stops at the first one
   /// that fails, so the message says which orders still need a driver.
