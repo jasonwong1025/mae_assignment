@@ -1,10 +1,12 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/core/utilities/formatters.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/dispatch_labels.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_state.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_view_model.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 
 /// Table of one page of deliveries. Scrolls sideways if too narrow.
@@ -127,7 +129,7 @@ class _RowLayout extends StatelessWidget {
   }
 }
 
-class _DeliveryRow extends StatelessWidget {
+class _DeliveryRow extends ConsumerWidget {
   const _DeliveryRow({
     required this.order,
     required this.driver,
@@ -141,9 +143,15 @@ class _DeliveryRow extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
     final driver = this.driver;
+    // Road distance and time, or straight-line ones until the route loads.
+    final road = driver == null
+        ? null
+        : ref.watch(roadRouteProvider(RouteStops(driver.route))).value;
+    final metres = road?.metres ?? driver?.metresLeft;
+    final minutes = road?.minutes ?? driver?.minutesLeft;
 
     Widget cell(String text, {TextStyle? style}) {
       return Text(
@@ -180,12 +188,8 @@ class _DeliveryRow extends StatelessWidget {
               ],
             ),
             // Distance and time along the driver's route.
-            distance: cell(
-              driver == null ? '-' : Formatters.distance(driver.metresLeft),
-            ),
-            arrival: cell(
-              driver == null ? '-' : Formatters.minutes(driver.minutesLeft),
-            ),
+            distance: cell(metres == null ? '-' : Formatters.distance(metres)),
+            arrival: cell(minutes == null ? '-' : Formatters.minutes(minutes)),
             waiting: cell(
               Formatters.minutes(order.minutesInStatus(DateTime.now())),
             ),

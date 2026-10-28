@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:mae_assignment/app/theme/app_colors.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/ui/dispatch_labels.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_state.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_view_model.dart';
 import 'package:mae_assignment/shared/models/order.dart';
 
 /// OpenStreetMap with the branch, delivery addresses, drivers and their
-/// routes. Routes are straight lines until a routing service is added.
-class DispatchMap extends StatefulWidget {
+/// routes. Routes follow the roads, or are straight lines while the road
+/// route loads or if it cannot be found.
+class DispatchMap extends ConsumerStatefulWidget {
   const DispatchMap({
     required this.state,
     required this.selectedOrderNumber,
@@ -25,10 +28,10 @@ class DispatchMap extends StatefulWidget {
   final ValueChanged<DispatchDriver> onDriverTap;
 
   @override
-  State<DispatchMap> createState() => _DispatchMapState();
+  ConsumerState<DispatchMap> createState() => _DispatchMapState();
 }
 
-class _DispatchMapState extends State<DispatchMap> {
+class _DispatchMapState extends ConsumerState<DispatchMap> {
   final _controller = MapController();
 
   @override
@@ -53,6 +56,12 @@ class _DispatchMapState extends State<DispatchMap> {
       padding: const EdgeInsets.all(64),
       maxZoom: 15,
     );
+  }
+
+  /// The road route through [points], or the straight line until it loads.
+  List<LatLng> _roadOrStraight(List<LatLng> points) {
+    final road = ref.watch(roadRouteProvider(RouteStops(points))).value;
+    return road?.points ?? points;
   }
 
   void _zoomBy(double change) {
@@ -92,7 +101,7 @@ class _DispatchMapState extends State<DispatchMap> {
                 for (final driver in driversWithRoutes)
                   if (driver.route.isNotEmpty)
                     Polyline(
-                      points: driver.route,
+                      points: _roadOrStraight(driver.route),
                       strokeWidth: driver.id == widget.selectedDriverId ? 5 : 3,
                       color: driver.id == widget.selectedDriverId
                           ? AppColors.darkGreen

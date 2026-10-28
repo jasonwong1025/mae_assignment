@@ -1,7 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/models/driver_location.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/data/models/road_route.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/data/repositories/dispatch_repository.dart';
+import 'package:mae_assignment/features/store_admin/dispatch/data/repositories/route_repository.dart';
 import 'package:mae_assignment/features/store_admin/dispatch/presentation/view_models/dispatch_state.dart';
 import 'package:mae_assignment/features/store_admin/shell/presentation/view_models/branch_view_model.dart';
 import 'package:mae_assignment/shared/models/order.dart';
@@ -23,6 +27,36 @@ final StreamProvider<Map<String, DriverLocation>> _locationsProvider =
     StreamProvider.autoDispose<Map<String, DriverLocation>>((ref) {
       return ref.watch(dispatchRepositoryProvider).watchLocations();
     });
+
+/// Road route through a driver's stops, or null while it loads or if the
+/// routing service fails. Until then the map draws straight lines and the
+/// table shows straight-line distance and time.
+final roadRouteProvider = FutureProvider.autoDispose
+    .family<RoadRoute?, RouteStops>((ref, stops) {
+      return ref.read(routeRepositoryProvider).roadRoute(stops.points);
+    });
+
+/// The points of a route, rounded to about 100 m so a driver's small moves
+/// do not ask the routing service again.
+@immutable
+class RouteStops {
+  RouteStops(List<LatLng> points)
+    : points = [
+        for (final point in points)
+          LatLng(_round(point.latitude), _round(point.longitude)),
+      ];
+
+  final List<LatLng> points;
+
+  static double _round(double value) => (value * 1000).round() / 1000;
+
+  @override
+  bool operator ==(Object other) =>
+      other is RouteStops && listEquals(other.points, points);
+
+  @override
+  int get hashCode => Object.hashAll(points);
+}
 
 final NotifierProvider<DispatchViewModel, AsyncValue<DispatchState>>
 dispatchViewModelProvider =
